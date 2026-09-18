@@ -2,11 +2,11 @@
 
 > Backend contract derived from `CONTEXT.md`, `ARCHITECTURE_SPEC.md`, and `DATABASE_SCHEMA_SPEC.md`.
 >
-> Recommended backend: **FastAPI** with `/api/v1` as the public prefix.
+> Recommended backend: **Fastify (TypeScript)** with `/api/v1` as the public prefix.
 
 ## 1. API rules
 
-Authentication uses Supabase Auth JWTs. FastAPI verifies the bearer token and resolves the user's application profile and role. Never trust a role or patient/doctor ID supplied by the client when it can be derived from the authenticated identity.
+Authentication uses Clerk session tokens. Fastify verifies the bearer session token and resolves the user's application profile and role from the PostgreSQL `profiles` table. Never trust a role or patient/doctor ID supplied by the client when it can be derived from the authenticated identity.
 
 Every request gets an `X-Request-ID`. Operations that must not duplicate accidentally—appointment creation, record claiming, prescription finalization, AI-analysis start—also support an `Idempotency-Key` header.
 
@@ -657,23 +657,21 @@ Application code should not depend directly on 9Router.
 
 Conceptual interface:
 
-```python
-class ModelGateway:
-    async def generate_structured(
-        self,
-        *,
-        role: str,
-        schema: type,
-        messages: list,
-        route: str,
-    ):
-        ...
+```typescript
+interface ModelGateway {
+  generateStructured<T>(args: {
+    role: ModelRole; // ANALYST_1 | ANALYST_2 | JUDGE | OCR | STT
+    schema: z.ZodType<T>;
+    messages: ChatMessage[];
+    route: string; // pinned 9Router model route, differs per role
+  }): Promise<T>;
+}
 ```
 
 Prototype adapter:
 
 ```text
-NineRouterGateway
+NineRouterGateway (OpenAI Node SDK pointed at 9Router base URL)
 ```
 
 Future adapters may include India-region managed inference or self-hosted vLLM. The rest of CliniX should not change when the model provider changes.
@@ -711,15 +709,15 @@ Then log the access.
 
 Conceptual helper:
 
-```python
-authorize_patient_resource(
-    actor=context,
-    patient_id=patient_id,
-    resource_type="LAB_REPORT",
-    resource_id=report_id,
-    action="READ",
-    purpose="CONSULTATION",
-)
+```typescript
+await authorizePatientResource({
+  actor: context,
+  patientId,
+  resourceType: "LAB_REPORT",
+  resourceId: reportId,
+  action: "READ",
+  purpose: "CONSULTATION",
+});
 ```
 
 ## 37. Logging rule

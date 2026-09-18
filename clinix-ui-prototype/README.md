@@ -32,4 +32,4 @@ Then visit `http://localhost:8080`.
 
 ## Notes
 
-This is a visual/interaction prototype with synthetic demo data. It intentionally keeps the AI as a structured assistance layer instead of a chat-first interface. Production implementation should connect these screens to the FastAPI `/api/v1` backend, Supabase Auth/PostgreSQL/Storage, and the consent/audit model described in the architecture specifications.
+This is a visual/interaction prototype with synthetic demo data. It intentionally keeps the AI as a structured assistance layer instead of a chat-first interface. Production implementation should connect these screens to the Fastify `/api/v1` backend, Clerk (login) + Supabase PostgreSQL/Storage, and the consent/audit model described in the architecture specifications.

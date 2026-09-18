@@ -431,11 +431,9 @@ Final prescription
 Voice output is also **draft-first**, never final automatically.
 
 Possible technologies:
-- Whisper,
-- Azure Speech,
-- Deepgram,
+- Whisper (via 9Router),
 - LLM structured extraction,
-- Pydantic validation.
+- Zod validation.
 
 ---
 
@@ -917,7 +915,7 @@ The application should call a provider-independent Model Gateway.
 Prototype uses **9Router** as the model gateway.
 
 ```text
-CliniX FastAPI
+CliniX Fastify API (TypeScript)
         ↓
 9Router
         ↓
@@ -925,6 +923,10 @@ Analyst 1
 Analyst 2
 Judge
 ```
+
+Analyst 1 and Analyst 2 must use **different model families** via 9Router routing.
+The same model for both analysts would produce correlated errors and fake agreement,
+which defeats the purpose of independent analysis.
 
 Prototype safeguards:
 - synthetic/fake patient data only,
@@ -1136,42 +1138,60 @@ However:
 ## 43. Initial technology direction
 
 ### Frontend
-- React / Next.js
+- Next.js (App Router) + TypeScript
+- Single app with role-based routing (`/app/patient`, `/app/doctor`)
+- shadcn/ui + Tailwind CSS v4
+- TanStack Query for data fetching
+- React Hook Form + Zod for structured forms
 - structured adaptive-question components
 - patient dashboard
 - doctor dashboard
 
 ### Backend
-- Python
-- FastAPI
-- Pydantic
-- background worker/task system if needed
+- TypeScript
+- Fastify (modular monolith)
+- Zod for request/response validation
+- Drizzle ORM for database access
+- pg-boss for background jobs (Postgres-backed queue, no Redis)
+
+### Authentication
+- Clerk for login/session management only
+- Application roles (patient, doctor, clinic_staff, admin) stored in Postgres
+- Clerk webhook creates profiles row on signup
+- Unclaimed patients exist before any Clerk account
 
 ### Database
 - PostgreSQL
-- Supabase for prototype
+- Supabase Cloud for prototype
 - pgvector for semantic retrieval
+- Drizzle ORM + drizzle-kit for migrations
+- Row-Level Security for defense-in-depth
 
 ### Storage
-- Supabase Storage or equivalent for prototype
+- Supabase Storage with private buckets and signed URLs
 - India-resident controlled object storage for production
 
 ### AI
 Prototype:
-- 9Router
-- Analyst 1
-- Analyst 2
-- Judge
+- 9Router via OpenAI Node SDK
+- ModelGateway abstraction with role-based routing
+- Analyst 1 and Analyst 2 use different model families
+- Strong model for Judge
 
 Production:
 - provider-independent Model Gateway
 - controlled India-resident inference
 
 ### Document processing
-- OCR/document AI,
-- multimodal extraction,
-- structured validation,
+- OCR via Gemini 2.5 Flash multimodal (through 9Router),
+- voice transcription via Whisper (through 9Router),
+- structured validation with Zod,
 - mandatory confirmation for high-risk medication extraction.
+
+### Hosting
+- Dokploy compose on VPS (frontend + API as separate services)
+- Supabase Cloud for Postgres/Storage
+- pnpm workspaces monorepo
 
 ---
 
@@ -1339,3 +1359,47 @@ Both sides operate on the same encounter-based health ecosystem while preserving
 AI helps organize, retrieve, compare, summarize, question, and assist.
 
 **AI-generated inference is never silently treated as an authoritative clinical record.**
+
+---
+
+## 50. Clinic staff language and boundaries
+
+**CliniX Account**:
+A person's persistent identity in CliniX. One account may hold Patient, Doctor, Clinic Staff, or Admin workspace entitlements simultaneously.
+
+**Workspace Entitlement**:
+The right to enter a specific CliniX workspace. Changing employment or professional status changes entitlements without replacing the person's account or Patient Vault.
+
+**Practice**:
+A clinic-level care organization containing doctors and staff. Staff access is granted through a Practice Membership, not through permanent attachment to one doctor.
+
+**Practice Membership**:
+A time-bounded relationship between a CliniX Account and a Practice that defines the member's role and access. Ending a membership removes future practice access while preserving the audit history.
+
+**Practice Invitation**:
+An invitation from a Practice owner or authorized doctor that offers a specific Clinic Staff role. Clinic Staff cannot grant themselves a Practice Membership through public signup.
+
+**Active Practice**:
+The Practice whose permitted patients, appointments, and tasks are currently shown when a person belongs to multiple practices.
+
+**Staff-Doctor Assignment**:
+A Practice-scoped workload relationship assigning a Clinical Assistant to one or more doctors. It controls schedule and task routing but does not independently grant access to every patient or clinical record associated with those doctors.
+
+**Clinic Staff**:
+A workspace entitlement granted by Practice invitation. Clinic Staff access is operational and limited by the member's practice-level role.
+
+**Receptionist**:
+A Clinic Staff role responsible for appointments, necessary patient contact details, patient invitations, payment status, and non-clinical follow-up contact.
+
+**Clinical Assistant / Nurse**:
+A Clinic Staff role that includes Receptionist capabilities plus appointment-scoped intake, basic observations, document uploads, and doctor-assigned follow-up tasks. It does not authorize diagnosis, prescribing, prescription approval, or unrestricted Patient Vault access.
+
+### Example dialogue
+
+> **Practice owner:** Add Priya as a Receptionist for Lakeside Clinic.
+>
+> **CliniX:** Priya's Practice Membership grants operational access only. Her separate Patient workspace is unaffected.
+>
+> **Practice owner:** Priya has left Lakeside and joined Hillview Clinic as a Clinical Assistant.
+>
+> **CliniX:** End the Lakeside membership and create a Hillview membership. Prior access events remain in the ledger.
