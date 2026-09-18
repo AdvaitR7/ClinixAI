@@ -253,13 +253,14 @@ OTHER
 
 # 4. Authentication and profiles
 
-Supabase manages authentication in:
+Clerk manages session/login. Postgres stores application roles and profiles.
 
-```text
-auth.users
-```
+Clerk's user ID (`clerk_user_id`) links a Clerk identity to a `profiles` row.
+The Fastify API verifies the Clerk session token and derives role/patient/doctor IDs
+from Postgres — never from client-supplied claims.
 
-Application tables reference `auth.users.id`.
+A `user.created` Clerk webhook creates the corresponding `profiles` row on signup.
+Unclaimed patients (doctor-created) have no `profiles` row until claimed.
 
 ## 4.1 `profiles`
 
@@ -269,13 +270,16 @@ Common application-level account metadata.
 profiles
 --------
 id uuid PK
-auth_user_id uuid UNIQUE FK -> auth.users.id
+clerk_user_id text UNIQUE nullable
 primary_role user_role
 display_name text
 avatar_url text nullable
 created_at timestamptz
 updated_at timestamptz
 ```
+
+`clerk_user_id = NULL` means the profile row was created internally before a
+Clerk identity was linked (e.g. during record claim); it should be linked at claim time.
 
 Do not put full medical data here.
 
@@ -1709,7 +1713,7 @@ Recommended model:
 ```text
 Supabase RLS
     +
-FastAPI authorization service
+Fastify authorization service
     +
 consents / consent_scopes
     +
@@ -1962,7 +1966,7 @@ Both converge on the same final prescription tables.
 
 After this schema specification, define the **API Contract Specification**.
 
-That should specify concrete FastAPI endpoints, request/response schemas, authorization rules, and event flow for:
+That should specify concrete Fastify endpoints, request/response schemas, authorization rules, and event flow for:
 
 - patient signup / claim,
 - doctor signup,

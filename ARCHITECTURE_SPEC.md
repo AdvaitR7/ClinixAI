@@ -24,26 +24,29 @@ Both use shared backend services and a shared encounter-oriented medical-data mo
 ## Exists today
 
 ### Frontend
-- **Next.js + TypeScript**
-- Tailwind CSS
-- shadcn/ui or Radix UI for accessible interactive components
-- TanStack Query for client/server data fetching
-- React Hook Form + Zod for structured forms
+- **Next.js + TypeScript** (App Router)
+- Single app with role-based routing (`/app/patient`, `/app/doctor`)
+- **Tailwind CSS v4**
+- **shadcn/ui** for accessible interactive components
+- **TanStack Query** for client/server data fetching
+- **React Hook Form + Zod** for structured forms
 
 ### Backend API
-- **Python FastAPI**
-- Pydantic v2 schemas
-- SQLAlchemy or Supabase Python client
-- async HTTP client (`httpx`) for model calls
+- **Fastify (TypeScript)**
+- Zod schemas for request/response validation
+- **Drizzle ORM** for PostgreSQL access (drizzle-kit for migrations)
+- OpenAI Node SDK (`openai` package) pointed at 9Router for model calls
 
 ### Database
 - **Supabase PostgreSQL**
-- Row-Level Security for user-facing database access
+- Row-Level Security for defense-in-depth
 - `pgvector` for semantic retrieval
 
 ### Authentication
-- **Supabase Auth**
-- separate roles/claims for patient, doctor, clinic_staff, admin
+- **Clerk** for login/session management only
+- Application roles (patient, doctor, clinic_staff, admin) stored in Postgres
+- Clerk webhook creates a `profiles` row on signup
+- Unclaimed patients (doctor-created) exist before any Clerk account
 
 ### File storage
 - **Supabase Storage** for prototype documents
@@ -52,23 +55,23 @@ Both use shared backend services and a shared encounter-oriented medical-data mo
 
 ### AI gateway
 - **9Router** for prototype only
+- called through the OpenAI Node SDK
 - pinned routes for:
   - Analyst 1
   - Analyst 2
   - Judge
+- Analyst 1 and Analyst 2 use **different model families**
 
 ### OCR / document extraction
-Prototype options:
-- multimodal model extraction through a fixed provider for synthetic documents, or
-- PaddleOCR for basic printed reports
+- **Gemini 2.5 Flash multimodal extraction through 9Router** (pinned route)
+- structured candidates validated with Zod
 
 For handwritten prescription demonstrations:
 - treat extraction as experimental,
 - always create a draft requiring doctor confirmation.
 
 ### Background jobs
-Recommended:
-- **Redis + Dramatiq**
+- **pg-boss** (Postgres-backed queue, no Redis)
 
 Jobs:
 - OCR,
@@ -78,6 +81,8 @@ Jobs:
 - prescription draft extraction,
 - notification generation.
 
+pg-boss shares the existing Supabase PostgreSQL connection and keeps the Dokploy compose stack free of a Redis service.
+
 For a very small first demo, synchronous processing is acceptable; move to jobs before larger documents/workflows.
 
 ---
@@ -85,70 +90,60 @@ For a very small first demo, synchronous processing is acceptable; move to jobs 
 # 3. High-level system
 
 ```text
-                    ┌────────────────────┐
-                    │    Patient Web     │
-                    │  Next.js / React   │
-                    └─────────┬──────────┘
-                              │ HTTPS
-                              ▼
-                    ┌────────────────────┐
-                    │    CliniX API      │
-                    │      FastAPI       │
-                    └─────────┬──────────┘
-                              │
-      ┌───────────────────────┼────────────────────────┐
-      │                       │                        │
-      ▼                       ▼                        ▼
-┌──────────────┐      ┌───────────────┐      ┌─────────────────┐
-│ PostgreSQL   │      │ File Storage  │      │ AI Orchestrator │
-│ + pgvector   │      │ Private       │      │ FastAPI module  │
-└──────┬───────┘      └──────┬────────┘      └────────┬────────┘
-       │                      │                        │
-       │                      ▼                        ▼
-       │              ┌──────────────┐        ┌─────────────────┐
-       │              │ Worker Queue │        │    9Router      │
-       │              │ Redis/       │        │ prototype only  │
-       │              │ Dramatiq     │        └──────┬──────────┘
-       │              └──────┬───────┘               │
-       │                     │                 ┌──────┼───────┐
-       │                     ▼                 ▼      ▼       ▼
-       │                 OCR/parser            A1     A2    Judge
-       │
+                    ┌────────────────────────────┐
+                    │      Next.js Web App       │
+                    │   /app/patient & /app/doctor│
+                    └──────────────┬─────────────┘
+                                   │ HTTPS
+                                   ▼
+                    ┌────────────────────────────┐
+                    │        CliniX API          │
+                    │      Fastify (Node/TS)     │
+                    └──────────────┬─────────────┘
+                                   │
+       ┌───────────────────────────┼────────────────────────┐
+       │                           │                        │
+       ▼                           ▼                        ▼
+┌──────────────┐          ┌────────────────┐       ┌─────────────────┐
+│ Supabase DB  │          │  File Storage  │       │ AI Orchestrator │
+│ PostgreSQL   │          │  Private       │       │ Fastify module  │
+│ + pgvector   │          └────────┬───────┘       └────────┬────────┘
+└──────┬───────┘                   │                        │
+       │                           ▼                        ▼
+       │                  ┌─────────────────┐      ┌─────────────────┐
+       │                  │  Worker Queue   │      │    9Router      │
+       │                  │  pg-boss (PG)   │      │ OpenAI Node SDK │
+       │                  └────────┬────────┘      └────────┬────────┘
+       │                           │                        │
+       │                           ▼                  ┌─────┼─────┐
+       │                       Gemini OCR/            ▼     ▼     ▼
+       │                       Whisper parser         A1    A2  Judge
        ▼
 ┌─────────────────────┐
-│ Consent + Audit     │
-│ authorization data │
-│ access ledger      │
+│  Consent + Audit    │
+│  authorization data │
+│  access ledger      │
 └─────────────────────┘
-
-
-                    ┌────────────────────┐
-                    │     Doctor Web     │
-                    │  Next.js / React   │
-                    └─────────┬──────────┘
-                              │
-                              └────────── same FastAPI backend
 ```
 
 ---
 
 # 4. Repository layout
 
-Recommended monorepo:
+Recommended monorepo (pnpm workspaces):
 
 ```text
 clinix/
 ├── apps/
-│   ├── patient-web/          # Next.js
-│   └── doctor-web/           # Next.js
+│   └── web/                  # Next.js (patient + doctor, role-based routing)
 │
 ├── services/
-│   ├── api/                  # FastAPI
-│   └── worker/               # Dramatiq jobs
+│   ├── api/                  # Fastify API
+│   └── worker/               # pg-boss job processors
 │
 ├── packages/
 │   ├── ui/                   # shared UI components
-│   ├── schemas/              # shared TS schemas where useful
+│   ├── schemas/              # shared Zod schemas (API contract types)
 │   └── config/
 │
 ├── ai/
@@ -166,10 +161,10 @@ clinix/
 │
 └── infra/
     ├── supabase/
-    └── docker/
+    └── dokploy/              # compose files for the VPS
 ```
 
-For a four-person college team, patient and doctor UIs may initially live in one Next.js app with role-based routing:
+Patient and doctor UIs live in one Next.js app with role-based routing:
 
 ```text
 /app/patient/...
@@ -182,10 +177,10 @@ That is simpler than two independent frontend deployments.
 
 # 5. Core backend modules
 
-Keep one FastAPI deployable service initially, but separate code by domain.
+Keep one Fastify deployable service initially, but separate code by domain.
 
 ```text
-api/
+api/src/
 ├── auth/
 ├── patients/
 ├── doctors/
@@ -221,11 +216,11 @@ Do not create microservices until real scaling or organizational boundaries just
 
 # 6. Identity model
 
-Use one account table/auth identity but separate domain profiles.
+Use Clerk for session management, but resolve application roles and profiles from Postgres.
 
 ```text
-auth.users
-    ↓
+Clerk user
+    ↓ (webhook / user_id)
 profiles
     ├── patient_profile
     ├── doctor_profile
@@ -404,7 +399,7 @@ The frontend renders these deterministically.
 ```text
 Patient creates concern
         ↓
-FastAPI creates encounter
+Fastify API creates encounter
         ↓
 Safety pre-check
         ↓
@@ -525,19 +520,20 @@ Initial architecture:
 
 ```text
 safety/
-├── rules.py
+├── rules.ts
 ├── rule_sets/
 │   ├── emergency.json
 │   ├── medication.json
 │   └── contraindication.json
-└── evaluator.py
+└── evaluator.ts
 ```
 
 Example conceptual rule:
 
-```python
-if severe_breathlessness:
-    return BLOCK_NORMAL_FLOW
+```typescript
+if (severeBreathlessness) {
+  return BLOCK_NORMAL_FLOW;
+}
 ```
 
 Do not hardcode clinically sensitive rules until they are sourced/reviewed.
@@ -1194,9 +1190,9 @@ For four students:
 - draft queue.
 
 ## Student 3 — Backend/data
-- FastAPI,
-- Supabase/PostgreSQL,
-- auth,
+- Fastify API,
+- Supabase/PostgreSQL + Drizzle,
+- auth (Clerk integration),
 - data model,
 - consent,
 - audit,
