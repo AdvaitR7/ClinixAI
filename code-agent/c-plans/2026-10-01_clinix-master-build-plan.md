@@ -15,7 +15,7 @@ todos:
     status: pending
   - id: core-workspaces
     content: Phase 2 — patient/doctor dossiers, schedule, directory (Screens 3,4,15,16,17,22)
-    status: pending
+    status: completed
   - id: clinical-prescribing
     content: Phase 3 — encounters, consultation, direct digital prescriptions (Screens 10,11,14,18,19,20)
     status: pending
@@ -241,7 +241,9 @@ SELECT extname...      → 'vector' present in Supabase
 
 ### Phase 2 — Core dossiers (Screens 3, 4, 15, 16, 17, 22)
 
-Tables (DB spec §8, §11): `patient_doctor_relationships`, `encounters`, `appointments` (+ indexes §41). Endpoints (API spec §5, §7, §14): `POST /doctor/patients`, `GET /doctors/{id}/availability`, appointment CRUD, `GET /patients/self/dashboard`, `GET /doctor/dashboard`. Screens per catalog §7: Pages 3, 4, 15 (calendar + availability), 16 (directory + unclaimed filter), 17 (clinical workspace, factual-record only — AI panel arrives Phase 5 as separate container), 22 (add clinic patient with duplicate check via `phone_hash`).
+**Status (2026-10-01):** ✅ Complete — gate green. Full authenticated E2E run with real Clerk sessions (minted via Backend `sessions.createSession` + `getToken` for the Phase 1 `doctor_test` + `clerk_test` users): doctor `/me`→DOCTOR, patient `/me`→PATIENT · availability set → 16 slots · create unclaimed patient → 201 → duplicate phone → 409 `DUPLICATE_PATIENT` · directory lists unclaimed · patient creates preferred relationship · book → REQUESTED · **second patient same slot → 409 `SLOT_TAKEN`** (overbooking guard) · dashboard lists incoming request · confirm → CONFIRMED · schedule shows confirmed · workspace dossier returns identity with no encrypted blobs · patient dashboard shows upcoming · cancel → CANCELLED. `npm run typecheck` + web `build` green; all 16 routes register (401 unauth). Detail: `code-agent/c-plans/2026-10-01_clinix-phase-2-core-dossiers.md`.
+
+Tables (DB spec §8, §11, §22 + §41 indexes; `payment_events` §23.1 pulled forward for the Page 15 payment-status endpoint; `doctor_availability` as a documented contract extension): `patient_doctor_relationships`, `encounters`, `appointments`, `payment_events`, `doctor_availability`. Endpoints (API spec §5, §7, §8, §14, §15, §31, §32 + documented extensions `GET /doctors`, `GET /doctor/patients`, `GET /doctor/appointments`, `POST /appointments/{id}/cancel`): `POST /doctor/patients`, `GET /doctors/{id}/availability`, `PUT /doctors/self/availability`, appointment CRUD, `GET /patients/self/dashboard`, `GET /doctor/dashboard`, `GET /doctor/patients/{id}/workspace`. Screens per catalog §7: Pages 3, 4, 15 (calendar + availability), 16 (directory + unclaimed filter), 17 (clinical workspace, factual-record only — AI panel arrives Phase 5 as separate container), 22 (add clinic patient with duplicate check via `phone_hash`), plus interim `/app/patient/book` (superseded by Page 14 in Phase 3).
 
 **Gate:** doctor creates unclaimed patient → patient appears in Page 16 + schedule on Page 15 → appointment booked → Page 17 shows dossier.
 
@@ -313,7 +315,7 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 ## Screen-to-phase checklist (30/30)
 
 - [x] 1, 2, 2a, 2b, 2c, 5 (Phase 1)
-- [ ] 3, 4, 15, 16, 17, 22 (Phase 2)
+- [x] 3, 4, 15, 16, 17, 22 (Phase 2)
 - [ ] 10, 11, 14, 18, 19, 20 (Phase 3)
 - [ ] 9 (Phase 4)
 - [ ] 6, 7, 8 (Phase 5)

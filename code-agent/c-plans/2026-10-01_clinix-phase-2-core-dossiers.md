@@ -35,7 +35,7 @@ isProject: true
 
 ## Status
 
-WP1–WP6 complete (2026-10-01): migration 0001 applied; API + web typecheck pass; web build passes; API boots, `/health` green, all 16 routes register (401 without token); `computeSlots` slot math verified. WP7 gate: **authenticated E2E pending** — requires real Clerk doctor+patient session tokens (human step, same as Phase 1). Merge to master only after that gate is green.
+✅ Complete (2026-10-01) — gate green. WP1–WP7 all done. Migration 0001 applied; API + web typecheck pass; web build passes. **Authenticated E2E passed** (18/18 checks) using real Clerk sessions minted via Backend `sessions.createSession` + `getToken` for the Phase 1 `doctor_test` + `clerk_test` users: full create-patient → directory → book → 409 `SLOT_TAKEN` (second patient) → confirm → schedule → workspace (no blob leak) → patient dashboard → cancel. Two date-only `to` boundary bugs fixed during gate (availability + doctor appointments list both now expand `YYYY-MM-DD` to end-of-day). Merged to master.
 
 ## Human
 
