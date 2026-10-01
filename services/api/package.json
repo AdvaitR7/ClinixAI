@@ -11,10 +11,13 @@
     "db:check": "tsx src/check-db.ts"
   },
   "dependencies": {
+    "@clerk/backend": "^3.21.1",
     "@clinix/schemas": "*",
+    "@fastify/cors": "^11.3.0",
     "dotenv": "^18.0.5",
     "drizzle-orm": "^0.45.3",
     "fastify": "^5.12.5",
+    "fastify-plugin": "^5.1.0",
     "postgres": "^3.4.7",
     "zod": "^4.6.5"
   },
