@@ -19,6 +19,12 @@ export async function availabilityRoutes(app: FastifyInstance) {
       }
       const { from, to } = parsed.data;
 
+      // Date-only ranges ("YYYY-MM-DD") mean the full day; expand `to` to end-of-day.
+      const fromDate = new Date(from);
+      const toDate = /^\d{4}-\d{2}-\d{2}$/.test(to)
+        ? new Date(`${to}T23:59:59.999Z`)
+        : new Date(to);
+
       const [availRows, bookedRows] = await Promise.all([
         database
           .select()
@@ -32,8 +38,8 @@ export async function availabilityRoutes(app: FastifyInstance) {
             and(
               eq(appointments.doctorId, request.params.doctor_id),
               inArray(appointments.status, ["REQUESTED", "CONFIRMED"]),
-              gte(appointments.scheduledStart, new Date(from)),
-              lte(appointments.scheduledStart, new Date(to)),
+              gte(appointments.scheduledStart, fromDate),
+              lte(appointments.scheduledStart, toDate),
             ),
           ),
       ]);
@@ -50,8 +56,8 @@ export async function availabilityRoutes(app: FastifyInstance) {
       const slots = computeSlots(
         avail.weeklyTemplate,
         slotMinutes,
-        new Date(from),
-        new Date(to),
+        fromDate,
+        toDate,
         booked,
       );
 

@@ -140,7 +140,9 @@ export async function appointmentRoutes(app: FastifyInstance) {
         and(
           eq(appointments.doctorId, doctorId),
           ...(from ? [gte(appointments.scheduledStart, new Date(from))] : []),
-          ...(to ? [lte(appointments.scheduledStart, new Date(to))] : []),
+          ...(to
+            ? [lte(appointments.scheduledStart, /^\d{4}-\d{2}-\d{2}$/.test(to) ? new Date(`${to}T23:59:59.999Z`) : new Date(to))]
+            : []),
         ),
       )
       .orderBy(asc(appointments.scheduledStart));
