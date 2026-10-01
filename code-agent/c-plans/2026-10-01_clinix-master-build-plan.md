@@ -9,7 +9,7 @@ plan_path: code-agent/c-plans/2026-10-01_clinix-master-build-plan.md
 todos:
   - id: scaffold-foundation
     content: Phase 0 — monorepo scaffold, design tokens, Supabase Cloud project + pgvector, Fastify+Drizzle, Next.js shell
-    status: pending
+    status: blocked
   - id: auth-onboarding
     content: Phase 1 — Clerk auth, role onboarding, workspace switching (Screens 1,2,2a,2b,2c,5)
     status: pending
