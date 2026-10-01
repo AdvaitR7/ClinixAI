@@ -1,45 +1,143 @@
-import { healthStatusSchema } from "@clinix/schemas";
+"use client";
 
-// Phase 0 wiring check — proves @clinix/schemas is transpiled/importable from web.
-void healthStatusSchema;
+import Link from "next/link";
+import type { PatientDashboard } from "@clinix/schemas";
+import { WorkspaceShell } from "@/components/workspace-shell";
+import { Skeleton } from "@/components/skeleton";
+import { StatusBadge } from "@/components/status-badge";
+import { useApiData } from "@/lib/api";
 
+const nav = [
+  { label: "Home", href: "/app/patient", active: true },
+  { label: "Timeline", href: "/app/patient", disabled: true },
+  { label: "Vault", href: "/app/patient", disabled: true },
+  { label: "Visits", href: "/app/patient", disabled: true },
+  { label: "Care", href: "/app/patient", disabled: true },
+];
+
+function fmtWhen(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** Page 3 — Patient Dashboard (SCREEN_CATALOG §7). */
 export default function PatientPage() {
+  const state = useApiData<PatientDashboard>("/patients/self/dashboard");
+
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="bg-botanical px-6 py-4 text-surface">
-        <p className="font-sans text-xs font-semibold uppercase tracking-wide text-sage">
-          CliniX
-        </p>
-        <h1 className="mt-1 font-sans text-2xl font-semibold">
-          Patient workspace
-        </h1>
-      </header>
+    <WorkspaceShell workspace="Patient" title="Home" nav={nav}>
+      {state.status === "loading" && (
+        <div className="space-y-3" aria-hidden="true">
+          <Skeleton className="h-24 rounded-2xl" />
+          <Skeleton className="h-40 rounded-2xl" />
+        </div>
+      )}
 
-      <main className="flex-1 space-y-6 px-6 py-8">
+      {state.status === "error" && (
         <section className="rounded-2xl border border-hairline bg-surface p-5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-graphite">
-            Today
-          </p>
-          <p className="mt-1 text-sm text-ink">No upcoming appointment.</p>
+          <p className="font-sans text-sm text-critical">{state.error}</p>
         </section>
+      )}
 
-        <button
-          type="button"
-          className="w-full rounded-full bg-copper px-4 py-3 font-sans text-base font-semibold text-botanical"
-        >
-          New check-in
-        </button>
-      </main>
+      {state.status === "ready" && (
+        <>
+          <section className="rounded-2xl border border-hairline bg-surface p-5">
+            <p className="font-sans text-xs font-semibold uppercase tracking-wide text-graphite">
+              Today
+            </p>
+            {state.data.upcoming_appointment ? (
+              <div className="mt-3">
+                <p className="font-sans text-base font-semibold">
+                  {fmtWhen(state.data.upcoming_appointment.scheduled_start)}
+                </p>
+                <p className="mt-1 font-sans text-sm text-graphite">
+                  {state.data.upcoming_appointment.reason || "Appointment"}
+                </p>
+                <div className="mt-2">
+                  <StatusBadge status={state.data.upcoming_appointment.status} />
+                </div>
+              </div>
+            ) : (
+              <p className="mt-1 font-sans text-sm text-ink">No upcoming appointment.</p>
+            )}
+            {state.data.pending_followups.length === 0 && (
+              <p className="mt-3 font-sans text-sm text-graphite">No follow-ups due.</p>
+            )}
+          </section>
 
-      <nav className="sticky bottom-0 border-t border-hairline bg-surface px-6 py-3">
-        <ul className="flex justify-between font-sans text-xs text-graphite">
-          <li className="font-semibold text-botanical">Home</li>
-          <li>Timeline</li>
-          <li>Vault</li>
-          <li>Visits</li>
-          <li>Care</li>
-        </ul>
-      </nav>
-    </div>
+          <section>
+            <p className="font-sans text-xs font-semibold uppercase tracking-wide text-graphite">
+              Quick actions
+            </p>
+            <div className="mt-2 grid gap-3">
+              <button
+                type="button"
+                disabled
+                className="w-full rounded-2xl border border-hairline bg-surface px-4 py-3 text-left font-sans text-sm font-semibold text-graphite"
+              >
+                New check-in
+                <span className="block font-sans text-xs font-normal text-graphite">
+                  Arrives with AI assistance
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled
+                className="w-full rounded-2xl border border-hairline bg-surface px-4 py-3 text-left font-sans text-sm font-semibold text-graphite"
+              >
+                Upload report
+                <span className="block font-sans text-xs font-normal text-graphite">
+                  Arrives with the health vault
+                </span>
+              </button>
+              <Link
+                href="/app/patient/book"
+                className="w-full rounded-2xl bg-copper px-4 py-3 font-sans text-base font-semibold text-botanical transition-transform active:translate-y-px"
+              >
+                Book doctor
+              </Link>
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-hairline bg-surface p-5">
+            <p className="font-sans text-xs font-semibold uppercase tracking-wide text-graphite">
+              Active medications
+            </p>
+            <p className="mt-1 font-sans text-sm text-graphite">
+              Medication history arrives in a later phase.
+            </p>
+          </section>
+
+          {state.data.recent_timeline.length > 0 && (
+            <section className="rounded-2xl border border-hairline bg-surface p-5">
+              <p className="font-sans text-xs font-semibold uppercase tracking-wide text-graphite">
+                Recent activity
+              </p>
+              <ul className="mt-3 space-y-3">
+                {state.data.recent_timeline.map((t, i) => (
+                  <li key={i} className="flex items-center justify-between gap-3">
+                    <span className="font-sans text-sm">{t.label}</span>
+                    <span className="font-mono text-xs text-graphite">
+                      {new Date(t.at).toLocaleDateString("en-IN", {
+                        timeZone: "Asia/Kolkata",
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+    </WorkspaceShell>
   );
 }

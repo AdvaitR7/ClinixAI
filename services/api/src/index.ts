@@ -4,6 +4,12 @@ import authPlugin from "./auth/context.js";
 import { meRoutes } from "./auth/me.js";
 import { doctorRoutes } from "./doctors/routes.js";
 import { patientRoutes } from "./patients/routes.js";
+import { doctorPatientRoutes } from "./doctor-patients/routes.js";
+import { relationshipRoutes } from "./relationships/routes.js";
+import { encounterRoutes } from "./encounters/routes.js";
+import { availabilityRoutes } from "./availability/routes.js";
+import { appointmentRoutes } from "./appointments/routes.js";
+import { dashboardRoutes } from "./dashboards/routes.js";
 import { checkDb } from "./db";
 
 const app = Fastify({ logger: true, genReqId: () => crypto.randomUUID() });
@@ -35,6 +41,12 @@ await app.register(
     await instance.register(meRoutes);
     await instance.register(patientRoutes);
     await instance.register(doctorRoutes);
+    await instance.register(doctorPatientRoutes);
+    await instance.register(relationshipRoutes);
+    await instance.register(encounterRoutes);
+    await instance.register(availabilityRoutes);
+    await instance.register(appointmentRoutes);
+    await instance.register(dashboardRoutes);
   },
   { prefix: "/api/v1" },
 );

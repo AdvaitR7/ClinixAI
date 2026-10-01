@@ -3,6 +3,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import type { UserRole } from "@clinix/schemas";
 import { db } from "../db.js";
+import { error } from "../http.js";
 import { doctors, patients, profiles } from "../schema.js";
 import { verifySession } from "./clerk.js";
 
@@ -20,18 +21,6 @@ declare module "fastify" {
   }
 }
 
-function error(
-  reply: FastifyReply,
-  request: FastifyRequest,
-  status: number,
-  code: string,
-  message: string,
-) {
-  return reply.code(status).send({
-    error: { code, message, request_id: request.id },
-  });
-}
-
 /**
  * requireAuth: verifies the Clerk bearer token, then derives role + domain
  * ids from Postgres. Client-supplied role/ids are never trusted.
@@ -40,17 +29,17 @@ function error(
 async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
   const header = request.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
-    return error(reply, request, 401, "UNAUTHORIZED", "Missing bearer token");
+    return error(request, reply, 401, "UNAUTHORIZED", "Missing bearer token");
   }
 
   let clerkUserId: string;
   try {
     clerkUserId = await verifySession(header.slice("Bearer ".length));
   } catch {
-    return error(reply, request, 401, "UNAUTHORIZED", "Invalid session token");
+    return error(request, reply, 401, "UNAUTHORIZED", "Invalid session token");
   }
 
-  if (!db) return error(reply, request, 503, "DB_UNAVAILABLE", "Database is not configured");
+  if (!db) return error(request, reply, 503, "DB_UNAVAILABLE", "Database is not configured");
 
   const rows = await db
     .select()
@@ -60,7 +49,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
   const profile = rows[0];
   if (!profile) {
     // Genuine 404-shaped auth state: session is valid, onboarding isn't done.
-    return error(reply, request, 403, "ONBOARDING_REQUIRED", "Complete onboarding to continue");
+    return error(request, reply, 403, "ONBOARDING_REQUIRED", "Complete onboarding to continue");
   }
 
   const role = profile.primaryRole as UserRole;
