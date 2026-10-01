@@ -3,17 +3,8 @@ import { eq } from "drizzle-orm";
 import { doctorOnboardingSchema } from "@clinix/schemas";
 import { publicRoute } from "../auth/context.js";
 import { ensureProfile, verifySession } from "../auth/clerk.js";
-import { db } from "../db.js";
+import { error, requireDb } from "../http.js";
 import { doctors } from "../schema.js";
-
-function requireDb() {
-  if (!db) throw new Error("DATABASE_URL is not configured");
-  return db;
-}
-
-function error(request: { id: string }, reply: import("fastify").FastifyReply, status: number, code: string, message: string) {
-  return reply.code(status).send({ error: { code, message, request_id: request.id } });
-}
 
 /** POST /doctors/self — creates profile + doctor row, verification PENDING (API spec §4). */
 export async function doctorRoutes(app: FastifyInstance) {

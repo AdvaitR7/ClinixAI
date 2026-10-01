@@ -64,3 +64,43 @@ export function useMe() {
 
   return { ...state, refresh };
 }
+
+export type ApiDataState<T> =
+  | { status: "loading" }
+  | { status: "error"; error: string }
+  | { status: "ready"; data: T };
+
+/**
+ * Generic authenticated GET hook (no TanStack Query — Phase 1 precedent).
+ * Pass a null path to hold in loading until the path is known.
+ */
+export function useApiData<T>(path: string | null) {
+  const { getToken, isLoaded, isSignedIn } = useAuth();
+  const [state, setState] = useState<ApiDataState<T>>({ status: "loading" });
+
+  const refresh = useCallback(async () => {
+    if (!isLoaded || !isSignedIn) return;
+    if (!path) {
+      setState({ status: "loading" });
+      return;
+    }
+    setState({ status: "loading" });
+    const token = await getToken();
+    if (!token) return;
+    try {
+      const data = await fetchApi<T>(token, path);
+      setState({ status: "ready", data });
+    } catch (err) {
+      setState({
+        status: "error",
+        error: err instanceof Error ? err.message : "Request failed",
+      });
+    }
+  }, [getToken, isLoaded, isSignedIn, path]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return { ...state, refresh };
+}

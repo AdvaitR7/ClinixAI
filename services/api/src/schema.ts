@@ -1,10 +1,16 @@
 import {
+  boolean,
   customType,
+  index,
+  integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 // Postgres bytea has no first-class Drizzle builder; customType maps Buffer
@@ -134,3 +140,210 @@ export const doctors = pgTable("doctors", {
     .notNull()
     .defaultNow(),
 });
+
+// --- Phase 2 enums (DATABASE_SCHEMA_SPEC §3) ---
+
+export const encounterType = pgEnum("encounter_type", [
+  "AI_SELF_CARE",
+  "DOCTOR_ONLINE",
+  "DOCTOR_IN_PERSON",
+  "FOLLOW_UP",
+  "RECORD_IMPORT",
+]);
+
+export const encounterStatus = pgEnum("encounter_status", [
+  "OPEN",
+  "WAITING_FOR_PATIENT",
+  "WAITING_FOR_DOCTOR",
+  "COMPLETED",
+  "CANCELLED",
+  "ESCALATED",
+]);
+
+export const appointmentType = pgEnum("appointment_type", [
+  "ONLINE",
+  "IN_PERSON",
+]);
+
+export const appointmentStatus = pgEnum("appointment_status", [
+  "REQUESTED",
+  "CONFIRMED",
+  "COMPLETED",
+  "CANCELLED",
+  "NO_SHOW",
+]);
+
+export const paymentStatus = pgEnum("payment_status", [
+  "UNPAID",
+  "REQUESTED",
+  "PAID",
+  "WAIVED",
+  "REFUNDED",
+]);
+
+export const relationshipType = pgEnum("relationship_type", [
+  "PRIMARY_PHYSICIAN",
+  "DERMATOLOGIST",
+  "CARDIOLOGIST",
+  "DENTIST",
+  "PSYCHIATRIST",
+  "OTHER",
+]);
+
+// --- Phase 2 tables (DATABASE_SCHEMA_SPEC §8, §11, §22, §23.1) ---
+
+/**
+ * §8 — one row per patient↔doctor care relationship.
+ * `status` is text per spec; app vocabulary 'ACTIVE' | 'ENDED'.
+ */
+export const patientDoctorRelationships = pgTable(
+  "patient_doctor_relationships",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    doctorId: uuid("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    relationshipType: relationshipType("relationship_type").notNull(),
+    isPreferred: boolean("is_preferred").notNull().default(false),
+    status: text("status").notNull().default("ACTIVE"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("pdr_patient_doctor_idx").on(t.patientId, t.doctorId),
+    uniqueIndex("pdr_unique_idx").on(
+      t.patientId,
+      t.doctorId,
+      t.relationshipType,
+      t.status,
+    ),
+  ],
+);
+
+/** §11 — encounters are the central clinical unit. */
+export const encounters = pgTable(
+  "encounters",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    encounterType: encounterType("encounter_type").notNull(),
+    status: encounterStatus("status").notNull().default("OPEN"),
+    chiefConcern: text("chief_concern"),
+    initiatedByActorType: actorType("initiated_by_actor_type").notNull(),
+    initiatedByActorId: uuid("initiated_by_actor_id"),
+    relatedDoctorId: uuid("related_doctor_id").references(() => doctors.id),
+    relatedPracticeId: uuid("related_practice_id"),
+    parentEncounterId: uuid("parent_encounter_id").references(
+      (): AnyPgColumn => encounters.id,
+    ),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("encounters_patient_started_idx").on(t.patientId, t.startedAt),
+    index("encounters_doctor_started_idx").on(t.relatedDoctorId, t.startedAt),
+  ],
+);
+
+/** §22 — appointments with §22 indexes. */
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    doctorId: uuid("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    practiceId: uuid("practice_id"),
+    encounterId: uuid("encounter_id").references(() => encounters.id),
+    appointmentType: appointmentType("appointment_type").notNull(),
+    status: appointmentStatus("status").notNull().default("REQUESTED"),
+    scheduledStart: timestamp("scheduled_start", {
+      withTimezone: true,
+    }).notNull(),
+    scheduledEnd: timestamp("scheduled_end", { withTimezone: true }),
+    reason: text("reason"),
+    meetingProvider: text("meeting_provider"),
+    meetingReference: text("meeting_reference"),
+    paymentStatus: paymentStatus("payment_status").notNull().default("UNPAID"),
+    requestedAt: timestamp("requested_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("appointments_doctor_start_idx").on(t.doctorId, t.scheduledStart),
+    index("appointments_patient_start_idx").on(t.patientId, t.scheduledStart),
+    index("appointments_status_start_idx").on(t.status, t.scheduledStart),
+  ],
+);
+
+/** §23.1 — manual payment tracking audit trail (pulled forward from Phase 3). */
+export const paymentEvents = pgTable("payment_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  appointmentId: uuid("appointment_id")
+    .notNull()
+    .references(() => appointments.id),
+  oldStatus: paymentStatus("old_status"),
+  newStatus: paymentStatus("new_status").notNull(),
+  markedByProfileId: uuid("marked_by_profile_id")
+    .notNull()
+    .references(() => profiles.id),
+  referenceNote: text("reference_note"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Documented contract extension — source of truth for §14 availability.
+ * Slots = weekly template minus booked appointments.
+ */
+export const doctorAvailability = pgTable("doctor_availability", {
+  doctorId: uuid("doctor_id")
+    .primaryKey()
+    .references(() => doctors.id),
+  weeklyTemplate: jsonb("weekly_template")
+    .$type<{ day_of_week: number; start_time: string; end_time: string }[]>()
+    .notNull(),
+  slotDurationMinutes: integer("slot_duration_minutes").notNull().default(30),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// ponytail: phone_hash duplicate check (§41/Screen 22) works via a plain
+// `where phone_hash = hashIdentity(mobile)` full scan at prototype scale.
+// Add a DB index when directories grow — drizzle's standalone index API
+// chokes on a nullable plain `text` column (no ExtraConfigColumn mixin).

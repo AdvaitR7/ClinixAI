@@ -16,7 +16,7 @@ export function WorkspaceShell({
 }: {
   workspace: string;
   title: string;
-  nav: { label: string; href: string; active?: boolean }[];
+  nav: { label: string; href: string; active?: boolean; disabled?: boolean }[];
   children: ReactNode;
 }) {
   return (
@@ -37,12 +37,18 @@ export function WorkspaceShell({
         <ul className="flex justify-between font-sans text-xs text-graphite">
           {nav.map((item) => (
             <li key={item.label}>
-              <Link
-                href={item.href}
-                className={item.active ? "font-semibold text-botanical" : undefined}
-              >
-                {item.label}
-              </Link>
+              {item.disabled ? (
+                <span className="text-hairline" aria-disabled="true">
+                  {item.label}
+                </span>
+              ) : (
+                <Link
+                  href={item.href}
+                  className={item.active ? "font-semibold text-botanical" : undefined}
+                >
+                  {item.label}
+                </Link>
+              )}
             </li>
           ))}
         </ul>

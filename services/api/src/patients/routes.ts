@@ -6,29 +6,10 @@ import {
 } from "@clinix/schemas";
 import { publicRoute } from "../auth/context.js";
 import { ensureProfile, verifySession } from "../auth/clerk.js";
-import { db } from "../db.js";
-import { decryptIdentity, encryptIdentity, hashIdentity } from "../crypto.js";
+import { encryptIdentity, hashIdentity } from "../crypto.js";
+import { error, requireDb } from "../http.js";
 import { patientIdentity, patients, profiles } from "../schema.js";
-
-function requireDb() {
-  if (!db) throw new Error("DATABASE_URL is not configured");
-  return db;
-}
-
-/** Server-enforced 18+ (SCREEN_CATALOG Page 2; CONTEXT §2 adults 18+). */
-export function isAdult(dateOfBirth: string): boolean {
-  const dob = new Date(`${dateOfBirth}T00:00:00Z`);
-  if (Number.isNaN(dob.getTime())) return false;
-  const now = new Date();
-  let age = now.getUTCFullYear() - dob.getUTCFullYear();
-  const m = now.getUTCMonth() - dob.getUTCMonth();
-  if (m < 0 || (m === 0 && now.getUTCDate() < dob.getUTCDate())) age -= 1;
-  return age >= 18;
-}
-
-function error(request: { id: string }, reply: import("fastify").FastifyReply, status: number, code: string, message: string) {
-  return reply.code(status).send({ error: { code, message, request_id: request.id } });
-}
+import { decryptMinimal, encryptPatientIdentity, isAdult } from "./identity.js";
 
 /** POST /patients/self — creates profile + patient + encrypted identity (API spec §3). */
 export async function patientRoutes(app: FastifyInstance) {
@@ -83,11 +64,7 @@ export async function patientRoutes(app: FastifyInstance) {
 
       await database.insert(patientIdentity).values({
         patientId,
-        fullNameEncrypted: encryptIdentity(body.full_name),
-        phoneEncrypted: encryptIdentity(body.phone),
-        phoneHash: hashIdentity(body.phone),
-        dateOfBirthEncrypted: encryptIdentity(body.date_of_birth),
-        sexAtRegistration: body.sex_at_registration,
+        ...encryptPatientIdentity(body),
       });
 
       if (!profile.displayName && body.full_name) {
@@ -117,12 +94,7 @@ export async function patientRoutes(app: FastifyInstance) {
     }
     return {
       patient_id: identity.patientId,
-      full_name: decryptIdentity(identity.fullNameEncrypted),
-      phone: decryptIdentity(identity.phoneEncrypted),
-      date_of_birth: identity.dateOfBirthEncrypted
-        ? decryptIdentity(identity.dateOfBirthEncrypted)
-        : null,
-      sex_at_registration: identity.sexAtRegistration,
+      ...decryptMinimal(identity),
     };
   });
 
