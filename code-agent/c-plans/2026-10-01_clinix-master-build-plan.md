@@ -226,6 +226,8 @@ SELECT extname...      → 'vector' present in Supabase
 
 ### Phase 1 — Auth & onboarding (Screens 1, 2, 2a, 2b, 2c, 5)
 
+**Status (2026-10-01):** ✅ Complete — gate green. Patient + doctor signup verified in a real Clerk session: `/me` returns `PATIENT` / `DOCTOR`+`PENDING` (role from Postgres, never client-supplied) · 18+ DOB → `403 AGE_REQUIREMENT` · `patient_identity` AES-256-GCM encrypted (no plaintext, `phone_hash` HMAC) · workspace + settings routing behind auth. Fixed during gate: web↔API CORS (`@fastify/cors`) and `publicRoute` opt-out (`config.auth`). Lazy profile sync (not webhook) per session plan; deferred webhook → Phase 8.
+
 **Human:** create Clerk application → copy keys per `.sensitive_docs/README.md`.
 
 **Agent:**
@@ -310,7 +312,7 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 
 ## Screen-to-phase checklist (30/30)
 
-- [ ] 1, 2, 2a, 2b, 2c, 5 (Phase 1)
+- [x] 1, 2, 2a, 2b, 2c, 5 (Phase 1)
 - [ ] 3, 4, 15, 16, 17, 22 (Phase 2)
 - [ ] 10, 11, 14, 18, 19, 20 (Phase 3)
 - [ ] 9 (Phase 4)
