@@ -1394,6 +1394,9 @@ A Clinic Staff role responsible for appointments, necessary patient contact deta
 **Clinical Assistant / Nurse**:
 A Clinic Staff role that includes Receptionist capabilities plus appointment-scoped intake, basic observations, document uploads, and doctor-assigned follow-up tasks. It does not authorize diagnosis, prescribing, prescription approval, or unrestricted Patient Vault access.
 
+**Platform Administrator**:
+An internal CliniX application-management role responsible for platform operations, verification workflows, account and Practice administration, support, security oversight, and product analytics. It is distinct from a Practice Owner and does not grant routine access to identifiable Patient Vault or doctor-authored clinical content.
+
 ### Example dialogue
 
 > **Practice owner:** Add Priya as a Receptionist for Lakeside Clinic.
