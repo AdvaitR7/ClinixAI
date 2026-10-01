@@ -20,6 +20,7 @@ When you obtain each credential, paste it in **two places**: `credentials.md` (r
 | 2 | `CLERK_SECRET_KEY` | Clerk dashboard → API keys | `services/api/.env` | 1 |
 | 3 | `CLERK_WEBHOOK_SIGNING_SECRET` | Clerk dashboard → Webhooks (only when webhooks enabled) | `services/api/.env` | 1 (optional — see lazy-sync note in master plan) |
 | 4 | `DATABASE_URL` | Supabase dashboard → Project settings → Database → Connection string → **Session pooler** (port 5432) | `services/api/.env`, `services/worker/.env` | 0 |
+| 4a | `IDENTITY_ENCRYPTION_KEY` | Generate locally: `openssl rand -hex 32` (64 hex chars, 32 bytes) — used for app-layer AES-256-GCM encryption + HMAC of `patient_identity` fields | `services/api/.env` | 1 |
 | 5 | `SUPABASE_URL` | Supabase dashboard → Settings → API (`https://<ref>.supabase.co`) | `services/api/.env` | 4 |
 | 6 | `SUPABASE_ANON_KEY` | Supabase dashboard → Settings → API | `services/api/.env` | 4 |
 | 7 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase dashboard → Settings → API | `services/api/.env` | 4 |
