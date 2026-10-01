@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette — DESIGN.md §2 */
+  --color-canvas: #f7f2e9;
+  --color-surface: #fffdfc;
+  --color-botanical: #12352c;
+  --color-ink: #151919;
+  --color-graphite: #3d4640;
+  --color-sage: #afb88a;
+  --color-copper: #f5934f;
+  --color-evidence: #a5c3ff;
+  --color-review: #a65f11;
+  --color-critical: #b42318;
+  --color-hairline: #e6e0d6;
+
+  /* Typography — DESIGN.md §3 */
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, monospace;
+}

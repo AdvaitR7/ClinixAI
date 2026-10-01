@@ -1,0 +1,23 @@
+{
+  "name": "clinix",
+  "version": "0.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c green,blue \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:web": "npm run dev --workspace @clinix/web",
+    "dev:api": "npm run dev --workspace @clinix/api",
+    "build": "npm run build --workspace @clinix/web",
+    "typecheck": "npm run typecheck --workspace @clinix/web && npm run typecheck --workspace @clinix/api",
+    "db:generate": "npm run db:generate --workspace @clinix/api",
+    "db:migrate": "npm run db:migrate --workspace @clinix/api",
+    "db:check": "npm run db:check --workspace @clinix/api"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
