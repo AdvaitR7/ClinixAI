@@ -9,7 +9,7 @@ plan_path: code-agent/c-plans/2026-10-01_clinix-master-build-plan.md
 todos:
   - id: scaffold-foundation
     content: Phase 0 — monorepo scaffold, design tokens, Supabase Cloud project + pgvector, Fastify+Drizzle, Next.js shell
-    status: in_progress
+    status: completed
   - id: auth-onboarding
     content: Phase 1 — Clerk auth, role onboarding, workspace switching (Screens 1,2,2a,2b,2c,5)
     status: pending
@@ -200,7 +200,7 @@ ClinixAI/
 
 ### Phase 0 — Foundation (no screens)
 
-**Status (2026-10-01):** Steps 1–3, 6–8 done + verified (committed on `phase-0`). Steps 4–5 — Supabase project + `drizzle-kit` migrate + pgvector check — pending the human; **blocked at the Supabase gate**.
+**Status (2026-10-01):** ✅ Complete — all steps done, gate green. `npm install` clean · `npm run typecheck` pass · `/health` → `db:"up"` · `/app/patient` renders with design tokens · pgvector + pgcrypto enabled.
 
 **Setup steps (agent):**
 1. npm 11.19 already installed — no setup step.
