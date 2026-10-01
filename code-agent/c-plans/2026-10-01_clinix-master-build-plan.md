@@ -55,7 +55,7 @@ isProject: true
 6. OCR = Gemini 3.8 Flash High (vision) via 9Router pinned route; TeleOCR secondary adapter (only if 9Router vision route fails).
 7. Voice dictation (prescription Mode C) = **hypothetical stub** — schema + queue + UI shape, no live mic for demo.
 8. Synthetic patient data only through any external AI/OCR path. No real PII, ever.
-9. Node 24.21 + npm 11.19 confirmed on the dev machine; pnpm enabled via corepack at Phase 0.
+9. Node 24.21 + npm 11.19 confirmed on the dev machine; npm workspaces (npm 11.19 already present).
 
 ## Current-state inventory
 
@@ -66,7 +66,7 @@ isProject: true
 | Secrets registry | `.sensitive_docs/README.md` (tracked) + `credentials.md` (gitignored, verified via `git check-ignore`) | `.sensitive_docs/` |
 | `.gitignore` | Blocks `credentials.md`, `.env*`, `apps/web/.env.local`; allows `.env.example` | `.gitignore` (verified) |
 | Plan history | v1 of this plan (superseded by this file) | same path |
-| Node/npm | Node 24.21.0, npm 11.19.0; **pnpm not installed yet** | `node -v` / `npm -v` |
+| Node/npm | Node 24.21.0, npm 11.19.0; npm workspaces (npm 11.19) | `node -v` / `npm -v` |
 | Figma | Account verified: plan `team::1607020207482189625`; **file URL not yet provided** | Figma MCP `whoami` |
 
 ## Locked technology decisions (do not relitigate mid-phase)
@@ -201,8 +201,8 @@ ClinixAI/
 ### Phase 0 — Foundation (no screens)
 
 **Setup steps (agent):**
-1. `corepack enable && corepack prepare pnpm@latest --activate`; verify `pnpm -v`.
-2. Scaffold pnpm workspaces per layout above. `apps/web` = Next.js (App Router, TS, Tailwind v4). `services/api` = Fastify 5 + Zod + Drizzle. `packages/schemas` = Zod package with one trivial shared schema to prove import wiring both directions.
+1. npm 11.19 already installed — no setup step.
+2. Scaffold npm workspaces per layout above. `apps/web` = Next.js (App Router, TS, Tailwind v4). `services/api` = Fastify 5 + Zod + Drizzle. `packages/schemas` = Zod package with one trivial shared schema to prove import wiring both directions.
 3. `git mv` the six spec `.md` files into `docs/`.
 4. **Human:** create Supabase project (Mumbai) → Settings → enable `pgvector`, `pgcrypto` extensions → copy session-pooler `DATABASE_URL` into `.sensitive_docs/credentials.md` + `services/api/.env`.
 5. Agent: `drizzle-kit` init, empty migration, run against Supabase → confirms connectivity.
@@ -212,10 +212,10 @@ ClinixAI/
 
 **Gate (must actually run and report output):**
 ```text
-pnpm install          → clean
-pnpm dev               → web :3000 + api :4000 both up
+npm install          → clean
+npm run dev               → web :3000 + api :4000 both up
 curl :4000/health      → {"ok":true,"db":"up"}
-pnpm typecheck         → pass
+npm run typecheck         → pass
 :3000/app/patient      → Alabaster bg, Botanical header, Copper CTA, correct fonts
 SELECT extname...      → 'vector' present in Supabase
 ```
@@ -304,7 +304,7 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 3. Rehearsal: run Milestones A/B/C on a real phone through installed PWA; record screen for jury.
 4. Deploy: Dokploy compose (`web`, `api`, env from Dokploy secrets), Supabase stays cloud. **Never deploy with dev keys holding real data.**
 
-**Gate:** full A+B+C green on phone; fresh clone → `pnpm i && pnpm dev` works off `.env.example` + credentials doc.
+**Gate:** full A+B+C green on phone; fresh clone → `npm i && npm run dev` works off `.env.example` + credentials doc.
 
 ## Screen-to-phase checklist (30/30)
 
@@ -321,12 +321,12 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 
 | Check | Command | Expected |
 | --- | --- | --- |
-| Install | `pnpm install` | clean |
-| Dev | `pnpm dev` | web :3000, api :4000 |
+| Install | `npm install` | clean |
+| Dev | `npm run dev` | web :3000, api :4000 |
 | Health | `curl localhost:4000/health` | `{"ok":true,"db":"up"}` |
-| Typecheck | `pnpm typecheck` | pass |
-| Lint | `pnpm lint` | pass |
-| Migrations | `pnpm db:migrate` | applied to Supabase |
+| Typecheck | `npm run typecheck` | pass |
+| Lint | `npm run lint` | pass |
+| Migrations | `npm run db:migrate` | applied to Supabase |
 | E2E | Test A / B / C scripts | pass |
 | Visual | Figma `get_design_context` vs screen | fidelity pass |
 | Secrets | `git check-ignore .sensitive_docs/credentials.md` | ignored |

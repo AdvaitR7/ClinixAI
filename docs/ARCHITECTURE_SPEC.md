@@ -130,7 +130,7 @@ For a very small first demo, synchronous processing is acceptable; move to jobs 
 
 # 4. Repository layout
 
-Recommended monorepo (pnpm workspaces):
+Recommended monorepo (npm workspaces):
 
 ```text
 clinix/

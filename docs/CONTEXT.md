@@ -1191,7 +1191,7 @@ Production:
 ### Hosting
 - Dokploy compose on VPS (frontend + API as separate services)
 - Supabase Cloud for Postgres/Storage
-- pnpm workspaces monorepo
+- npm workspaces monorepo
 
 ---
 
