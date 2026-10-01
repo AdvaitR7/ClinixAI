@@ -1,0 +1,17 @@
+# Secrets — never commit
+.sensitive_docs/credentials.md
+.env
+.env.*
+!.env.example
+apps/web/.env.local
+
+# Dependencies / builds
+node_modules/
+.next/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# Misc
+.DS_Store
+*.log
