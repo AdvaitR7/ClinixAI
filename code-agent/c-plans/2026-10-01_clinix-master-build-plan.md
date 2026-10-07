@@ -18,7 +18,7 @@ todos:
     status: completed
   - id: clinical-prescribing
     content: Phase 3 — encounters, consultation, direct digital prescriptions (Screens 10,11,14,18,19,20)
-    status: pending
+    status: completed
   - id: ocr-documents
     content: Phase 4 — document hub + Gemini 3.8 Flash High OCR pipeline (Screen 9 + 19/20 updates)
     status: pending
@@ -249,6 +249,8 @@ Tables (DB spec §8, §11, §22 + §41 indexes; `payment_events` §23.1 pulled f
 
 ### Phase 3 — Clinical loop (Screens 10, 11, 14, 18, 19, 20) — **Test Milestone A**
 
+**Status (2026-10-07):** ✅ Complete — gate green. `services/api/gate-phase3.mjs` 36/36 PASS. Detail: `code-agent/c-plans/2026-10-01_clinix-phase-3-clinical-loop.md`.
+
 Tables (DB spec §18–20): `prescription_drafts`, `prescription_draft_items`, `prescriptions`, `prescription_versions`, `prescription_items`, `medication_records`, `consultation_notes`, `payment_events`. Endpoints (API spec §15, §19, §23–27): booking confirm/complete, payment-status (manual), prescription draft → finalize (idempotency key; immutable version 1; no AI actor may finalize), amend, render (PDF via `@react-pdf/renderer`), patient view, medication history (CURRENT/PAST/UNKNOWN_STATUS).
 
 Screens: 14 (booking + packet builder with scope summary), 11 (appointments), 18 (consultation workspace, autosave notes), 19 (draft queue — direct-entry drafts only at this phase), 20 (prescription workspace: structured med fields, finalize confirm, print/send), 10 (medication history with "historical ≠ authorization" language).
@@ -316,7 +318,7 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 
 - [x] 1, 2, 2a, 2b, 2c, 5 (Phase 1)
 - [x] 3, 4, 15, 16, 17, 22 (Phase 2)
-- [ ] 10, 11, 14, 18, 19, 20 (Phase 3)
+- [x] 10, 11, 14, 18, 19, 20 (Phase 3)
 - [ ] 9 (Phase 4)
 - [ ] 6, 7, 8 (Phase 5)
 - [ ] 12, 13, 26 (Phase 6)
