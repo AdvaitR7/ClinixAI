@@ -11,8 +11,8 @@ const nav = [
   { label: "Home", href: "/app/patient", active: true },
   { label: "Timeline", href: "/app/patient", disabled: true },
   { label: "Vault", href: "/app/patient", disabled: true },
-  { label: "Visits", href: "/app/patient", disabled: true },
-  { label: "Care", href: "/app/patient", disabled: true },
+  { label: "Visits", href: "/app/patient/appointments" },
+  { label: "Care", href: "/app/patient/medications" },
 ];
 
 function fmtWhen(iso: string) {
@@ -108,11 +108,14 @@ export default function PatientPage() {
 
           <section className="rounded-2xl border border-hairline bg-surface p-5">
             <p className="font-sans text-xs font-semibold uppercase tracking-wide text-graphite">
-              Active medications
+              Medications
             </p>
-            <p className="mt-1 font-sans text-sm text-graphite">
-              Medication history arrives in a later phase.
-            </p>
+            <Link
+              href="/app/patient/medications"
+              className="mt-1 inline-block font-sans text-sm font-semibold text-copper"
+            >
+              View medication history →
+            </Link>
           </section>
 
           {state.data.recent_timeline.length > 0 && (

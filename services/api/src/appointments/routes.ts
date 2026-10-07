@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { and, asc, eq, gte, inArray, lte, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, ne } from "drizzle-orm";
 import {
   bookAppointmentSchema,
   paymentStatusUpdateSchema,
@@ -8,10 +8,12 @@ import { requireDoctor, requirePatient } from "../auth/guards.js";
 import { error, requireDb } from "../http.js";
 import {
   appointments,
+  consultationNotes,
   doctorAvailability,
   doctors,
   encounters,
   paymentEvents,
+  profiles,
 } from "../schema.js";
 import { appointmentView, patientNames } from "./map.js";
 
@@ -127,6 +129,45 @@ export async function appointmentRoutes(app: FastifyInstance) {
       .send({ appointment: appointmentView(inserted[0], names.get(patientId) ?? "") });
   });
 
+  app.get("/patients/self/appointments", async (request, reply) => {
+    const patientId = requirePatient(request, reply);
+    if (typeof patientId !== "string") return patientId;
+
+    const database = requireDb();
+    const rows = await database
+      .select()
+      .from(appointments)
+      .where(eq(appointments.patientId, patientId))
+      .orderBy(desc(appointments.scheduledStart));
+
+    const doctorIds = [...new Set(rows.map((r) => r.doctorId))];
+    const drRows = doctorIds.length
+      ? await database
+          .select({
+            id: doctors.id,
+            name: profiles.displayName,
+            speciality: doctors.speciality,
+          })
+          .from(doctors)
+          .innerJoin(profiles, eq(profiles.id, doctors.profileId))
+          .where(inArray(doctors.id, doctorIds))
+      : [];
+    const doctorById = new Map(drRows.map((r) => [r.id, r]));
+
+    return rows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      appointment_type: r.appointmentType,
+      scheduled_start: r.scheduledStart.toISOString(),
+      scheduled_end: r.scheduledEnd ? r.scheduledEnd.toISOString() : null,
+      reason: r.reason,
+      payment_status: r.paymentStatus,
+      doctor_id: r.doctorId,
+      doctor_name: doctorById.get(r.doctorId)?.name ?? "",
+      speciality: doctorById.get(r.doctorId)?.speciality ?? null,
+    }));
+  });
+
   app.get("/doctor/appointments", async (request, reply) => {
     const doctorId = requireDoctor(request, reply);
     if (typeof doctorId !== "string") return doctorId;
@@ -201,6 +242,24 @@ export async function appointmentRoutes(app: FastifyInstance) {
         .update(appointments)
         .set({ status: "COMPLETED", completedAt: new Date(), updatedAt: new Date() })
         .where(eq(appointments.id, appt.id));
+
+      // Completing the consultation finalizes the doctor's note and closes the
+      // encounter (Phase 3: Page 18 "Complete Consultation").
+      if (appt.encounterId) {
+        await database
+          .update(consultationNotes)
+          .set({ isFinal: true, finalizedAt: new Date(), updatedAt: new Date() })
+          .where(
+            and(
+              eq(consultationNotes.encounterId, appt.encounterId),
+              eq(consultationNotes.noteType, "CONSULTATION"),
+            ),
+          );
+        await database
+          .update(encounters)
+          .set({ status: "COMPLETED", closedAt: new Date(), updatedAt: new Date() })
+          .where(eq(encounters.id, appt.encounterId));
+      }
       return { ok: true };
     },
   );

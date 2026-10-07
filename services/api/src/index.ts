@@ -10,6 +10,10 @@ import { encounterRoutes } from "./encounters/routes.js";
 import { availabilityRoutes } from "./availability/routes.js";
 import { appointmentRoutes } from "./appointments/routes.js";
 import { dashboardRoutes } from "./dashboards/routes.js";
+import { consultationRoutes } from "./consultations/routes.js";
+import { prescriptionRoutes } from "./prescriptions/routes.js";
+import { medicationRoutes } from "./medications/routes.js";
+import { claimRoutes } from "./claims/routes.js";
 import { checkDb } from "./db";
 
 const app = Fastify({ logger: true, genReqId: () => crypto.randomUUID() });
@@ -47,6 +51,10 @@ await app.register(
     await instance.register(availabilityRoutes);
     await instance.register(appointmentRoutes);
     await instance.register(dashboardRoutes);
+    await instance.register(consultationRoutes);
+    await instance.register(prescriptionRoutes);
+    await instance.register(medicationRoutes);
+    await instance.register(claimRoutes);
   },
   { prefix: "/api/v1" },
 );

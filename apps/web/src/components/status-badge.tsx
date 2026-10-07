@@ -9,6 +9,19 @@ const STATUS_STYLES: Record<string, string> = {
   WAITING_FOR_DOCTOR: "border-review/40 bg-review/10 text-review",
   UNCLAIMED: "border-review/40 bg-review/10 text-review",
   ACTIVE: "border-botanical/40 bg-botanical/10 text-botanical",
+  // Phase 3 — prescription draft/status + medication tri-state
+  DRAFT: "border-graphite/40 bg-graphite/10 text-graphite",
+  NEEDS_REVIEW: "border-review/40 bg-review/10 text-review",
+  APPROVED: "border-botanical/40 bg-botanical/10 text-botanical",
+  REJECTED: "border-critical/40 bg-critical/10 text-critical",
+  EXPIRED: "border-hairline bg-surface text-graphite",
+  SUPERSEDED: "border-hairline bg-surface text-graphite",
+  CURRENT: "border-botanical/40 bg-botanical/10 text-botanical",
+  PAST: "border-graphite/40 bg-graphite/10 text-graphite",
+  UNKNOWN_STATUS: "border-review/40 bg-review/10 text-review",
+  PAID: "border-botanical/40 bg-botanical/10 text-botanical",
+  UNPAID: "border-review/40 bg-review/10 text-review",
+  WAIVED: "border-hairline bg-surface text-graphite",
 };
 
 /** Text + color status chip (DESIGN.md §7: never color-only). */

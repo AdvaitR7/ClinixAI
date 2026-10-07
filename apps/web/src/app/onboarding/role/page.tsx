@@ -56,6 +56,15 @@ export default function RoleSelectPage() {
             Accept a practice invitation as clinic staff.
           </p>
         </Link>
+        <Link
+          href="/onboarding/claim"
+          className="block rounded-2xl border border-dashed border-hairline bg-surface p-5 transition-transform active:translate-y-px"
+        >
+          <p className="font-sans text-base font-semibold">I have a claim code</p>
+          <p className="mt-1 font-sans text-sm text-graphite">
+            Link a record your clinic created for you.
+          </p>
+        </Link>
       </div>
     </AuthShell>
   );

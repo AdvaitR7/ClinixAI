@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, max } from "drizzle-orm";
 import { doctorCreatePatientSchema } from "@clinix/schemas";
 import { authorizePatientAccess, requireDoctor } from "../auth/guards.js";
 import { hashIdentity } from "../crypto.js";
+import { logAccess } from "../audit/log.js";
 import { error, requireDb } from "../http.js";
 import { decryptMinimal, encryptPatientIdentity, isAdult } from "../patients/identity.js";
 import {
@@ -172,7 +173,21 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
         return error(request, reply, 403, "FORBIDDEN", "Not authorized for this patient record");
       }
 
+      // Access ledger: a doctor opening the workspace is a sensitive read.
+      await logAccess(request, {
+        patientId,
+        purpose: "Consultation",
+        resourceType: "PATIENT_WORKSPACE",
+        resourceId: patientId,
+        action: "VIEW",
+      });
+
       const database = requireDb();
+      const [patientRow] = await database
+        .select({ status: patients.status })
+        .from(patients)
+        .where(eq(patients.id, patientId))
+        .limit(1);
       const identityRows = await database
         .select()
         .from(patientIdentity)
@@ -224,6 +239,7 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
 
       return {
         patient_id: patientId,
+        status: patientRow?.status ?? "UNKNOWN",
         identity: {
           full_name: decrypted.full_name,
           phone_last4: decrypted.phone.slice(-4),
