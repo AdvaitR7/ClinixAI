@@ -14,7 +14,7 @@ const nav = [
   { label: "Home", href: "/app/doctor" },
   { label: "Schedule", href: "/app/doctor/schedule" },
   { label: "Patients", href: "/app/doctor/patients", active: true },
-  { label: "Drafts", href: "/app/doctor/patients", disabled: true },
+  { label: "Drafts", href: "/app/doctor/drafts" },
   { label: "Follow-ups", href: "/app/doctor/patients", disabled: true },
 ];
 

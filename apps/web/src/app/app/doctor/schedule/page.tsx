@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AppointmentView } from "@clinix/schemas";
 import { WorkspaceShell } from "@/components/workspace-shell";
@@ -12,7 +13,7 @@ const nav = [
   { label: "Home", href: "/app/doctor" },
   { label: "Schedule", href: "/app/doctor/schedule", active: true },
   { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/schedule", disabled: true },
+  { label: "Drafts", href: "/app/doctor/drafts" },
   { label: "Follow-ups", href: "/app/doctor/schedule", disabled: true },
 ];
 
@@ -50,6 +51,7 @@ const PAYMENT_OPTIONS = ["UNPAID", "REQUESTED", "PAID", "WAIVED", "REFUNDED"];
 /** Page 15 — Doctor Schedule (SCREEN_CATALOG §7). */
 export default function SchedulePage() {
   const { getToken } = useAuth();
+  const router = useRouter();
   const appointments = useApiData<AppointmentView[]>("/doctor/appointments");
   const [tab, setTab] = useState<"schedule" | "availability">("schedule");
   const [filter, setFilter] = useState<string | null>(null);
@@ -117,6 +119,7 @@ export default function SchedulePage() {
               rows={appointments.data.filter((a) => !filter || a.status === filter)}
               onConfirm={(id) => post(`/doctor/appointments/${id}/confirm`)}
               onCancel={(id) => post(`/appointments/${id}/cancel`)}
+              onStart={(id) => router.push(`/app/doctor/consultation/${id}`)}
               onPayment={(id, status) =>
                 (async () => {
                   const token = await getToken();
@@ -145,11 +148,13 @@ function AppointmentList({
   onConfirm,
   onCancel,
   onPayment,
+  onStart,
 }: {
   rows: AppointmentView[];
   onConfirm: (id: string) => void;
   onCancel: (id: string) => void;
   onPayment: (id: string, status: string) => void;
+  onStart: (id: string) => void;
 }) {
   if (rows.length === 0) {
     return <p className="font-sans text-sm text-graphite">No appointments match.</p>;
@@ -199,13 +204,22 @@ function AppointmentList({
                     </>
                   )}
                   {a.status === "CONFIRMED" && (
-                    <button
-                      type="button"
-                      onClick={() => onCancel(a.id)}
-                      className="rounded-full border border-hairline px-3 py-1 font-sans text-xs font-semibold text-critical"
-                    >
-                      Cancel
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onStart(a.id)}
+                        className="rounded-full bg-botanical px-3 py-1 font-sans text-xs font-semibold text-surface"
+                      >
+                        Consult
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onCancel(a.id)}
+                        className="rounded-full border border-hairline px-3 py-1 font-sans text-xs font-semibold text-critical"
+                      >
+                        Cancel
+                      </button>
+                    </>
                   )}
                   <label className="ml-auto flex items-center gap-1 font-sans text-xs text-graphite">
                     Payment

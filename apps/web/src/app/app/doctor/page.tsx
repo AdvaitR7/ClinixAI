@@ -13,7 +13,7 @@ const nav = [
   { label: "Home", href: "/app/doctor", active: true },
   { label: "Schedule", href: "/app/doctor/schedule" },
   { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor", disabled: true },
+  { label: "Drafts", href: "/app/doctor/drafts" },
   { label: "Follow-ups", href: "/app/doctor", disabled: true },
 ];
 

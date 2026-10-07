@@ -32,6 +32,23 @@ export type MeState =
   | { status: "needs-onboarding" }
   | { status: "ready"; me: MeResponse };
 
+/** Like fetchApi but returns the raw body as a Blob (e.g. prescription PDF). */
+export async function fetchApiBlob(
+  token: string,
+  path: string,
+  init?: RequestInit,
+): Promise<Blob> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(init?.headers ?? {}),
+    },
+  });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return res.blob();
+}
+
 /**
  * Resolves the app role from Fastify GET /me. A 403 ONBOARDING_REQUIRED means
  * the session is valid but the profile row doesn't exist yet → redirect to

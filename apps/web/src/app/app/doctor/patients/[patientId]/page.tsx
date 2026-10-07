@@ -1,17 +1,19 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import type { DoctorWorkspace } from "@clinix/schemas";
+import { useAuth } from "@clerk/nextjs";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import type { ClaimInviteView, DoctorWorkspace } from "@clinix/schemas";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { useApiData } from "@/lib/api";
+import { fetchApi, useApiData } from "@/lib/api";
 
 const nav = [
   { label: "Home", href: "/app/doctor" },
   { label: "Schedule", href: "/app/doctor/schedule" },
   { label: "Patients", href: "/app/doctor/patients", active: true },
-  { label: "Drafts", href: "/app/doctor", disabled: true },
+  { label: "Drafts", href: "/app/doctor/drafts" },
   { label: "Follow-ups", href: "/app/doctor", disabled: true },
 ];
 
@@ -39,9 +41,60 @@ function fmtAt(iso: string) {
 /** Page 17 — Patient Clinical Workspace (SCREEN_CATALOG §7). */
 export default function PatientWorkspacePage() {
   const params = useParams<{ patientId: string }>();
+  const router = useRouter();
+  const { getToken } = useAuth();
   const state = useApiData<DoctorWorkspace>(
     params.patientId ? `/doctor/patients/${params.patientId}/workspace` : null,
   );
+  const [invite, setInvite] = useState<ClaimInviteView | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function generateInvite() {
+    setBusy(true);
+    setInviteError(null);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Not signed in");
+      const res = await fetchApi<ClaimInviteView>(
+        token,
+        `/doctor/patients/${params.patientId}/claim-invites`,
+        { method: "POST", body: "{}" },
+      );
+      setInvite(res);
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "Could not generate invite");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startConsultation() {
+    if (state.status !== "ready") return;
+    const appt = state.data.appointments.find(
+      (a) => a.status === "CONFIRMED" || a.status === "REQUESTED",
+    );
+    if (appt) router.push(`/app/doctor/consultation/${appt.id}`);
+  }
+
+  async function createPrescription() {
+    setBusy(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Not signed in");
+      const res = await fetchApi<{ encounter_id: string }>(token, "/doctor/encounters", {
+        method: "POST",
+        body: JSON.stringify({ patient_id: params.patientId }),
+      });
+      router.push(
+        `/app/doctor/prescription-drafts/new?encounterId=${res.encounter_id}&patientId=${params.patientId}`,
+      );
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "Could not start prescription");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (state.status === "loading") {
     return (
@@ -87,6 +140,39 @@ export default function PatientWorkspacePage() {
           </span>
         </div>
       </header>
+
+      {d.status === "UNCLAIMED" && (
+        <section className="rounded-2xl border border-review bg-surface p-5">
+          <p className="font-sans text-xs font-semibold uppercase tracking-wide text-review">
+            Unclaimed record
+          </p>
+          <p className="mt-1 font-sans text-sm text-graphite">
+            This record isn&apos;t linked to a patient account yet. Generate a one-time code for
+            the patient to claim it.
+          </p>
+          {invite ? (
+            <div className="mt-3 rounded-xl border border-hairline bg-surface p-3">
+              <p className="font-sans text-sm">Share this one-time code with the patient:</p>
+              <p className="mt-1 font-mono text-lg font-semibold tracking-widest">{invite.invite_token}</p>
+              <p className="mt-1 font-sans text-xs text-graphite">
+                Expires {new Date(invite.expires_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+              </p>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={generateInvite}
+              disabled={busy}
+              className="mt-3 rounded-full bg-botanical px-4 py-2 font-sans text-sm font-semibold text-surface disabled:opacity-60"
+            >
+              Generate claim invite
+            </button>
+          )}
+          {inviteError && (
+            <p className="mt-2 font-sans text-sm font-medium text-critical">{inviteError}</p>
+          )}
+        </section>
+      )}
 
       <section className="rounded-2xl border border-hairline bg-surface p-5">
         <p className="font-sans text-xs font-semibold uppercase tracking-wide text-graphite">
@@ -152,15 +238,21 @@ export default function PatientWorkspacePage() {
       <div className="flex gap-3">
         <button
           type="button"
-          disabled
-          className="flex-1 rounded-full border border-hairline bg-surface px-4 py-3 font-sans text-base font-semibold text-graphite"
+          onClick={startConsultation}
+          disabled={
+            !d.appointments.some(
+              (a) => a.status === "CONFIRMED" || a.status === "REQUESTED",
+            )
+          }
+          className="flex-1 rounded-full border border-hairline bg-surface px-4 py-3 font-sans text-base font-semibold text-graphite disabled:opacity-60"
         >
           Start consultation
         </button>
         <button
           type="button"
-          disabled
-          className="flex-1 rounded-full border border-hairline bg-surface px-4 py-3 font-sans text-base font-semibold text-graphite"
+          onClick={createPrescription}
+          disabled={busy}
+          className="flex-1 rounded-full bg-copper px-4 py-3 font-sans text-base font-semibold text-botanical disabled:opacity-60"
         >
           Create prescription
         </button>

@@ -209,6 +209,21 @@ export const appointmentViewSchema = z.object({
 });
 export type AppointmentView = z.infer<typeof appointmentViewSchema>;
 
+/** GET /patients/self/appointments — patient's own appointments (doctor-centric). */
+export const patientAppointmentViewSchema = z.object({
+  id: z.string().uuid(),
+  status: appointmentStatusSchema,
+  appointment_type: appointmentTypeSchema,
+  scheduled_start: z.string(),
+  scheduled_end: z.string().nullable(),
+  reason: z.string().nullable(),
+  payment_status: paymentStatusSchema,
+  doctor_id: z.string().uuid(),
+  doctor_name: z.string(),
+  speciality: z.string().nullable(),
+});
+export type PatientAppointmentView = z.infer<typeof patientAppointmentViewSchema>;
+
 export const relationshipViewSchema = z.object({
   doctor_id: z.string().uuid(),
   doctor_name: z.string(),
@@ -255,6 +270,7 @@ export type TimelineEntry = z.infer<typeof timelineEntrySchema>;
 
 export const doctorWorkspaceSchema = z.object({
   patient_id: z.string().uuid(),
+  status: z.string(),
   identity: z.object({
     full_name: z.string(),
     phone_last4: z.string(),
@@ -286,3 +302,192 @@ export const patientDashboardSchema = z.object({
   recent_report: z.unknown().nullable(),
 });
 export type PatientDashboard = z.infer<typeof patientDashboardSchema>;
+
+// --- Phase 3: clinical loop (DB §18–21; API §15, §19, §22–27) ---
+
+export const prescriptionDraftSourceSchema = z.enum([
+  "DIRECT_ENTRY",
+  "OCR",
+  "VOICE",
+]);
+export type PrescriptionDraftSource = z.infer<typeof prescriptionDraftSourceSchema>;
+
+export const prescriptionDraftStatusSchema = z.enum([
+  "DRAFT",
+  "NEEDS_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "EXPIRED",
+]);
+export type PrescriptionDraftStatus = z.infer<typeof prescriptionDraftStatusSchema>;
+
+export const prescriptionStatusSchema = z.enum([
+  "ACTIVE",
+  "SUPERSEDED",
+  "CANCELLED",
+]);
+export type PrescriptionStatus = z.infer<typeof prescriptionStatusSchema>;
+
+/** One structured medicine line (DB §18.2). All text, medicine_name required. */
+export const prescriptionItemInputSchema = z.object({
+  medicine_name: z.string().min(1).max(500),
+  strength: z.string().max(500).optional(),
+  dose: z.string().max(500).optional(),
+  route: z.string().max(500).optional(),
+  frequency: z.string().max(500).optional(),
+  timing: z.string().max(500).optional(),
+  duration: z.string().max(500).optional(),
+  instructions: z.string().max(1000).optional(),
+});
+export type PrescriptionItemInput = z.infer<typeof prescriptionItemInputSchema>;
+
+/** POST /doctor/encounters/{id}/prescription-drafts (API §19). */
+export const createPrescriptionDraftSchema = z.object({
+  source: z.literal("DIRECT_ENTRY"),
+  items: z.array(prescriptionItemInputSchema).min(1),
+});
+export type CreatePrescriptionDraft = z.infer<typeof createPrescriptionDraftSchema>;
+
+/** PATCH /doctor/prescription-drafts/{id} — replace items, or set a terminal status. */
+export const patchPrescriptionDraftSchema = z.object({
+  items: z.array(prescriptionItemInputSchema).min(1).optional(),
+  status: z.enum(["DRAFT", "REJECTED", "EXPIRED"]).optional(),
+});
+export type PatchPrescriptionDraft = z.infer<typeof patchPrescriptionDraftSchema>;
+
+/** POST /doctor/prescriptions/{id}/amend (API §24). */
+export const amendPrescriptionSchema = z.object({
+  reason: z.string().min(1).max(1000),
+  items: z.array(prescriptionItemInputSchema).min(1),
+});
+export type AmendPrescription = z.infer<typeof amendPrescriptionSchema>;
+
+/** Consultation note sections (DB §21). */
+export const noteSectionsSchema = z.object({
+  complaint: z.string().max(5000).optional(),
+  observations: z.string().max(5000).optional(),
+  assessment: z.string().max(5000).optional(),
+  plan: z.string().max(5000).optional(),
+});
+export type NoteSections = z.infer<typeof noteSectionsSchema>;
+
+export const noteAmendSchema = noteSectionsSchema.extend({
+  reason: z.string().min(1).max(1000),
+});
+export type NoteAmend = z.infer<typeof noteAmendSchema>;
+
+/** POST /doctor/encounters (contract extension — doctor-initiated encounter). */
+export const doctorCreateEncounterSchema = z.object({
+  patient_id: z.string().uuid(),
+  appointment_id: z.string().uuid().optional(),
+  encounter_type: encounterTypeSchema.optional(),
+  chief_concern: z.string().max(2000).optional(),
+});
+export type DoctorCreateEncounter = z.infer<typeof doctorCreateEncounterSchema>;
+
+/** POST /doctor/appointments (contract extension — walk-in booking). */
+export const doctorBookAppointmentSchema = z.object({
+  patient_id: z.string().uuid(),
+  appointment_type: appointmentTypeSchema,
+  scheduled_start: z.string().min(1),
+  reason: z.string().max(1000).optional(),
+});
+export type DoctorBookAppointment = z.infer<typeof doctorBookAppointmentSchema>;
+
+/** POST /patient-claims (API §6). */
+export const patientClaimSchema = z.object({
+  invite_token: z.string().min(8).max(256),
+});
+export type PatientClaim = z.infer<typeof patientClaimSchema>;
+
+// --- Phase 3 response views ---
+
+export const prescriptionDraftItemViewSchema = prescriptionItemInputSchema.extend({
+  id: z.string().uuid(),
+  sequence_number: z.number(),
+  needs_review: z.boolean(),
+  field_confidence: z.unknown().nullable(),
+});
+export type PrescriptionDraftItemView = z.infer<typeof prescriptionDraftItemViewSchema>;
+
+export const prescriptionDraftViewSchema = z.object({
+  id: z.string().uuid(),
+  patient_id: z.string().uuid(),
+  encounter_id: z.string().uuid().nullable(),
+  doctor_id: z.string().uuid(),
+  source: prescriptionDraftSourceSchema,
+  status: prescriptionDraftStatusSchema,
+  patient_name: z.string(),
+  created_at: z.string(),
+  overall_confidence: z.number().nullable(),
+  risk_flags: z.unknown().nullable(),
+  items: z.array(prescriptionDraftItemViewSchema),
+});
+export type PrescriptionDraftView = z.infer<typeof prescriptionDraftViewSchema>;
+
+export const prescriptionItemViewSchema = z.object({
+  medicine_name: z.string(),
+  medicine_code: z.string().nullable(),
+  strength: z.string().nullable(),
+  dose: z.string().nullable(),
+  route: z.string().nullable(),
+  frequency: z.string().nullable(),
+  timing: z.string().nullable(),
+  duration: z.string().nullable(),
+  instructions: z.string().nullable(),
+});
+export type PrescriptionItemView = z.infer<typeof prescriptionItemViewSchema>;
+
+export const prescriptionVersionViewSchema = z.object({
+  version_number: z.number(),
+  finalized_by: z.string(),
+  finalized_at: z.string(),
+  amendment_reason: z.string().nullable(),
+  items: z.array(prescriptionItemViewSchema),
+});
+export type PrescriptionVersionView = z.infer<typeof prescriptionVersionViewSchema>;
+
+export const prescriptionViewSchema = z.object({
+  id: z.string().uuid(),
+  patient_id: z.string().uuid(),
+  doctor_id: z.string().uuid(),
+  status: prescriptionStatusSchema,
+  created_at: z.string(),
+  current_version: prescriptionVersionViewSchema,
+  versions: z.array(prescriptionVersionViewSchema),
+});
+export type PrescriptionView = z.infer<typeof prescriptionViewSchema>;
+
+export const medicationStatusSchema = z.enum(["CURRENT", "PAST", "UNKNOWN_STATUS"]);
+
+export const medicationViewSchema = z.object({
+  medicine_name: z.string(),
+  dose: z.string().nullable(),
+  route: z.string().nullable(),
+  frequency: z.string().nullable(),
+  status: medicationStatusSchema,
+  prescribing_doctor: z.string().nullable(),
+  prescribed_date: z.string().nullable(),
+  encounter_id: z.string().uuid().nullable(),
+  prescription_id: z.string().uuid().nullable(),
+  response: z.string().nullable(),
+  adverse_reaction: z.string().nullable(),
+  reason_stopped: z.string().nullable(),
+});
+export type MedicationView = z.infer<typeof medicationViewSchema>;
+
+export const consultationContextSchema = z.object({
+  appointment: appointmentViewSchema,
+  encounter_id: z.string().uuid(),
+  note: noteSectionsSchema.nullable(),
+  note_is_final: z.boolean(),
+  allergies: z.array(z.string()),
+  current_medications: z.array(medicationViewSchema),
+});
+export type ConsultationContext = z.infer<typeof consultationContextSchema>;
+
+export const claimInviteViewSchema = z.object({
+  invite_token: z.string(),
+  expires_at: z.string(),
+});
+export type ClaimInviteView = z.infer<typeof claimInviteViewSchema>;

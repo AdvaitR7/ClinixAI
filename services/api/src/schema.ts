@@ -1,9 +1,11 @@
 import {
   boolean,
   customType,
+  date,
   index,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -347,3 +349,330 @@ export const doctorAvailability = pgTable("doctor_availability", {
 // `where phone_hash = hashIdentity(mobile)` full scan at prototype scale.
 // Add a DB index when directories grow — drizzle's standalone index API
 // chokes on a nullable plain `text` column (no ExtraConfigColumn mixin).
+
+// --- Phase 3 enums (DATABASE_SCHEMA_SPEC §3) ---
+
+export const prescriptionDraftSource = pgEnum("prescription_draft_source", [
+  "DIRECT_ENTRY",
+  "OCR",
+  "VOICE",
+]);
+
+export const prescriptionDraftStatus = pgEnum("prescription_draft_status", [
+  "DRAFT",
+  "NEEDS_REVIEW",
+  "APPROVED",
+  "REJECTED",
+  "EXPIRED",
+]);
+
+export const prescriptionStatus = pgEnum("prescription_status", [
+  "ACTIVE",
+  "SUPERSEDED",
+  "CANCELLED",
+]);
+
+// --- Phase 3 tables (DATABASE_SCHEMA_SPEC §9, §18–§21, §26.1) ---
+
+/**
+ * §18.1 — one row per prescription draft, regardless of source mode.
+ * `source_document_id`/`source_audio_document_id` carry no FK: the `documents`
+ * table arrives in Phase 4 (ponytail: add FK then, alongside the OCR worker).
+ */
+export const prescriptionDrafts = pgTable(
+  "prescription_drafts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    encounterId: uuid("encounter_id").references(() => encounters.id),
+    doctorId: uuid("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    source: prescriptionDraftSource("source").notNull(),
+    status: prescriptionDraftStatus("status").notNull().default("DRAFT"),
+    sourceDocumentId: uuid("source_document_id"),
+    sourceAudioDocumentId: uuid("source_audio_document_id"),
+    rawTranscript: text("raw_transcript"),
+    rawExtraction: jsonb("raw_extraction"),
+    overallConfidence: numeric("overall_confidence"),
+    riskFlags: jsonb("risk_flags"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  },
+  (t) => [index("prescription_drafts_doctor_status_idx").on(t.doctorId, t.status, t.createdAt)],
+);
+
+/** §18.2 — medicine lines on a draft. `needs_review` is Phase 4's OCR guard. */
+export const prescriptionDraftItems = pgTable(
+  "prescription_draft_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    draftId: uuid("draft_id")
+      .notNull()
+      .references(() => prescriptionDrafts.id),
+    sequenceNumber: integer("sequence_number").notNull(),
+    medicineName: text("medicine_name").notNull(),
+    strength: text("strength"),
+    dose: text("dose"),
+    route: text("route"),
+    frequency: text("frequency"),
+    timing: text("timing"),
+    duration: text("duration"),
+    instructions: text("instructions"),
+    fieldConfidence: jsonb("field_confidence"),
+    needsReview: boolean("needs_review").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("prescription_draft_items_draft_idx").on(t.draftId, t.sequenceNumber)],
+);
+
+/**
+ * §19.1 — logical prescription. `current_version_id` references
+ * `prescription_versions.id`; the circular reference is emitted by drizzle-kit
+ * as a post-create ALTER (same pattern as `encounters.parent_encounter_id`).
+ */
+export const prescriptions = pgTable(
+  "prescriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    encounterId: uuid("encounter_id")
+      .notNull()
+      .references(() => encounters.id),
+    doctorId: uuid("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    status: prescriptionStatus("status").notNull().default("ACTIVE"),
+    currentVersionId: uuid("current_version_id").references(
+      (): AnyPgColumn => prescriptionVersions.id,
+    ),
+    createdFromDraftId: uuid("created_from_draft_id").references(
+      () => prescriptionDrafts.id,
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("prescriptions_patient_created_idx").on(t.patientId, t.createdAt)],
+);
+
+/**
+ * §19.2 — immutable versions. The UNIQUE(prescription_id, version_number)
+ * constraint is the immutability anchor: two versions can never share a number.
+ */
+export const prescriptionVersions = pgTable(
+  "prescription_versions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    prescriptionId: uuid("prescription_id")
+      .notNull()
+      .references(() => prescriptions.id),
+    versionNumber: integer("version_number").notNull(),
+    amendmentReason: text("amendment_reason"),
+    finalizedByDoctorId: uuid("finalized_by_doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }).notNull(),
+    supersedesVersionId: uuid("supersedes_version_id").references(
+      (): AnyPgColumn => prescriptionVersions.id,
+    ),
+    contentHash: text("content_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("prescription_versions_unique_idx").on(
+      t.prescriptionId,
+      t.versionNumber,
+    ),
+    index("prescription_versions_prescription_idx").on(t.prescriptionId),
+  ],
+);
+
+/** §19.3 — items hang off the VERSION, not the prescription. */
+export const prescriptionItems = pgTable(
+  "prescription_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    prescriptionVersionId: uuid("prescription_version_id")
+      .notNull()
+      .references(() => prescriptionVersions.id),
+    sequenceNumber: integer("sequence_number").notNull(),
+    medicineName: text("medicine_name").notNull(),
+    medicineCode: text("medicine_code"),
+    strength: text("strength"),
+    dose: text("dose"),
+    route: text("route"),
+    frequency: text("frequency"),
+    timing: text("timing"),
+    duration: text("duration"),
+    instructions: text("instructions"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("prescription_items_version_idx").on(t.prescriptionVersionId, t.sequenceNumber)],
+);
+
+/**
+ * §20.1 — actual medication exposure/history. `status` is free text per spec.
+ * `provenance_id` carries no FK: `provenance_records` is not built yet
+ * (ponytail: add FK when Phase 5/6 provenance lands).
+ */
+export const medicationRecords = pgTable(
+  "medication_records",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    encounterId: uuid("encounter_id").references(() => encounters.id),
+    prescriptionId: uuid("prescription_id").references(() => prescriptions.id),
+    prescriptionItemId: uuid("prescription_item_id").references(
+      () => prescriptionItems.id,
+    ),
+    medicineName: text("medicine_name").notNull(),
+    medicineCode: text("medicine_code"),
+    dose: text("dose"),
+    route: text("route"),
+    frequency: text("frequency"),
+    startedOn: date("started_on"),
+    endedOn: date("ended_on"),
+    reasonForUse: text("reason_for_use"),
+    response: text("response"),
+    adverseReaction: text("adverse_reaction"),
+    reasonStopped: text("reason_stopped"),
+    status: text("status").notNull(),
+    provenanceId: uuid("provenance_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("medication_records_patient_idx").on(t.patientId)],
+);
+
+/**
+ * §21.1 — doctor-authored consultation notes. One row per encounter; post-final
+ * edits insert amendment rows (note_type 'CONSULTATION_AMENDMENT') rather than
+ * touching the original. No `consultation_note_versions` table (spec optional).
+ */
+export const consultationNotes = pgTable(
+  "consultation_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    encounterId: uuid("encounter_id")
+      .notNull()
+      .references(() => encounters.id),
+    doctorId: uuid("doctor_id")
+      .notNull()
+      .references(() => doctors.id),
+    noteType: text("note_type").notNull(),
+    content: text("content").notNull(),
+    isFinal: boolean("is_final").notNull().default(false),
+    finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("consultation_notes_encounter_idx").on(t.encounterId)],
+);
+
+/** §9.1 — claim invites. Raw token never stored; only the keyed hash. */
+export const patientClaimInvites = pgTable(
+  "patient_claim_invites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    phoneHash: text("phone_hash"),
+    inviteTokenHash: text("invite_token_hash").notNull(),
+    createdByProfileId: uuid("created_by_profile_id")
+      .notNull()
+      .references(() => profiles.id),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    status: text("status").notNull().default("OPEN"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("patient_claim_invites_token_idx").on(t.inviteTokenHash)],
+);
+
+/** §9.2 — claim attempt audit trail. */
+export const patientClaimEvents = pgTable("patient_claim_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id")
+    .notNull()
+    .references(() => patients.id),
+  profileId: uuid("profile_id")
+    .notNull()
+    .references(() => profiles.id),
+  inviteId: uuid("invite_id").references(() => patientClaimInvites.id),
+  eventType: text("event_type").notNull(),
+  success: boolean("success").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * §26.1 — append-only access ledger. Application roles INSERT only; no
+ * UPDATE/DELETE code path exists anywhere. `consent_id` carries no FK until the
+ * Phase 6 consents table lands (ponytail: add FK then).
+ */
+export const accessEvents = pgTable(
+  "access_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    actorType: actorType("actor_type").notNull(),
+    actorId: uuid("actor_id"),
+    purpose: text("purpose"),
+    resourceType: text("resource_type").notNull(),
+    resourceId: uuid("resource_id"),
+    action: text("action").notNull(),
+    consentId: uuid("consent_id"),
+    requestId: text("request_id"),
+    ipHash: text("ip_hash"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("access_events_patient_created_idx").on(t.patientId, t.createdAt),
+    index("access_events_actor_created_idx").on(t.actorType, t.actorId, t.createdAt),
+  ],
+);

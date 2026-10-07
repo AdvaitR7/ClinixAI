@@ -7,6 +7,7 @@ import {
   doctors,
   encounters,
   patientDoctorRelationships,
+  prescriptionDrafts,
   profiles,
 } from "../schema.js";
 import { appointmentView, patientNames } from "../appointments/map.js";
@@ -32,7 +33,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
     const database = requireDb();
     const { start, end } = istDayBounds(new Date());
 
-    const [todayRows, incomingRows] = await Promise.all([
+    const [todayRows, incomingRows, draftRows] = await Promise.all([
       database
         .select()
         .from(appointments)
@@ -55,6 +56,15 @@ export async function dashboardRoutes(app: FastifyInstance) {
           ),
         )
         .orderBy(asc(appointments.scheduledStart)),
+      database
+        .select({ id: prescriptionDrafts.id })
+        .from(prescriptionDrafts)
+        .where(
+          and(
+            eq(prescriptionDrafts.doctorId, doctorId),
+            inArray(prescriptionDrafts.status, ["DRAFT", "NEEDS_REVIEW"]),
+          ),
+        ),
     ]);
 
     const allRows = [...todayRows, ...incomingRows];
@@ -63,7 +73,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
     return {
       today_appointments: todayRows.map((r) => appointmentView(r, names.get(r.patientId) ?? "")),
       incoming_requests: incomingRows.map((r) => appointmentView(r, names.get(r.patientId) ?? "")),
-      draft_queue: { pending: 0, high_risk: 0 },
+      draft_queue: { pending: draftRows.length, high_risk: 0 },
       followups_due: { due_today: 0, overdue: 0 },
     };
   });
