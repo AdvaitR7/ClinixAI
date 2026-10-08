@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./schema": "./src/schema.ts"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
@@ -15,10 +18,12 @@
     "@clinix/schemas": "*",
     "@fastify/cors": "^11.3.0",
     "@react-pdf/renderer": "^4.9.0",
+    "@supabase/supabase-js": "^2.117.3",
     "dotenv": "^18.0.5",
     "drizzle-orm": "^0.45.3",
     "fastify": "^5.12.5",
     "fastify-plugin": "^5.1.0",
+    "pg-boss": "^12.37.0",
     "postgres": "^3.4.7",
     "zod": "^4.6.5"
   },

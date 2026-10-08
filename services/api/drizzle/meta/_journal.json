@@ -22,6 +22,20 @@
       "when": 1791392005126,
       "tag": "0002_greedy_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791434489897,
+      "tag": "0003_robust_johnny_blaze",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791434589629,
+      "tag": "0004_swift_doomsday",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,26 @@
+{
+  "name": "@clinix/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clinix/api": "*",
+    "@clinix/schemas": "*",
+    "@supabase/supabase-js": "^2.117.3",
+    "dotenv": "^18.0.5",
+    "drizzle-orm": "^0.45.3",
+    "openai": "^7.30.0",
+    "pg-boss": "^12.37.0",
+    "postgres": "^3.4.7",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

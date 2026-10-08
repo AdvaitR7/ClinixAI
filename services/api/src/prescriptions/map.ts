@@ -50,6 +50,7 @@ export function draftView(
     created_at: row.createdAt.toISOString(),
     overall_confidence: row.overallConfidence ? Number(row.overallConfidence) : null,
     risk_flags: row.riskFlags,
+    source_document_id: row.sourceDocumentId,
     items: items.map(draftItemView),
   };
 }

@@ -1,4 +1,5 @@
 import {
+  bigint,
   boolean,
   customType,
   date,
@@ -376,8 +377,8 @@ export const prescriptionStatus = pgEnum("prescription_status", [
 
 /**
  * §18.1 — one row per prescription draft, regardless of source mode.
- * `source_document_id`/`source_audio_document_id` carry no FK: the `documents`
- * table arrives in Phase 4 (ponytail: add FK then, alongside the OCR worker).
+ * `source_document_id` now carries its FK (documents landed in Phase 4);
+ * `source_audio_document_id` still has none (voice arrives Phase 8+).
  */
 export const prescriptionDrafts = pgTable(
   "prescription_drafts",
@@ -392,7 +393,7 @@ export const prescriptionDrafts = pgTable(
       .references(() => doctors.id),
     source: prescriptionDraftSource("source").notNull(),
     status: prescriptionDraftStatus("status").notNull().default("DRAFT"),
-    sourceDocumentId: uuid("source_document_id"),
+    sourceDocumentId: uuid("source_document_id").references(() => documents.id),
     sourceAudioDocumentId: uuid("source_audio_document_id"),
     rawTranscript: text("raw_transcript"),
     rawExtraction: jsonb("raw_extraction"),
@@ -674,5 +675,160 @@ export const accessEvents = pgTable(
   (t) => [
     index("access_events_patient_created_idx").on(t.patientId, t.createdAt),
     index("access_events_actor_created_idx").on(t.actorType, t.actorId, t.createdAt),
+  ],
+);
+
+// --- Phase 4 enums (DATABASE_SCHEMA_SPEC §3) ---
+
+export const documentType = pgEnum("document_type", [
+  "LAB_REPORT",
+  "PRESCRIPTION",
+  "IMAGING_REPORT",
+  "DISCHARGE_SUMMARY",
+  "CONSULTATION_NOTE",
+  "OTHER",
+]);
+
+export const documentProcessingStatus = pgEnum("document_processing_status", [
+  "UPLOADED",
+  "PROCESSING",
+  "NEEDS_REVIEW",
+  "COMPLETE",
+  "FAILED",
+]);
+
+// --- Phase 4 tables (DATABASE_SCHEMA_SPEC §16–§17) ---
+
+/**
+ * §16.1 — metadata only; the binary lives in private object storage
+ * (`clinix-documents` bucket). Never store public object URLs.
+ * `uploaded_by_actor_id` carries the domain id for the actor type:
+ * patients.id for PATIENT, doctors.id for DOCTOR.
+ */
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    encounterId: uuid("encounter_id").references(() => encounters.id),
+    documentType: documentType("document_type").notNull(),
+    storageBucket: text("storage_bucket").notNull(),
+    storageObjectKey: text("storage_object_key").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    fileSizeBytes: bigint("file_size_bytes", { mode: "number" }),
+    sha256: text("sha256"),
+    uploadedByActorType: actorType("uploaded_by_actor_type").notNull(),
+    uploadedByActorId: uuid("uploaded_by_actor_id"),
+    processingStatus: documentProcessingStatus("processing_status")
+      .notNull()
+      .default("UPLOADED"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("documents_patient_created_idx").on(t.patientId, t.createdAt)],
+);
+
+/** §16.2 — one row per extraction attempt on a document. */
+export const documentExtractions = pgTable("document_extractions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  documentId: uuid("document_id")
+    .notNull()
+    .references(() => documents.id),
+  extractorType: text("extractor_type").notNull(),
+  extractorVersion: text("extractor_version"),
+  rawText: text("raw_text"),
+  structuredPayload: jsonb("structured_payload"),
+  confidence: numeric("confidence"),
+  status: text("status").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewedByProfileId: uuid("reviewed_by_profile_id").references(
+    () => profiles.id,
+  ),
+});
+
+/**
+ * §17.1 — a structured lab report derived from a source document.
+ * `provenance_id` carries no FK: `provenance_records` is not built yet
+ * (ponytail: add FK when Phase 5/6 provenance lands).
+ */
+export const labReports = pgTable(
+  "lab_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id),
+    encounterId: uuid("encounter_id").references(() => encounters.id),
+    laboratoryName: text("laboratory_name"),
+    collectionDate: date("collection_date"),
+    reportDate: date("report_date"),
+    provenanceId: uuid("provenance_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("lab_reports_patient_created_idx").on(t.patientId, t.createdAt)],
+);
+
+/**
+ * §17.2 — individual lab values. `confirmed_at`/`confirmed_by_profile_id` are a
+ * documented contract extension for Screen 9's "correction or confirmation"
+ * path (patient confirms/corrects a low-confidence value).
+ */
+export const labObservations = pgTable(
+  "lab_observations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    labReportId: uuid("lab_report_id")
+      .notNull()
+      .references(() => labReports.id),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    testCode: text("test_code"),
+    testName: text("test_name").notNull(),
+    valueNumeric: numeric("value_numeric"),
+    valueText: text("value_text"),
+    unit: text("unit"),
+    referenceLow: numeric("reference_low"),
+    referenceHigh: numeric("reference_high"),
+    referenceText: text("reference_text"),
+    flag: text("flag"),
+    // Documented deviation: DB §17.2 has no confidence column, but API §12 returns
+    // per-observation confidence (drives NEEDS_REVIEW + the Screen 9 badge). Stored
+    // here from the OCR extraction rather than looked up from structured_payload.
+    confidence: numeric("confidence"),
+    observedAt: timestamp("observed_at", { withTimezone: true }),
+    provenanceId: uuid("provenance_id"),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    confirmedByProfileId: uuid("confirmed_by_profile_id").references(
+      () => profiles.id,
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("lab_observations_patient_test_obs_idx").on(
+      t.patientId,
+      t.testName,
+      t.observedAt.desc(),
+    ),
+    index("lab_observations_patient_code_obs_idx").on(
+      t.patientId,
+      t.testCode,
+      t.observedAt.desc(),
+    ),
   ],
 );
