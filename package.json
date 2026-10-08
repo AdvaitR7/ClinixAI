@@ -8,11 +8,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n web,api -c green,blue \"npm:dev:web\" \"npm:dev:api\"",
+    "dev": "concurrently -n web,api,worker -c green,blue,yellow \"npm:dev:web\" \"npm:dev:api\" \"npm:dev:worker\"",
     "dev:web": "npm run dev --workspace @clinix/web",
     "dev:api": "npm run dev --workspace @clinix/api",
+    "dev:worker": "npm run dev --workspace @clinix/worker",
     "build": "npm run build --workspace @clinix/web",
-    "typecheck": "npm run typecheck --workspace @clinix/web && npm run typecheck --workspace @clinix/api",
+    "typecheck": "npm run typecheck --workspace @clinix/web && npm run typecheck --workspace @clinix/api && npm run typecheck --workspace @clinix/worker",
     "db:generate": "npm run db:generate --workspace @clinix/api",
     "db:migrate": "npm run db:migrate --workspace @clinix/api",
     "db:check": "npm run db:check --workspace @clinix/api"

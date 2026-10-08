@@ -1,0 +1,1 @@
+ALTER TABLE "lab_observations" ADD COLUMN "confidence" numeric;
