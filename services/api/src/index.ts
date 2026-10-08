@@ -14,6 +14,8 @@ import { consultationRoutes } from "./consultations/routes.js";
 import { prescriptionRoutes } from "./prescriptions/routes.js";
 import { medicationRoutes } from "./medications/routes.js";
 import { claimRoutes } from "./claims/routes.js";
+import { documentRoutes } from "./documents/routes.js";
+import { startQueue } from "./queue.js";
 import { checkDb } from "./db";
 
 const app = Fastify({ logger: true, genReqId: () => crypto.randomUUID() });
@@ -55,12 +57,16 @@ await app.register(
     await instance.register(prescriptionRoutes);
     await instance.register(medicationRoutes);
     await instance.register(claimRoutes);
+    await instance.register(documentRoutes);
   },
   { prefix: "/api/v1" },
 );
 
 const port = Number(process.env.PORT ?? 4000);
 const host = process.env.HOST ?? "0.0.0.0";
+
+// Start the document queue before listening so upload-complete can enqueue.
+await startQueue();
 
 try {
   await app.listen({ port, host });

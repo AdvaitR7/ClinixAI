@@ -421,6 +421,7 @@ export const prescriptionDraftViewSchema = z.object({
   created_at: z.string(),
   overall_confidence: z.number().nullable(),
   risk_flags: z.unknown().nullable(),
+  source_document_id: z.string().uuid().nullable(),
   items: z.array(prescriptionDraftItemViewSchema),
 });
 export type PrescriptionDraftView = z.infer<typeof prescriptionDraftViewSchema>;
@@ -491,3 +492,170 @@ export const claimInviteViewSchema = z.object({
   expires_at: z.string(),
 });
 export type ClaimInviteView = z.infer<typeof claimInviteViewSchema>;
+
+// --- Phase 4: documents & OCR (DB §16–17; API §11–12) ---
+
+export const documentTypeSchema = z.enum([
+  "LAB_REPORT",
+  "PRESCRIPTION",
+  "IMAGING_REPORT",
+  "DISCHARGE_SUMMARY",
+  "CONSULTATION_NOTE",
+  "OTHER",
+]);
+export type DocumentType = z.infer<typeof documentTypeSchema>;
+
+export const documentProcessingStatusSchema = z.enum([
+  "UPLOADED",
+  "PROCESSING",
+  "NEEDS_REVIEW",
+  "COMPLETE",
+  "FAILED",
+]);
+export type DocumentProcessingStatus = z.infer<typeof documentProcessingStatusSchema>;
+
+/** POST .../documents/upload-init (API §11). */
+export const uploadInitSchema = z.object({
+  filename: z.string().min(1).max(512),
+  mime_type: z.enum(["image/png", "image/jpeg", "application/pdf"]),
+  document_type: documentTypeSchema,
+  encounter_id: z.string().uuid().optional(),
+});
+export type UploadInit = z.infer<typeof uploadInitSchema>;
+
+/** upload-init response — storage-js passthrough (underspecified in API §11). */
+export const uploadInitResponseSchema = z.object({
+  document_id: z.string().uuid(),
+  upload_url: z.string(),
+  token: z.string(),
+  path: z.string(),
+  expires_in: z.number(),
+});
+export type UploadInitResponse = z.infer<typeof uploadInitResponseSchema>;
+
+export const documentViewSchema = z.object({
+  document_id: z.string().uuid(),
+  document_type: documentTypeSchema,
+  original_filename: z.string(),
+  mime_type: z.string(),
+  file_size_bytes: z.number().nullable(),
+  processing_status: documentProcessingStatusSchema,
+  created_at: z.string(),
+  view_url: z.string().nullable(),
+});
+export type DocumentView = z.infer<typeof documentViewSchema>;
+
+export const labObservationViewSchema = z.object({
+  id: z.string().uuid(),
+  test_name: z.string(),
+  test_code: z.string().nullable(),
+  value_numeric: z.number().nullable(),
+  value_text: z.string().nullable(),
+  unit: z.string().nullable(),
+  reference_low: z.number().nullable(),
+  reference_high: z.number().nullable(),
+  reference_text: z.string().nullable(),
+  flag: z.string().nullable(),
+  observed_at: z.string().nullable(),
+  confidence: z.number().nullable(),
+  needs_review: z.boolean(),
+  confirmed_at: z.string().nullable(),
+});
+export type LabObservationView = z.infer<typeof labObservationViewSchema>;
+
+export const labReportViewSchema = z.object({
+  report_id: z.string().uuid(),
+  laboratory_name: z.string().nullable(),
+  collection_date: z.string().nullable(),
+  report_date: z.string().nullable(),
+  source_document_id: z.string().uuid(),
+  created_at: z.string(),
+  observations: z.array(labObservationViewSchema),
+});
+export type LabReportView = z.infer<typeof labReportViewSchema>;
+
+export const labTrendPointSchema = z.object({
+  observed_at: z.string(),
+  value_numeric: z.number(),
+  report_id: z.string().uuid(),
+  confidence: z.number().nullable(),
+});
+export type LabTrendPoint = z.infer<typeof labTrendPointSchema>;
+
+export const labTrendSchema = z.object({
+  test_name: z.string(),
+  points: z.array(labTrendPointSchema),
+});
+export type LabTrend = z.infer<typeof labTrendSchema>;
+
+/** PATCH /patients/self/lab-observations/:id — confirm and/or correct. */
+export const patchObservationSchema = z.object({
+  value_numeric: z.number().nullable().optional(),
+  value_text: z.string().nullable().optional(),
+  unit: z.string().nullable().optional(),
+  confirmed: z.boolean().optional(),
+});
+export type PatchObservation = z.infer<typeof patchObservationSchema>;
+
+// --- OCR output contracts (worker strict-parse; extras default so omissions never fail) ---
+
+/** Qualitative confidence thresholds — single source for worker gating + web labels. */
+export const OCR_CONFIDENCE_THRESHOLDS = { HIGH: 0.85, MEDIUM: 0.6 } as const;
+
+export function confidenceLabel(
+  n: number | null | undefined,
+): "HIGH" | "MEDIUM" | "LOW" {
+  if (n == null) return "LOW";
+  if (n >= OCR_CONFIDENCE_THRESHOLDS.HIGH) return "HIGH";
+  if (n >= OCR_CONFIDENCE_THRESHOLDS.MEDIUM) return "MEDIUM";
+  return "LOW";
+}
+
+/** True when a value is LOW/missing confidence and needs human review. */
+export function needsReviewByConfidence(n: number | null | undefined): boolean {
+  return confidenceLabel(n) === "LOW";
+}
+
+// ponytail: master plan targets ai/schemas/ocr.ts; lives in @clinix/schemas until
+// a second consumer outside the workspaces needs it (Phase 5 prompts/ai/ dir).
+export const ocrPrescriptionSchema = z.object({
+  raw_text: z.string().default(""),
+  medicines: z
+    .array(
+      z.object({
+        medicine_name: z.string(),
+        strength: z.string().nullable().default(null),
+        dose: z.string().nullable().default(null),
+        route: z.string().nullable().default(null),
+        frequency: z.string().nullable().default(null),
+        timing: z.string().nullable().default(null),
+        duration: z.string().nullable().default(null),
+        instructions: z.string().nullable().default(null),
+        confidence: z.number().min(0).max(1).default(0),
+      }),
+    )
+    .min(1),
+  overall_confidence: z.number().min(0).max(1).default(0),
+  risk_flags: z.array(z.string()).default([]),
+});
+export type OcrPrescription = z.infer<typeof ocrPrescriptionSchema>;
+
+export const ocrLabReportSchema = z.object({
+  raw_text: z.string().default(""),
+  laboratory_name: z.string().nullable().default(null),
+  collection_date: z.string().nullable().default(null),
+  report_date: z.string().nullable().default(null),
+  observations: z
+    .array(
+      z.object({
+        test_name: z.string(),
+        value_numeric: z.number().nullable().default(null),
+        value_text: z.string().nullable().default(null),
+        unit: z.string().nullable().default(null),
+        reference_text: z.string().nullable().default(null),
+        confidence: z.number().min(0).max(1).default(0),
+      }),
+    )
+    .min(1),
+});
+export type OcrLabReport = z.infer<typeof ocrLabReportSchema>;
