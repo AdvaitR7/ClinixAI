@@ -10,7 +10,7 @@ import { useApiData } from "@/lib/api";
 const nav = [
   { label: "Home", href: "/app/patient", active: true },
   { label: "Timeline", href: "/app/patient", disabled: true },
-  { label: "Vault", href: "/app/patient", disabled: true },
+  { label: "Vault", href: "/app/patient/vault" },
   { label: "Visits", href: "/app/patient/appointments" },
   { label: "Care", href: "/app/patient/medications" },
 ];
@@ -87,16 +87,15 @@ export default function PatientPage() {
                   Arrives with AI assistance
                 </span>
               </button>
-              <button
-                type="button"
-                disabled
+              <Link
+                href="/app/patient/vault"
                 className="w-full rounded-2xl border border-hairline bg-surface px-4 py-3 text-left font-sans text-sm font-semibold text-graphite"
               >
                 Upload report
                 <span className="block font-sans text-xs font-normal text-graphite">
-                  Arrives with the health vault
+                  Lab reports, prescriptions, and scans
                 </span>
-              </button>
+              </Link>
               <Link
                 href="/app/patient/book"
                 className="w-full rounded-2xl bg-copper px-4 py-3 font-sans text-base font-semibold text-botanical transition-transform active:translate-y-px"

@@ -22,6 +22,10 @@ const STATUS_STYLES: Record<string, string> = {
   PAID: "border-botanical/40 bg-botanical/10 text-botanical",
   UNPAID: "border-review/40 bg-review/10 text-review",
   WAIVED: "border-hairline bg-surface text-graphite",
+  // Phase 4 — document processing states
+  UPLOADED: "border-graphite/40 bg-graphite/10 text-graphite",
+  PROCESSING: "border-review/40 bg-review/10 text-review",
+  FAILED: "border-critical/40 bg-critical/10 text-critical",
 };
 
 /** Text + color status chip (DESIGN.md §7: never color-only). */
