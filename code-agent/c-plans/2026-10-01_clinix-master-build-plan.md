@@ -21,7 +21,7 @@ todos:
     status: completed
   - id: ocr-documents
     content: Phase 4 — document hub + Gemini 3.8 Flash High OCR pipeline (Screen 9 + 19/20 updates)
-    status: pending
+    status: completed
   - id: ai-checkin
     content: Phase 5 — dual-analyst + judge AI, adaptive check-in (Screens 6,7,8 + 17 update)
     status: pending
@@ -265,6 +265,8 @@ access_events shows both accesses
 
 ### Phase 4 — Documents & OCR (Screen 9 + 19/20 updates) — **Test Milestone C**
 
+**Status (2026-10-08):** ✅ Complete — gate green. `services/api/gate-phase4.mjs` 33/33 PASS. Detail: `code-agent/c-plans/2026-10-01_clinix-phase-4-documents-ocr.md` (in-session) + plan at `/home/machine/.claude/plans/let-s-plan-the-execution-scalable-key.md`.
+
 **Human:** Supabase keys + 9Router `MODEL_ROUTE_OCR` (Gemini 3.8 Flash High) into env.
 
 **Agent:**
@@ -319,7 +321,7 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 - [x] 1, 2, 2a, 2b, 2c, 5 (Phase 1)
 - [x] 3, 4, 15, 16, 17, 22 (Phase 2)
 - [x] 10, 11, 14, 18, 19, 20 (Phase 3)
-- [ ] 9 (Phase 4)
+- [x] 9 (Phase 4)
 - [ ] 6, 7, 8 (Phase 5)
 - [ ] 12, 13, 26 (Phase 6)
 - [ ] 21, 23, 24, 25, 27 (Phase 7)
