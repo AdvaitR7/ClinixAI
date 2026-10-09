@@ -52,19 +52,26 @@ export default function ClaimPage() {
       title="Link your clinic record"
       orientation="Enter the one-time code your clinic gave you to bring an existing record into your vault."
     >
-      <form onSubmit={submit} className="space-y-4" noValidate>
-        <input
-          type="text"
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="Claim code"
-          autoComplete="off"
-          className="h-12 w-full rounded-xl border border-hairline bg-surface px-3 font-mono text-base text-ink outline-none focus:border-copper focus:ring-2 focus:ring-copper"
-        />
+      <form onSubmit={submit} className="space-y-5" noValidate>
+        <div>
+          <label htmlFor="claim-code" className="font-sans text-sm font-medium text-ink">One-time claim code</label>
+          <input
+            id="claim-code"
+            type="text"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            placeholder="Enter claim code"
+            autoComplete="off"
+            className="clinix-field mt-2 font-mono text-base tracking-wider"
+          />
+        </div>
+        <p className="rounded-2xl bg-sage/15 p-4 font-sans text-xs leading-5 text-graphite">
+          The code links only the clinic record it was issued for. It cannot be reused after a successful claim.
+        </p>
         <button
           type="submit"
           disabled={busy || token.trim().length < 8}
-          className="w-full rounded-full bg-botanical px-4 py-3 font-sans text-base font-semibold text-surface transition-transform active:translate-y-px disabled:opacity-60"
+          className="min-h-[58px] w-full rounded-[1.25rem] bg-botanical px-4 font-sans text-base font-semibold text-surface transition-transform active:translate-y-px disabled:opacity-60"
         >
           {busy ? "Linking…" : "Link record"}
         </button>

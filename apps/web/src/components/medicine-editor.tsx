@@ -3,20 +3,20 @@
 import type { PrescriptionItemInput } from "@clinix/schemas";
 
 const FIELDS: { key: keyof PrescriptionItemInput; label: string; wide?: boolean }[] = [
-  { key: "medicine_name", label: "Medicine", wide: true },
-  { key: "strength", label: "Strength" },
-  { key: "dose", label: "Dose" },
-  { key: "route", label: "Route" },
-  { key: "frequency", label: "Frequency" },
-  { key: "timing", label: "Timing" },
-  { key: "duration", label: "Duration" },
+  { key: "medicine_name", label: "Medicine name", wide: true },
+  { key: "strength", label: "Strength (e.g. 500mg)" },
+  { key: "dose", label: "Dose (e.g. 1 tab)" },
+  { key: "route", label: "Route (e.g. Oral)" },
+  { key: "frequency", label: "Frequency (e.g. TID)" },
+  { key: "timing", label: "Timing (e.g. After food)" },
+  { key: "duration", label: "Duration (e.g. 5 days)" },
   { key: "instructions", label: "Instructions", wide: true },
 ];
 
 const inputClass =
-  "h-11 w-full rounded-xl border border-hairline bg-surface px-3 font-sans text-base text-ink outline-none focus:border-copper focus:ring-2 focus:ring-copper";
+  "mt-1 min-h-[44px] w-full rounded-xl border border-white/10 bg-doctor-panel px-3 font-sans text-sm text-surface outline-none focus:border-copper";
 
-/** Structured medicine rows (DESIGN.md §4: distinct fields for dose/route/frequency/timing/duration). */
+/** Structured medicine rows with accessible reordering and removal. */
 export function MedicineEditor({
   items,
   onChange,
@@ -39,32 +39,55 @@ export function MedicineEditor({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {items.map((it, i) => (
-        <div key={i} className="rounded-2xl border border-hairline bg-surface p-4">
-          <div className="flex items-center justify-between">
-            <p className="font-sans text-xs font-semibold text-graphite">Medicine {i + 1}</p>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="rounded-full border border-hairline px-2 py-0.5 font-sans text-xs disabled:opacity-40">
-                ↑
+        <div key={i} className="clinix-doctor-card border-copper/40 p-4">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+            <p className="clinix-label text-copper">Medication {String(i + 1).padStart(2, "0")}</p>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => move(i, -1)}
+                disabled={i === 0}
+                aria-label={`Move medication ${i + 1} up`}
+                className="grid size-7 place-items-center rounded-lg border border-white/10 bg-doctor-panel text-surface disabled:opacity-30"
+              >
+                <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12l5-5 5 5" />
+                </svg>
               </button>
-              <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} className="rounded-full border border-hairline px-2 py-0.5 font-sans text-xs disabled:opacity-40">
-                ↓
+              <button
+                type="button"
+                onClick={() => move(i, 1)}
+                disabled={i === items.length - 1}
+                aria-label={`Move medication ${i + 1} down`}
+                className="grid size-7 place-items-center rounded-lg border border-white/10 bg-doctor-panel text-surface disabled:opacity-30"
+              >
+                <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 8l5 5 5-5" />
+                </svg>
               </button>
-              <button type="button" onClick={() => remove(i)} className="rounded-full border border-hairline px-2 py-0.5 font-sans text-xs text-critical">
-                ✕
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                aria-label={`Remove medication ${i + 1}`}
+                className="grid size-7 place-items-center rounded-lg border border-critical/30 bg-critical/10 text-critical"
+              >
+                <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 6l8 8M6 14L14 6" />
+                </svg>
               </button>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3">
             {FIELDS.map((f) => (
               <div key={f.key} className={f.wide ? "col-span-2" : undefined}>
-                <label className="font-sans text-xs text-graphite">{f.label}</label>
+                <label className="font-sans text-xs text-doctor-muted/70">{f.label}</label>
                 <input
                   type="text"
                   value={it[f.key] ?? ""}
                   onChange={(e) => update(i, f.key, e.target.value)}
-                  className={`${inputClass} mt-1`}
+                  className={inputClass}
                 />
               </div>
             ))}
@@ -74,9 +97,9 @@ export function MedicineEditor({
       <button
         type="button"
         onClick={() => onChange([...items, { medicine_name: "" }])}
-        className="w-full rounded-full border border-dashed border-hairline bg-surface px-4 py-3 font-sans text-sm font-semibold text-graphite"
+        className="min-h-12 w-full rounded-2xl border border-dashed border-copper/50 bg-doctor-panel px-4 font-sans text-xs font-semibold uppercase tracking-wider text-copper transition-colors hover:border-copper"
       >
-        + Add medicine
+        + Add another medicine
       </button>
     </div>
   );

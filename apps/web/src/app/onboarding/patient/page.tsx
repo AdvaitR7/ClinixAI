@@ -9,8 +9,7 @@ import { patientOnboardingSchema, type PatientOnboarding } from "@clinix/schemas
 import { AuthShell, FormError } from "@/components/auth-shell";
 import { fetchApi } from "@/lib/api";
 
-const inputClass =
-  "h-11 w-full rounded-xl border border-hairline bg-surface px-3 font-sans text-base text-ink outline-none focus:border-copper focus:ring-2 focus:ring-copper";
+const inputClass = "clinix-field mt-2 font-sans text-sm";
 
 /**
  * Page 2a — Patient Onboarding (SCREEN_CATALOG §7): identity form, vault vs
@@ -44,10 +43,22 @@ export default function PatientOnboardingPage() {
 
   return (
     <AuthShell
-      eyebrow="Patient onboarding"
-      title="Set up your patient workspace"
-      orientation="Your identity is stored encrypted. Only you control who sees it."
+      eyebrow="Patient onboarding · 1 of 3"
+      title="Welcome to CliniXAI"
+      orientation="Let's set up your private patient record. You can change these details later."
     >
+      <section className="mb-8 rounded-[1.75rem] bg-sage/20 p-1.5">
+        <div className="rounded-[1.35rem] border border-sage bg-surface p-4">
+          <p className="clinix-label text-botanical">Patient record</p>
+          <div className="mt-2 flex items-center gap-3">
+            <span aria-hidden="true" className="grid size-9 place-items-center rounded-xl bg-botanical text-surface">✓</span>
+            <div>
+              <p className="font-sans text-sm font-semibold text-ink">Private by default</p>
+              <p className="font-sans text-xs text-graphite">Nothing is shared without your consent.</p>
+            </div>
+          </div>
+        </div>
+      </section>
       <form onSubmit={onSubmit} className="space-y-5" noValidate>
         <div>
           <label htmlFor="full_name" className="font-sans text-sm font-medium">
@@ -70,7 +81,7 @@ export default function PatientOnboardingPage() {
             <p className="mt-1 font-sans text-sm text-critical">Enter a valid mobile number.</p>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="date_of_birth" className="font-sans text-sm font-medium">
               Date of birth
@@ -91,7 +102,7 @@ export default function PatientOnboardingPage() {
         <fieldset>
           <legend className="font-sans text-sm font-medium">How should CliniX keep your data?</legend>
           <div className="mt-2 space-y-3">
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-hairline bg-surface p-4">
+            <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-[1.25rem] border border-sage bg-surface p-4">
               <input
                 type="radio"
                 name="privacy-mode"
@@ -106,7 +117,7 @@ export default function PatientOnboardingPage() {
                 </span>
               </span>
             </label>
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-hairline bg-surface p-4">
+            <label className="flex min-h-20 cursor-pointer items-start gap-3 rounded-[1.25rem] border border-sage bg-surface p-4">
               <input
                 type="radio"
                 name="privacy-mode"
@@ -127,7 +138,7 @@ export default function PatientOnboardingPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="h-11 w-full rounded-full bg-botanical px-4 font-sans text-base font-semibold text-surface transition-transform active:translate-y-px disabled:opacity-60"
+          className="min-h-[58px] w-full rounded-[1.25rem] bg-botanical px-4 font-sans text-base font-semibold text-surface shadow-[0_8px_18px_rgba(18,53,44,0.14)] transition-transform active:translate-y-px disabled:opacity-60"
         >
           {isSubmitting ? "Setting up…" : "Finish setup"}
         </button>

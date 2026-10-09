@@ -9,8 +9,7 @@ import { doctorOnboardingSchema, type DoctorOnboarding } from "@clinix/schemas";
 import { AuthShell, FormError } from "@/components/auth-shell";
 import { fetchApi } from "@/lib/api";
 
-const inputClass =
-  "h-11 w-full rounded-xl border border-hairline bg-surface px-3 font-sans text-base text-ink outline-none focus:border-copper focus:ring-2 focus:ring-copper";
+const inputClass = "clinix-field mt-2 border-copper/80 bg-graphite text-surface placeholder:text-doctor-muted/60";
 
 /**
  * Page 2b — Doctor Onboarding (SCREEN_CATALOG §7). Verification evidence
@@ -43,13 +42,24 @@ export default function DoctorOnboardingPage() {
 
   return (
     <AuthShell
-      eyebrow="Doctor onboarding"
-      title="Set up your professional profile"
-      orientation="Your registration is reviewed before Doctor workspace access. Patient workspace access stays independent."
+      eyebrow="Doctor onboarding · 1 of 3"
+      title="Your clinical profile"
+      orientation="Add a few professional details. Your registration is reviewed before Doctor workspace access."
+      tone="doctor"
     >
+      <section className="mb-8 rounded-[1.75rem] border-[6px] border-copper bg-graphite p-4">
+        <p className="clinix-label text-copper">Clinical profile</p>
+        <div className="mt-2 flex items-center gap-3">
+          <span aria-hidden="true" className="grid size-9 place-items-center rounded-xl bg-copper text-ink">✓</span>
+          <div>
+            <p className="font-sans text-sm font-semibold text-surface">Professional identity</p>
+            <p className="font-sans text-xs text-doctor-muted/75">Your role and credentials stay linked to records you author.</p>
+          </div>
+        </div>
+      </section>
       <form onSubmit={onSubmit} className="space-y-5" noValidate>
         <div>
-          <label htmlFor="registration_number" className="font-sans text-sm font-medium">
+          <label htmlFor="registration_number" className="font-sans text-sm font-medium text-surface">
             Medical registration number
           </label>
           <input id="registration_number" type="text" className={inputClass} {...register("registration_number")} />
@@ -58,7 +68,7 @@ export default function DoctorOnboardingPage() {
           )}
         </div>
         <div>
-          <label htmlFor="registration_authority" className="font-sans text-sm font-medium">
+          <label htmlFor="registration_authority" className="font-sans text-sm font-medium text-surface">
             Registration authority / medical council
           </label>
           <input id="registration_authority" type="text" className={inputClass} {...register("registration_authority")} />
@@ -66,26 +76,24 @@ export default function DoctorOnboardingPage() {
             <p className="mt-1 font-sans text-sm text-critical">Enter the issuing authority.</p>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label htmlFor="qualification" className="font-sans text-sm font-medium">
+            <label htmlFor="qualification" className="font-sans text-sm font-medium text-surface">
               Qualification <span className="text-graphite">(optional)</span>
             </label>
             <input id="qualification" type="text" className={inputClass} {...register("qualification")} />
           </div>
           <div>
-            <label htmlFor="speciality" className="font-sans text-sm font-medium">
+            <label htmlFor="speciality" className="font-sans text-sm font-medium text-surface">
               Speciality <span className="text-graphite">(optional)</span>
             </label>
             <input id="speciality" type="text" className={inputClass} {...register("speciality")} />
           </div>
         </div>
 
-        <div className="rounded-2xl border border-hairline bg-surface p-4">
-          <p className="font-sans text-xs font-semibold uppercase tracking-wide text-review">
-            Verification: pending
-          </p>
-          <p className="mt-1 font-sans text-sm text-graphite">
+        <div className="rounded-2xl border border-copper/70 bg-graphite p-4">
+          <p className="clinix-label text-copper">Verification: pending</p>
+          <p className="mt-1 font-sans text-sm text-doctor-muted/75">
             New applications start as Pending. Evidence upload arrives in a later phase.
           </p>
         </div>
@@ -93,7 +101,7 @@ export default function DoctorOnboardingPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="h-11 w-full rounded-full bg-botanical px-4 font-sans text-base font-semibold text-surface transition-transform active:translate-y-px disabled:opacity-60"
+          className="min-h-[58px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-base font-semibold text-ink transition-transform active:translate-y-px disabled:opacity-60"
         >
           {isSubmitting ? "Submitting…" : "Submit for verification"}
         </button>

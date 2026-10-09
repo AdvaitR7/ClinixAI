@@ -10,7 +10,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { fetchApi, useApiData } from "@/lib/api";
 
 const nav = [
-  { label: "Home", href: "/app/doctor" },
+  { label: "Desk", href: "/app/doctor" },
   { label: "Schedule", href: "/app/doctor/schedule" },
   { label: "Patients", href: "/app/doctor/patients" },
   { label: "Drafts", href: "/app/doctor/drafts" },
@@ -37,7 +37,7 @@ function fmtAt(iso: string) {
   });
 }
 
-/** Page 18 — Consultation workspace (SCREEN_CATALOG §7). */
+/** Page 18 — Consultation workspace (SCREEN_CATALOG §7, Figma 56:2 & 56:33). */
 export default function ConsultationPage() {
   const params = useParams<{ appointmentId: string }>();
   const router = useRouter();
@@ -104,6 +104,7 @@ export default function ConsultationPage() {
       });
       setAmending(false);
       setAmendReason("");
+      await state.refresh();
     } finally {
       setBusy(false);
     }
@@ -123,8 +124,8 @@ export default function ConsultationPage() {
     return (
       <WorkspaceShell workspace="Doctor" title="Consultation" nav={nav}>
         <div className="space-y-3" aria-hidden="true">
-          <Skeleton className="h-24 rounded-2xl" />
-          <Skeleton className="h-40 rounded-2xl" />
+          <Skeleton className="h-28 rounded-2xl" />
+          <Skeleton className="h-64 rounded-2xl" />
         </div>
       </WorkspaceShell>
     );
@@ -133,7 +134,9 @@ export default function ConsultationPage() {
   if (state.status === "error") {
     return (
       <WorkspaceShell workspace="Doctor" title="Consultation" nav={nav}>
-        <p className="font-sans text-sm text-critical">{state.error}</p>
+        <section className="clinix-doctor-card p-5">
+          <p className="font-sans text-sm text-critical">{state.error}</p>
+        </section>
       </WorkspaceShell>
     );
   }
@@ -142,70 +145,75 @@ export default function ConsultationPage() {
   const readOnly = ctx.note_is_final;
 
   return (
-    <WorkspaceShell workspace="Doctor" title="Consultation" nav={nav}>
-      <header className="rounded-2xl bg-botanical p-5 text-surface">
-        <div className="flex items-start justify-between">
+    <WorkspaceShell workspace="Doctor" title="Consultation workspace" nav={nav}>
+      <header className="clinix-doctor-card border-copper p-5">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-sans text-lg font-semibold">{ctx.appointment.patient_name}</p>
-            <p className="mt-1 font-mono text-xs text-sage">
+            <p className="clinix-label text-copper">Encounter</p>
+            <h2 className="mt-1 font-sans text-xl font-bold text-surface">{ctx.appointment.patient_name}</h2>
+            <p className="mt-1 font-mono text-xs text-doctor-muted/70">
               {fmtAt(ctx.appointment.scheduled_start)} · {ctx.appointment.appointment_type}
               {ctx.appointment.reason ? ` · ${ctx.appointment.reason}` : ""}
             </p>
           </div>
           <StatusBadge status={ctx.appointment.status} />
         </div>
-        <div className="mt-2 flex items-center gap-2">
-          <span className="font-sans text-xs text-sage">Payment</span>
-          <select
-            value={ctx.appointment.payment_status}
-            onChange={(e) => setPayment(e.target.value)}
-            className="h-8 rounded-lg border border-sage/40 bg-botanical px-1 font-sans text-xs text-surface"
-          >
-            {PAYMENT_OPTIONS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
+        <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
+          <div className="flex items-center gap-2">
+            <span className="font-sans text-xs text-doctor-muted/70">Payment</span>
+            <select
+              value={ctx.appointment.payment_status}
+              onChange={(e) => setPayment(e.target.value)}
+              className="h-8 rounded-lg border border-white/10 bg-doctor-panel px-2 font-sans text-xs text-surface outline-none"
+            >
+              {PAYMENT_OPTIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+          <span className="font-sans text-[11px] text-doctor-muted/60">
+            {readOnly ? "Note is finalized (immutable)" : savedAt ? `Saved ${savedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "Autosaving"}
+          </span>
         </div>
       </header>
 
-      <section className="rounded-2xl border border-hairline bg-surface p-5">
+      {/* Structured clinical note */}
+      <section className="clinix-doctor-card p-5">
         <div className="flex items-center justify-between">
-          <p className="font-sans text-xs font-semibold uppercase tracking-wide text-graphite">
-            Clinical note
-          </p>
-          {!readOnly && (
-            <span className="font-sans text-[11px] text-graphite">
-              {savedAt ? `Saved · ${savedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "Autosaves as you type"}
-            </span>
-          )}
+          <p className="clinix-label text-copper">Clinical note</p>
+          <span className="font-sans text-[11px] text-doctor-muted/60">
+            {readOnly ? "Read-only" : "800ms autosave"}
+          </span>
         </div>
 
         {readOnly ? (
-          <dl className="mt-3 space-y-3">
+          <dl className="mt-4 space-y-3 font-sans text-sm">
             {SECTIONS.map((s) => (
-              <div key={s.key}>
-                <dt className="font-sans text-sm font-medium">{s.label}</dt>
-                <dd className="mt-1 font-sans text-sm text-graphite">
+              <div key={s.key} className="border-t border-white/5 pt-2.5">
+                <dt className="font-semibold text-surface">{s.label}</dt>
+                <dd className="mt-1 text-doctor-muted/80 whitespace-pre-wrap">
                   {ctx.note?.[s.key] || "—"}
                 </dd>
               </div>
             ))}
           </dl>
         ) : (
-          <div className="mt-3 space-y-3">
+          <div className="mt-4 space-y-4">
             {SECTIONS.map((s) => (
               <div key={s.key}>
-                <label className="font-sans text-sm font-medium">{s.label}</label>
+                <label className="font-sans text-xs font-semibold uppercase tracking-wider text-doctor-muted/75">
+                  {s.label}
+                </label>
                 <textarea
                   value={sections[s.key] ?? ""}
                   onChange={(e) => {
                     setSections((prev) => ({ ...prev, [s.key]: e.target.value }));
                     setDirty(true);
                   }}
-                  rows={2}
-                  className="mt-1 w-full rounded-xl border border-hairline bg-surface px-3 py-2 font-sans text-base text-ink outline-none focus:border-copper focus:ring-2 focus:ring-copper"
+                  rows={3}
+                  className="mt-1.5 w-full rounded-2xl border border-white/10 bg-doctor-panel px-3.5 py-2.5 font-sans text-sm text-surface outline-none focus:border-copper"
                 />
               </div>
             ))}
@@ -213,20 +221,18 @@ export default function ConsultationPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-hairline bg-surface p-5">
-        <p className="font-sans text-xs font-semibold uppercase tracking-wide text-graphite">
-          Current medications
-        </p>
+      {/* Current medications */}
+      <section className="clinix-doctor-card p-5">
+        <p className="clinix-label text-copper">Current medications</p>
         {ctx.current_medications.length === 0 ? (
-          <p className="mt-1 font-sans text-sm text-graphite">None recorded.</p>
+          <p className="mt-2 font-sans text-xs text-doctor-muted/60">None recorded.</p>
         ) : (
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-3 space-y-2">
             {ctx.current_medications.map((m, i) => (
-              <li key={i} className="font-sans text-sm">
-                {m.medicine_name}
-                <span className="text-graphite">
-                  {" "}
-                  · {[m.dose, m.route, m.frequency].filter(Boolean).join(" · ") || "no details"}
+              <li key={i} className="rounded-xl border border-white/5 bg-black/20 p-2.5 font-sans text-xs text-surface">
+                <span className="font-semibold">{m.medicine_name}</span>
+                <span className="text-doctor-muted/70">
+                  {" · "}{[m.dose, m.route, m.frequency].filter(Boolean).join(" · ") || "No details"}
                 </span>
               </li>
             ))}
@@ -234,7 +240,8 @@ export default function ConsultationPage() {
         )}
       </section>
 
-      <div className="flex gap-3">
+      {/* Action workbench */}
+      <div className="space-y-3">
         <button
           type="button"
           onClick={() =>
@@ -242,81 +249,103 @@ export default function ConsultationPage() {
               `/app/doctor/prescription-drafts/new?encounterId=${ctx.encounter_id}&patientId=${ctx.appointment.patient_id}`,
             )
           }
-          className="flex-1 rounded-full bg-copper px-4 py-3 font-sans text-base font-semibold text-botanical transition-transform active:translate-y-px"
+          className="min-h-[52px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink transition-transform active:translate-y-px"
         >
           Create prescription
         </button>
-      </div>
 
-      {readOnly ? (
-        amending ? (
-          <section className="rounded-2xl border border-hairline bg-surface p-5">
-            <p className="font-sans text-sm font-semibold">Amend note</p>
-            <label className="mt-2 block font-sans text-sm font-medium">Reason for amendment</label>
-            <input
-              type="text"
-              value={amendReason}
-              onChange={(e) => setAmendReason(e.target.value)}
-              className="mt-1 h-11 w-full rounded-xl border border-hairline bg-surface px-3 font-sans text-base"
-            />
-            <div className="mt-3 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setAmending(false)}
-                className="flex-1 rounded-full border border-hairline px-4 py-2 font-sans text-sm font-semibold text-graphite"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={amend}
-                disabled={busy || !amendReason.trim()}
-                className="flex-1 rounded-full bg-botanical px-4 py-2 font-sans text-sm font-semibold text-surface disabled:opacity-60"
-              >
-                Save amendment
-              </button>
-            </div>
-          </section>
+        {readOnly ? (
+          amending ? (
+            <section className="clinix-doctor-card border-copper p-5">
+              <p className="clinix-label text-copper">Amend note</p>
+              <label className="mt-2 block font-sans text-xs text-doctor-muted/80">Reason for amendment *</label>
+              <input
+                type="text"
+                value={amendReason}
+                onChange={(e) => setAmendReason(e.target.value)}
+                placeholder="Clinical reason for this change"
+                className="mt-1.5 min-h-[46px] w-full rounded-xl border border-white/10 bg-doctor-panel px-3 font-sans text-sm text-surface outline-none focus:border-copper"
+              />
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAmending(false)}
+                  className="min-h-11 flex-1 rounded-xl border border-white/10 bg-doctor-panel font-sans text-xs font-semibold text-surface"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={amend}
+                  disabled={busy || !amendReason.trim()}
+                  className="min-h-11 flex-1 rounded-xl bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
+                >
+                  Save amendment
+                </button>
+              </div>
+            </section>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAmending(true)}
+              className="min-h-[52px] w-full rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold text-surface"
+            >
+              Amend note
+            </button>
+          )
         ) : (
           <button
             type="button"
-            onClick={() => setAmending(true)}
-            className="w-full rounded-full border border-hairline bg-surface px-4 py-3 font-sans text-base font-semibold text-graphite"
+            onClick={() => setConfirmComplete(true)}
+            className="min-h-[52px] w-full rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold text-surface"
           >
-            Amend note
+            Complete consultation
           </button>
-        )
-      ) : confirmComplete ? (
-        <section className="rounded-2xl border border-review bg-surface p-5">
-          <p className="font-sans text-sm font-semibold text-review">
-            Complete this consultation? The note will be finalized and can only be amended afterwards.
-          </p>
-          <div className="mt-3 flex gap-3">
-            <button
-              type="button"
-              onClick={() => setConfirmComplete(false)}
-              className="flex-1 rounded-full border border-hairline px-4 py-2 font-sans text-sm font-semibold text-graphite"
-            >
-              Keep working
-            </button>
-            <button
-              type="button"
-              onClick={complete}
-              disabled={busy}
-              className="flex-1 rounded-full bg-botanical px-4 py-2 font-sans text-sm font-semibold text-surface disabled:opacity-60"
-            >
-              Complete
-            </button>
-          </div>
-        </section>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setConfirmComplete(true)}
-          className="w-full rounded-full border border-hairline bg-surface px-4 py-3 font-sans text-base font-semibold text-graphite"
+        )}
+      </div>
+
+      {/* Complete Consultation confirmation modal (Node 56:33) */}
+      {confirmComplete && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="complete-consult-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
         >
-          Complete consultation
-        </button>
+          <div className="w-full max-w-sm rounded-[1.75rem] border border-copper bg-doctor-panel p-6 shadow-2xl">
+            <span className="rounded-full border border-copper/50 px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-copper">
+              Final Review
+            </span>
+            <h3 id="complete-consult-title" className="mt-2 font-sans text-xl font-bold text-surface">
+              Complete consultation?
+            </h3>
+            <p className="mt-2 font-sans text-xs leading-5 text-doctor-muted/75">
+              The clinical note will be finalized and locked into an immutable record. Later changes will create dated amendments.
+            </p>
+            <div className="mt-4 space-y-2 rounded-xl bg-black/30 p-3 font-sans text-xs text-doctor-muted/80">
+              <p className="flex items-center gap-2"><span>✓</span> Clinical note recorded</p>
+              <p className="flex items-center gap-2"><span>✓</span> Encounter status will become Completed</p>
+            </div>
+            <div className="mt-6 flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setConfirmComplete(false)}
+                disabled={busy}
+                className="min-h-11 flex-1 rounded-xl border border-white/10 font-sans text-xs font-semibold text-surface"
+              >
+                Return to draft
+              </button>
+              <button
+                type="button"
+                onClick={complete}
+                disabled={busy}
+                className="min-h-11 flex-1 rounded-xl bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
+              >
+                {busy ? "Finalizing…" : "Confirm complete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </WorkspaceShell>
   );
