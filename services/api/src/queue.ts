@@ -15,9 +15,10 @@ export async function startQueue(): Promise<PgBoss | null> {
     boss = new PgBoss({ connectionString: url });
     await boss.start();
     await boss.createQueue("document.extract");
+    await boss.createQueue("ai.analyze");
     return boss;
   } catch (err) {
-    console.error("pg-boss failed to start; document queue disabled", err);
+    console.error("pg-boss failed to start; job queue disabled", err);
     boss = null;
     return null;
   }
@@ -32,4 +33,14 @@ export async function sendDocumentExtract(documentId: string): Promise<void> {
   const b = await startQueue();
   if (!b) throw new Error("Job queue unavailable");
   await b.send("document.extract", { documentId });
+}
+
+/** Enqueues `ai.analyze` job (ARCHITECTURE_SPEC §10, §35). */
+export async function sendAiAnalysis(
+  aiSessionId: string,
+  encounterId: string,
+): Promise<void> {
+  const b = await startQueue();
+  if (!b) throw new Error("Job queue unavailable");
+  await b.send("ai.analyze", { aiSessionId, encounterId });
 }

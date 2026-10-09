@@ -10,7 +10,7 @@ import { patientDashboardDemo } from "@/lib/ui-demo-data";
 
 const nav = [
   { label: "Home", href: "/app/patient", active: true },
-  { label: "Timeline", href: "/app/patient", disabled: true },
+  { label: "Timeline", href: "/app/patient/timeline" },
   { label: "Vault", href: "/app/patient/vault" },
   { label: "Visits", href: "/app/patient/appointments" },
   { label: "Care", href: "/app/patient/medications" },
@@ -151,10 +151,10 @@ export default function PatientPage() {
                 <span className="font-sans text-base font-semibold text-ink">Visits</span>
                 <span className="mt-1 block font-sans text-xs text-graphite">Appointments and status</span>
               </Link>
-              <button type="button" disabled className="clinix-card min-h-24 p-4 text-left opacity-60">
+              <Link href="/app/patient/checkin" className="clinix-card min-h-24 p-4 text-left transition-transform active:translate-y-px">
                 <span className="font-sans text-base font-semibold text-ink">Check-in</span>
-                <span className="mt-1 block font-sans text-xs text-graphite">Unavailable</span>
-              </button>
+                <span className="mt-1 block font-sans text-xs text-graphite">AI-assisted assessment</span>
+              </Link>
               <Link href="/app/patient/medications" className="clinix-card min-h-24 p-4">
                 <span className="font-sans text-base font-semibold text-ink">Medications</span>
                 <span className="mt-1 block font-sans text-xs text-graphite">Current and past records</span>

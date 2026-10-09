@@ -24,7 +24,7 @@ todos:
     status: completed
   - id: ai-checkin
     content: Phase 5 — dual-analyst + judge AI, adaptive check-in (Screens 6,7,8 + 17 update)
-    status: pending
+    status: completed
   - id: privacy-ledger
     content: Phase 6 — consent scoping, access ledger, record removal (Screens 12,13,26)
     status: pending
@@ -282,6 +282,8 @@ access_events shows both accesses
 
 ### Phase 5 — AI check-in (Screens 6, 7, 8 + 17 update) — **Test Milestone B**
 
+**Status (2026-10-09):** ✅ Complete — gate green. `services/api/gate-phase5.mjs` 38/38 PASS. Test Milestone B verified end-to-end. Multi-analyst (Family A + Family B) + Judge pipeline operational via 9Router. Deterministic safety engine with `emergency.json` verified with real-time interrupt. Screens 6 (Adaptive Check-in), 6a (Safety Interrupt), 7 (Check-in Result & Packet), 8 (Health Timeline) implemented to Figma fidelity (`brnpZDSnHR7J26MIRRjc1u`); Screen 17 clinical workspace updated with split record.
+
 **Human:** 9Router keys + 3 pinned routes (A1, A2 different families, J strongest).
 
 **Agent:**
@@ -322,7 +324,7 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 - [x] 3, 4, 15, 16, 17, 22 (Phase 2)
 - [x] 10, 11, 14, 18, 19, 20 (Phase 3)
 - [x] 9 (Phase 4)
-- [ ] 6, 7, 8 (Phase 5)
+- [x] 6, 7, 8 (Phase 5)
 - [ ] 12, 13, 26 (Phase 6)
 - [ ] 21, 23, 24, 25, 27 (Phase 7)
 - [ ] PWA shell + install (Phase 8)
