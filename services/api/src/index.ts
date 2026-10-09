@@ -15,6 +15,9 @@ import { prescriptionRoutes } from "./prescriptions/routes.js";
 import { medicationRoutes } from "./medications/routes.js";
 import { claimRoutes } from "./claims/routes.js";
 import { documentRoutes } from "./documents/routes.js";
+import { interactionRoutes } from "./interactions/routes.js";
+import { aiRoutes } from "./ai/routes.js";
+import { timelineRoutes } from "./timeline/routes.js";
 import { startQueue } from "./queue.js";
 import { checkDb } from "./db";
 
@@ -58,6 +61,9 @@ await app.register(
     await instance.register(medicationRoutes);
     await instance.register(claimRoutes);
     await instance.register(documentRoutes);
+    await instance.register(interactionRoutes);
+    await instance.register(aiRoutes);
+    await instance.register(timelineRoutes);
   },
   { prefix: "/api/v1" },
 );

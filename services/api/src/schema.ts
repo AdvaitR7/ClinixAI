@@ -13,6 +13,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  vector,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
@@ -831,4 +832,254 @@ export const labObservations = pgTable(
       t.observedAt.desc(),
     ),
   ],
+);
+
+// --- Phase 5 enums (DATABASE_SCHEMA_SPEC §7) ---
+
+export const aiRole = pgEnum("ai_role", [
+  "ANALYST_1",
+  "ANALYST_2",
+  "JUDGE",
+  "OUTPUT_COMPOSER",
+]);
+
+export const aiRunStatus = pgEnum("ai_run_status", [
+  "QUEUED",
+  "RUNNING",
+  "SUCCEEDED",
+  "FAILED",
+  "BLOCKED",
+]);
+
+// --- Phase 5 tables (DATABASE_SCHEMA_SPEC §12, §28–§31) ---
+
+/**
+ * §12.1 — interactive questioning session linked to an encounter.
+ */
+export const interactionSessions = pgTable("interaction_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  encounterId: uuid("encounter_id")
+    .notNull()
+    .references(() => encounters.id),
+  status: text("status").notNull().default("IN_PROGRESS"),
+  currentStep: integer("current_step").notNull().default(1),
+  startedAt: timestamp("started_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+});
+
+/**
+ * §12.2 — adaptive question blocks presented to the patient.
+ */
+export const interactionBlocks = pgTable("interaction_blocks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  interactionSessionId: uuid("interaction_session_id")
+    .notNull()
+    .references(() => interactionSessions.id),
+  sequenceNumber: integer("sequence_number").notNull(),
+  blockType: text("block_type").notNull(),
+  title: text("title").notNull(),
+  helpText: text("help_text"),
+  options: jsonb("options"),
+  allowFreeText: boolean("allow_free_text").notNull().default(true),
+  generatedByAiSessionId: uuid("generated_by_ai_session_id"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * §12.3 — patient answers to adaptive blocks.
+ */
+export const interactionResponses = pgTable(
+  "interaction_responses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    interactionBlockId: uuid("interaction_block_id")
+      .notNull()
+      .references(() => interactionBlocks.id),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    selectedOptionIds: jsonb("selected_option_ids"),
+    freeText: text("free_text"),
+    numericValue: numeric("numeric_value"),
+    dateValue: date("date_value"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("interaction_responses_block_idx").on(t.interactionBlockId)],
+);
+
+/**
+ * §28.1 — AI orchestration session tracking multi-analyst and judge execution.
+ */
+export const aiSessions = pgTable(
+  "ai_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    encounterId: uuid("encounter_id")
+      .notNull()
+      .references(() => encounters.id),
+    purpose: text("purpose").notNull(),
+    status: aiRunStatus("status").notNull().default("QUEUED"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("ai_sessions_patient_enc_idx").on(t.patientId, t.encounterId)],
+);
+
+/**
+ * §28.2 — frozen canonical patient context bundle stripped of direct identifiers.
+ * Enforces contains_direct_identifiers = false.
+ */
+export const aiEvidenceBundles = pgTable("ai_evidence_bundles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  aiSessionId: uuid("ai_session_id")
+    .notNull()
+    .references(() => aiSessions.id),
+  bundleVersion: integer("bundle_version").notNull().default(1),
+  payload: jsonb("payload").notNull(),
+  payloadHash: text("payload_hash").notNull(),
+  containsDirectIdentifiers: boolean("contains_direct_identifiers")
+    .notNull()
+    .default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * §28.3 — individual model runs for Analyst 1, Analyst 2, and Judge.
+ */
+export const aiModelRuns = pgTable(
+  "ai_model_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    aiSessionId: uuid("ai_session_id")
+      .notNull()
+      .references(() => aiSessions.id),
+    role: aiRole("role").notNull(),
+    providerRoute: text("provider_route").notNull(),
+    modelName: text("model_name").notNull(),
+    inputHash: text("input_hash").notNull(),
+    outputPayload: jsonb("output_payload"),
+    outputHash: text("output_hash"),
+    status: aiRunStatus("status").notNull().default("QUEUED"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    errorCode: text("error_code"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("ai_model_runs_session_role_idx").on(t.aiSessionId, t.role)],
+);
+
+/**
+ * §28.4 — Judge synthesis: agreements, material disagreements, and safe consensus.
+ */
+export const aiJudgments = pgTable(
+  "ai_judgments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    aiSessionId: uuid("ai_session_id")
+      .notNull()
+      .references(() => aiSessions.id),
+    agreements: jsonb("agreements").notNull(),
+    materialDisagreements: jsonb("material_disagreements").notNull(),
+    unsupportedClaims: jsonb("unsupported_claims").notNull(),
+    questionsToAskNext: jsonb("questions_to_ask_next").notNull(),
+    safeConsensus: jsonb("safe_consensus").notNull(),
+    requiresDoctorReview: boolean("requires_doctor_review")
+      .notNull()
+      .default(false),
+    requiresUrgentEscalation: boolean("requires_urgent_escalation")
+      .notNull()
+      .default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("ai_judgments_session_idx").on(t.aiSessionId)],
+);
+
+/**
+ * §29.1 — AI-derived historical episode matches (STRONGLY/PARTIALLY/INSUFFICIENTLY_SIMILAR).
+ */
+export const aiHistoricalMatches = pgTable("ai_historical_matches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  aiSessionId: uuid("ai_session_id")
+    .notNull()
+    .references(() => aiSessions.id),
+  currentEncounterId: uuid("current_encounter_id")
+    .notNull()
+    .references(() => encounters.id),
+  historicalEncounterId: uuid("historical_encounter_id")
+    .notNull()
+    .references(() => encounters.id),
+  similarityLabel: text("similarity_label").notNull(),
+  similarityScore: numeric("similarity_score"),
+  supportingFeatures: jsonb("supporting_features"),
+  differences: jsonb("differences"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * §30.1 — semantic chunks with pgvector embeddings for longitudinal similarity search.
+ */
+export const semanticChunks = pgTable(
+  "semantic_chunks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    sourceType: text("source_type").notNull(),
+    sourceId: uuid("source_id").notNull(),
+    chunkText: text("chunk_text").notNull(),
+    embedding: vector("embedding", { dimensions: 1536 }),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("semantic_chunks_patient_source_idx").on(t.patientId, t.sourceType)],
+);
+
+/**
+ * §31.1 — deterministic safety evaluations logged at PRE_AI and POST_JUDGE stages.
+ */
+export const safetyEvaluations = pgTable(
+  "safety_evaluations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    encounterId: uuid("encounter_id")
+      .notNull()
+      .references(() => encounters.id),
+    aiSessionId: uuid("ai_session_id").references(() => aiSessions.id),
+    stage: text("stage").notNull(),
+    triggeredRuleIds: jsonb("triggered_rule_ids").notNull(),
+    severity: text("severity").notNull(),
+    action: text("action").notNull(),
+    inputHash: text("input_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("safety_evaluations_enc_idx").on(t.encounterId)],
 );

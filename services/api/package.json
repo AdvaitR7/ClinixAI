@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./crypto": "./src/crypto.ts",
+    "./safety": "./src/safety/evaluator.ts"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",

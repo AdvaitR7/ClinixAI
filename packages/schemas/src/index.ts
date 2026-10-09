@@ -659,3 +659,242 @@ export const ocrLabReportSchema = z.object({
     .min(1),
 });
 export type OcrLabReport = z.infer<typeof ocrLabReportSchema>;
+
+// --- Phase 5: AI check-in, consensus & timeline (DB §12, §28–31; API §9–10, §13, §18) ---
+
+export const aiRoleSchema = z.enum([
+  "ANALYST_1",
+  "ANALYST_2",
+  "JUDGE",
+  "OUTPUT_COMPOSER",
+]);
+export type AiRole = z.infer<typeof aiRoleSchema>;
+
+export const aiRunStatusSchema = z.enum([
+  "QUEUED",
+  "RUNNING",
+  "SUCCEEDED",
+  "FAILED",
+  "BLOCKED",
+]);
+export type AiRunStatus = z.infer<typeof aiRunStatusSchema>;
+
+export const interactionBlockTypeSchema = z.enum([
+  "single_select",
+  "multi_select",
+  "numeric",
+  "date",
+  "scale",
+  "free_text",
+]);
+export type InteractionBlockType = z.infer<typeof interactionBlockTypeSchema>;
+
+export const interactionSessionStatusSchema = z.enum([
+  "IN_PROGRESS",
+  "COMPLETED",
+  "ESCALATED",
+]);
+export type InteractionSessionStatus = z.infer<typeof interactionSessionStatusSchema>;
+
+export const historicalSimilarityLabelSchema = z.enum([
+  "STRONGLY_SIMILAR",
+  "PARTIALLY_SIMILAR",
+  "INSUFFICIENTLY_SIMILAR",
+]);
+export type HistoricalSimilarityLabel = z.infer<typeof historicalSimilarityLabelSchema>;
+
+export const safetySeveritySchema = z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
+export type SafetySeverity = z.infer<typeof safetySeveritySchema>;
+
+export const safetyActionSchema = z.enum(["ALLOW", "ASK_MORE", "BLOCK_NORMAL_FLOW"]);
+export type SafetyAction = z.infer<typeof safetyActionSchema>;
+
+export const provenanceAuthoritySchema = z.enum([
+  "PATIENT_ASSERTED",
+  "DOCTOR_AUTHORED",
+  "SOURCE_DOCUMENT_DERIVED",
+  "AI_DERIVED",
+]);
+export type ProvenanceAuthority = z.infer<typeof provenanceAuthoritySchema>;
+
+export const interactionOptionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string().optional(),
+});
+export type InteractionOption = z.infer<typeof interactionOptionSchema>;
+
+export const interactionBlockViewSchema = z.object({
+  id: z.string().uuid(),
+  sequence_number: z.number(),
+  block_type: z.string(),
+  title: z.string(),
+  help_text: z.string().nullable().default(null),
+  options: z.array(interactionOptionSchema).nullable().default(null),
+  allow_free_text: z.boolean().default(true),
+});
+export type InteractionBlockView = z.infer<typeof interactionBlockViewSchema>;
+
+export const interactionStartSchema = z.object({
+  chief_concern: z.string().min(1),
+});
+export type InteractionStart = z.infer<typeof interactionStartSchema>;
+
+export const interactionResponseInputSchema = z.object({
+  block_id: z.string().uuid(),
+  selected_option_ids: z.array(z.string()).optional(),
+  free_text: z.string().nullable().optional(),
+  numeric_value: z.number().nullable().optional(),
+  date_value: z.string().nullable().optional(),
+});
+export type InteractionResponseInput = z.infer<typeof interactionResponseInputSchema>;
+
+export const safetyAlertSchema = z.object({
+  severity: safetySeveritySchema,
+  action: safetyActionSchema,
+  triggered_rule_ids: z.array(z.string()),
+  message: z.string(),
+  emergency_number: z.string().default("112 / 108"),
+});
+export type SafetyAlert = z.infer<typeof safetyAlertSchema>;
+
+export const interactionResponseResultSchema = z.object({
+  status: z.enum(["NEEDS_MORE_INFORMATION", "READY_FOR_ANALYSIS", "SAFETY_ESCALATION"]),
+  next_block: interactionBlockViewSchema.optional(),
+  safety_alert: safetyAlertSchema.optional(),
+});
+export type InteractionResponseResult = z.infer<typeof interactionResponseResultSchema>;
+
+export const analystOutputSchema = z.object({
+  important_findings: z.array(z.string()).default([]),
+  historical_matches: z
+    .array(
+      z.object({
+        encounter_id: z.string(),
+        similarity_label: historicalSimilarityLabelSchema,
+        supporting_features: z.array(z.string()).default([]),
+        differences: z.array(z.string()).default([]),
+      }),
+    )
+    .default([]),
+  missing_information: z.array(z.string()).default([]),
+  safety_concerns: z.array(z.string()).default([]),
+  supported_guidance: z.array(z.string()).default([]),
+  doctor_questions: z.array(z.string()).default([]),
+  confidence: z.enum(["low", "medium", "high"]).default("medium"),
+});
+export type AnalystOutput = z.infer<typeof analystOutputSchema>;
+
+export const judgeOutputSchema = z.object({
+  agreements: z.array(z.string()).default([]),
+  material_disagreements: z.array(z.string()).default([]),
+  unsupported_claims: z.array(z.string()).default([]),
+  questions_to_ask_next: z.array(z.string()).default([]),
+  safe_consensus: z.array(z.string()).default([]),
+  requires_doctor_review: z.boolean().default(false),
+  requires_urgent_escalation: z.boolean().default(false),
+});
+export type JudgeOutput = z.infer<typeof judgeOutputSchema>;
+
+export const historicalEpisodeMatchSchema = z.object({
+  historical_encounter_id: z.string().uuid(),
+  date: z.string().nullable().default(null),
+  chief_concern: z.string().nullable().default(null),
+  similarity_label: historicalSimilarityLabelSchema,
+  similarity_score: z.number().nullable().optional(),
+  supporting_features: z.array(z.string()).default([]),
+  differences: z.array(z.string()).default([]),
+  outcome: z.string().nullable().optional(),
+});
+export type HistoricalEpisodeMatch = z.infer<typeof historicalEpisodeMatchSchema>;
+
+export const STATUTORY_NON_REUSE_WARNING =
+  "Prior treatment is not authorization for reuse. Medicines prescribed for earlier episodes should never be restarted without consulting a doctor.";
+
+export const patientCheckinOutcomeSchema = z.object({
+  summary: z.string(),
+  low_risk_guidance: z.array(z.string()).default([]),
+  uncertainty_level: z.enum(["LOW", "MEDIUM", "HIGH"]).default("LOW"),
+  questions_for_doctor: z.array(z.string()).default([]),
+  historical_matches: z.array(historicalEpisodeMatchSchema).default([]),
+  statutory_warning: z.string().default(STATUTORY_NON_REUSE_WARNING),
+});
+export type PatientCheckinOutcome = z.infer<typeof patientCheckinOutcomeSchema>;
+
+export const aiSessionViewSchema = z.object({
+  ai_session_id: z.string().uuid(),
+  encounter_id: z.string().uuid(),
+  status: aiRunStatusSchema,
+  outcome: patientCheckinOutcomeSchema.nullable().default(null),
+  error: z.string().nullable().optional(),
+});
+export type AiSessionView = z.infer<typeof aiSessionViewSchema>;
+
+export const aiEvidenceSourceRefSchema = z.object({
+  resource_type: z.string(),
+  resource_id: z.string(),
+  description: z.string(),
+  date: z.string().nullable().default(null),
+});
+export type AiEvidenceSourceRef = z.infer<typeof aiEvidenceSourceRefSchema>;
+
+export const aiEvidenceResponseSchema = z.object({
+  ai_session_id: z.string().uuid(),
+  sources: z.array(aiEvidenceSourceRefSchema).default([]),
+});
+export type AiEvidenceResponse = z.infer<typeof aiEvidenceResponseSchema>;
+
+export const doctorAiAssistanceViewSchema = z.object({
+  encounter_id: z.string().uuid(),
+  historical_matches: z.array(historicalEpisodeMatchSchema).default([]),
+  agreements: z.array(z.string()).default([]),
+  material_disagreements: z.array(z.string()).default([]),
+  missing_information: z.array(z.string()).default([]),
+  questions_to_ask_patient: z.array(z.string()).default([]),
+  uncertainty_score: z.number().nullable().optional(),
+  consent_locked_sections: z
+    .array(
+      z.object({
+        section_name: z.string(),
+        reason: z.string(),
+      }),
+    )
+    .default([]),
+});
+export type DoctorAiAssistanceView = z.infer<typeof doctorAiAssistanceViewSchema>;
+
+export const timelineFilterSchema = z.enum([
+  "ALL",
+  "DOCTOR_VISITS",
+  "AI_CHECKINS",
+  "LAB_REPORTS",
+  "PRESCRIPTIONS",
+]);
+export type TimelineFilter = z.infer<typeof timelineFilterSchema>;
+
+export const detailedTimelineItemSchema = z.object({
+  id: z.string(),
+  type: z.enum([
+    "ENCOUNTER",
+    "AI_CHECKIN",
+    "PRESCRIPTION",
+    "LAB_REPORT",
+    "HEALTH_NOTE",
+  ]),
+  title: z.string(),
+  summary: z.string(),
+  timestamp: z.string(),
+  date_formatted: z.string(),
+  chapter: z.string(),
+  provenance: provenanceAuthoritySchema,
+  is_ai_derived: z.boolean(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+export type DetailedTimelineItem = z.infer<typeof detailedTimelineItemSchema>;
+
+export const patientTimelineResponseSchema = z.object({
+  entries: z.array(detailedTimelineItemSchema).default([]),
+  next_cursor: z.string().nullable().default(null),
+});
+export type PatientTimelineResponse = z.infer<typeof patientTimelineResponseSchema>;
+

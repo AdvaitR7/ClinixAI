@@ -1,0 +1,112 @@
+[
+  {
+    "rule_id": "EMERG-001",
+    "category": "CARDIOVASCULAR",
+    "title": "Suspected Acute Coronary Syndrome or Severe Cardiac Event",
+    "severity": "CRITICAL",
+    "action": "BLOCK_NORMAL_FLOW",
+    "patterns": [
+      "chest pain",
+      "crushing chest",
+      "chest pressure",
+      "radiating to left arm",
+      "radiating to jaw",
+      "heart attack",
+      "chest tightness",
+      "squeezing in chest",
+      "heavy pressure on chest"
+    ],
+    "message": "Potential acute cardiac emergency. Immediate emergency medical evaluation required.",
+    "emergency_number": "112 / 108"
+  },
+  {
+    "rule_id": "EMERG-002",
+    "category": "RESPIRATORY",
+    "title": "Severe Acute Respiratory Distress",
+    "severity": "CRITICAL",
+    "action": "BLOCK_NORMAL_FLOW",
+    "patterns": [
+      "severe breathlessness",
+      "cannot breathe",
+      "unable to breathe",
+      "gasping for air",
+      "stridor",
+      "turning blue",
+      "blue lips",
+      "suffocating",
+      "cannot speak full sentences"
+    ],
+    "message": "Signs of severe respiratory distress or airway compromise. Immediate emergency intervention required.",
+    "emergency_number": "112 / 108"
+  },
+  {
+    "rule_id": "EMERG-003",
+    "category": "NEUROLOGICAL",
+    "title": "Acute Stroke or Neurological Deficit (FAST)",
+    "severity": "CRITICAL",
+    "action": "BLOCK_NORMAL_FLOW",
+    "patterns": [
+      "facial droop",
+      "face drooping",
+      "weakness on one side",
+      "slurred speech",
+      "sudden numbness",
+      "arm weakness",
+      "cannot move arm",
+      "sudden paralysis",
+      "sudden loss of vision"
+    ],
+    "message": "Potential acute stroke or focal neurological deficit. Time-critical emergency evaluation required.",
+    "emergency_number": "112 / 108"
+  },
+  {
+    "rule_id": "EMERG-004",
+    "category": "IMMUNOLOGICAL",
+    "title": "Suspected Anaphylaxis or Severe Airway Angioedema",
+    "severity": "CRITICAL",
+    "action": "BLOCK_NORMAL_FLOW",
+    "patterns": [
+      "throat swelling",
+      "tongue swelling",
+      "throat closing",
+      "anaphylaxis",
+      "unable to swallow saliva",
+      "severe allergic reaction",
+      "swelling of lips and breathing"
+    ],
+    "message": "Signs consistent with severe allergic reaction or acute airway edema. Immediate emergency care required.",
+    "emergency_number": "112 / 108"
+  },
+  {
+    "rule_id": "EMERG-005",
+    "category": "HEMORRHAGIC",
+    "title": "Severe Bleeding or Massive Hemoptysis",
+    "severity": "CRITICAL",
+    "action": "BLOCK_NORMAL_FLOW",
+    "patterns": [
+      "coughing up blood",
+      "vomiting blood",
+      "large amounts of blood",
+      "massive bleeding",
+      "uncontrolled bleeding",
+      "blood in vomit"
+    ],
+    "message": "Significant acute bleeding or hemoptysis. Urgent emergency evaluation required.",
+    "emergency_number": "112 / 108"
+  },
+  {
+    "rule_id": "EMERG-006",
+    "category": "NEUROLOGICAL_CEPHALIC",
+    "title": "Thunderclap Headache or Meningeal Red Flag",
+    "severity": "CRITICAL",
+    "action": "BLOCK_NORMAL_FLOW",
+    "patterns": [
+      "worst headache of my life",
+      "sudden explosive headache",
+      "thunderclap headache",
+      "stiff neck and high fever and confusion"
+    ],
+    "message": "Potential acute intracranial or central nervous system pathology. Immediate emergency evaluation required.",
+    "emergency_number": "112 / 108"
+  }
+]
