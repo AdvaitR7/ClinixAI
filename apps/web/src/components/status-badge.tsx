@@ -33,7 +33,7 @@ export function StatusBadge({ status }: { status: string }) {
   const cls = STATUS_STYLES[status] ?? "border-hairline bg-surface text-graphite";
   return (
     <span
-      className={`rounded-full border px-2 py-0.5 font-sans text-[11px] font-semibold ${cls}`}
+      className={`inline-flex min-h-6 items-center rounded-full border px-2.5 py-1 font-sans text-[10px] font-bold uppercase leading-none tracking-[0.04em] ${cls}`}
     >
       {status.replace(/_/g, " ")}
     </span>

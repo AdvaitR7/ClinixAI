@@ -65,12 +65,12 @@ export default function SchedulePage() {
 
   return (
     <WorkspaceShell workspace="Doctor" title="Schedule" nav={nav}>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-1 rounded-[1.125rem] bg-doctor-panel p-1">
         <button
           type="button"
           onClick={() => setTab("schedule")}
-          className={`rounded-full px-4 py-2 font-sans text-sm font-semibold ${
-            tab === "schedule" ? "bg-botanical text-surface" : "bg-surface text-graphite"
+          className={`min-h-11 rounded-[0.9rem] px-4 py-2 font-sans text-sm font-semibold ${
+            tab === "schedule" ? "bg-copper text-ink" : "bg-doctor-panel text-doctor-muted/75"
           }`}
         >
           Schedule
@@ -78,8 +78,8 @@ export default function SchedulePage() {
         <button
           type="button"
           onClick={() => setTab("availability")}
-          className={`rounded-full px-4 py-2 font-sans text-sm font-semibold ${
-            tab === "availability" ? "bg-botanical text-surface" : "bg-surface text-graphite"
+          className={`min-h-11 rounded-[0.9rem] px-4 py-2 font-sans text-sm font-semibold ${
+            tab === "availability" ? "bg-copper text-ink" : "bg-doctor-panel text-doctor-muted/75"
           }`}
         >
           Availability
@@ -95,7 +95,7 @@ export default function SchedulePage() {
                 type="button"
                 onClick={() => setFilter(f)}
                 className={`rounded-full border px-3 py-1 font-sans text-xs font-semibold ${
-                  filter === f ? "border-copper text-copper" : "border-hairline text-graphite"
+                  filter === f ? "border-copper bg-copper text-ink" : "border-white/10 text-doctor-muted/75"
                 }`}
               >
                 {f ?? "All"}
@@ -175,29 +175,29 @@ function AppointmentList({
           </p>
           <ul className="mt-2 space-y-2">
             {list.map((a) => (
-              <li key={a.id} className="rounded-xl border border-hairline bg-surface p-3">
+              <li key={a.id} className="clinix-doctor-card p-4">
                 <div className="flex items-center justify-between">
-                  <p className="font-sans text-sm font-semibold">{a.patient_name}</p>
+                  <p className="font-sans text-sm font-semibold text-surface">{a.patient_name}</p>
                   <StatusBadge status={a.status} />
                 </div>
-                <p className="mt-1 font-mono text-xs text-graphite">
+                <p className="mt-1 font-mono text-xs text-doctor-muted/70">
                   {fmtTime(a.scheduled_start)} · {a.appointment_type}
                   {a.reason ? ` · ${a.reason}` : ""}
                 </p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   {a.status === "REQUESTED" && (
                     <>
                       <button
                         type="button"
                         onClick={() => onConfirm(a.id)}
-                        className="rounded-full bg-botanical px-3 py-1 font-sans text-xs font-semibold text-surface"
+                        className="rounded-full bg-copper px-3.5 py-1.5 font-sans text-xs font-semibold text-ink"
                       >
                         Confirm
                       </button>
                       <button
                         type="button"
                         onClick={() => onCancel(a.id)}
-                        className="rounded-full border border-hairline px-3 py-1 font-sans text-xs font-semibold text-critical"
+                        className="rounded-full border border-critical bg-critical/20 px-3.5 py-1.5 font-sans text-xs font-semibold text-critical"
                       >
                         Decline
                       </button>
@@ -208,25 +208,25 @@ function AppointmentList({
                       <button
                         type="button"
                         onClick={() => onStart(a.id)}
-                        className="rounded-full bg-botanical px-3 py-1 font-sans text-xs font-semibold text-surface"
+                        className="rounded-full bg-copper px-3.5 py-1.5 font-sans text-xs font-semibold text-ink"
                       >
                         Consult
                       </button>
                       <button
                         type="button"
                         onClick={() => onCancel(a.id)}
-                        className="rounded-full border border-hairline px-3 py-1 font-sans text-xs font-semibold text-critical"
+                        className="rounded-full border border-critical bg-critical/20 px-3.5 py-1.5 font-sans text-xs font-semibold text-critical"
                       >
                         Cancel
                       </button>
                     </>
                   )}
-                  <label className="ml-auto flex items-center gap-1 font-sans text-xs text-graphite">
+                  <label className="ml-auto flex items-center gap-1.5 font-sans text-xs text-doctor-muted/70">
                     Payment
                     <select
                       value={a.payment_status}
                       onChange={(e) => onPayment(a.id, e.target.value)}
-                      className="h-8 rounded-lg border border-hairline bg-surface px-1 font-sans text-xs"
+                      className="h-8 rounded-lg border border-white/10 bg-doctor-panel px-2 font-sans text-xs text-surface outline-none"
                     >
                       {PAYMENT_OPTIONS.map((p) => (
                         <option key={p} value={p}>
@@ -289,21 +289,24 @@ function AvailabilityEditor({ onSaved }: { onSaved: () => void }) {
   const order = [1, 2, 3, 4, 5, 6, 0];
 
   return (
-    <div className="space-y-4">
-      <p className="font-sans text-sm text-graphite">
-        Set weekly working hours. Bookable slots are these hours minus booked appointments.
-      </p>
-      <ul className="space-y-2">
+    <div className="clinix-doctor-card space-y-5 p-5">
+      <div>
+        <p className="clinix-label text-copper">Weekly availability</p>
+        <p className="mt-1 font-sans text-xs leading-5 text-doctor-muted/70">
+          Set weekly working hours. Bookable slots are these hours minus booked appointments.
+        </p>
+      </div>
+      <ul className="space-y-3">
         {order.map((dow) => (
           <li key={dow} className="flex items-center gap-3">
-            <label className="flex items-center gap-2 font-sans text-sm">
+            <label className="flex w-16 items-center gap-2 font-sans text-sm text-surface">
               <input
                 type="checkbox"
                 checked={days[dow].enabled}
                 onChange={(e) =>
                   setDays((prev) => ({ ...prev, [dow]: { ...prev[dow], enabled: e.target.checked } }))
                 }
-                className="h-4 w-4 accent-[#12352c]"
+                className="h-4 w-4 accent-copper"
               />
               {DAY_LABELS[dow]}
             </label>
@@ -314,9 +317,9 @@ function AvailabilityEditor({ onSaved }: { onSaved: () => void }) {
               onChange={(e) =>
                 setDays((prev) => ({ ...prev, [dow]: { ...prev[dow], start: e.target.value } }))
               }
-              className="h-10 rounded-lg border border-hairline bg-surface px-2 font-mono text-sm disabled:opacity-40"
+              className="h-10 rounded-lg border border-white/10 bg-doctor-panel px-2 font-mono text-sm text-surface disabled:opacity-30"
             />
-            <span className="font-sans text-xs text-graphite">to</span>
+            <span className="font-sans text-xs text-doctor-muted/60">to</span>
             <input
               type="time"
               value={days[dow].end}
@@ -324,13 +327,13 @@ function AvailabilityEditor({ onSaved }: { onSaved: () => void }) {
               onChange={(e) =>
                 setDays((prev) => ({ ...prev, [dow]: { ...prev[dow], end: e.target.value } }))
               }
-              className="h-10 rounded-lg border border-hairline bg-surface px-2 font-mono text-sm disabled:opacity-40"
+              className="h-10 rounded-lg border border-white/10 bg-doctor-panel px-2 font-mono text-sm text-surface disabled:opacity-30"
             />
           </li>
         ))}
       </ul>
-      <div>
-        <label htmlFor="slot" className="font-sans text-sm font-medium">
+      <div className="border-t border-white/10 pt-4">
+        <label htmlFor="slot" className="font-sans text-sm font-medium text-surface">
           Consultation duration (minutes)
         </label>
         <input
@@ -340,7 +343,7 @@ function AvailabilityEditor({ onSaved }: { onSaved: () => void }) {
           max={240}
           value={slotMinutes}
           onChange={(e) => setSlotMinutes(Number(e.target.value))}
-          className="mt-1 h-11 w-full rounded-xl border border-hairline bg-surface px-3 font-sans text-base"
+          className="mt-1 h-11 w-full rounded-xl border border-white/10 bg-doctor-panel px-3 font-mono text-base text-surface"
         />
       </div>
       {error && <p className="font-sans text-sm font-medium text-critical">{error}</p>}
@@ -348,7 +351,7 @@ function AvailabilityEditor({ onSaved }: { onSaved: () => void }) {
         type="button"
         onClick={save}
         disabled={saving}
-        className="w-full rounded-full bg-botanical px-4 py-3 font-sans text-base font-semibold text-surface disabled:opacity-60"
+        className="min-h-[52px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink transition-transform active:translate-y-px disabled:opacity-60"
       >
         {saving ? "Saving…" : "Save availability"}
       </button>

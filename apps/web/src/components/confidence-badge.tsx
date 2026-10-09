@@ -20,7 +20,7 @@ export function ConfidenceBadge({ value }: { value: number | null | undefined })
   const label = confidenceLabel(value);
   return (
     <span
-      className={`rounded-full border px-2 py-0.5 font-sans text-[11px] font-semibold ${CONF_STYLES[label]}`}
+      className={`inline-flex min-h-6 items-center rounded-full border px-2.5 py-1 font-sans text-[10px] font-bold uppercase leading-none tracking-[0.04em] ${CONF_STYLES[label]}`}
     >
       {CONF_TEXT[label]}
     </span>

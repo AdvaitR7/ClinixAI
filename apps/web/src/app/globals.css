@@ -13,8 +13,92 @@
   --color-review: #a65f11;
   --color-critical: #b42318;
   --color-hairline: #e6e0d6;
+  --color-doctor-panel: #202622;
+  --color-doctor-muted: #f4f1ea;
 
   /* Typography — DESIGN.md §3 */
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jbmono), ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    background: var(--color-canvas);
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-evidence);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-copper) 35%, transparent);
+  }
+}
+
+@layer utilities {
+  .clinix-card {
+    border: 1px solid color-mix(in srgb, var(--color-sage) 78%, transparent);
+    border-radius: 1.5rem;
+    background: var(--color-surface);
+    box-shadow: 0 8px 18px rgb(18 53 44 / 7%);
+  }
+
+  .clinix-doctor-card {
+    border: 1px solid rgb(255 255 255 / 7%);
+    border-radius: 1.125rem;
+    background: var(--color-doctor-panel);
+    box-shadow: 0 8px 18px rgb(0 0 0 / 18%);
+  }
+
+  .clinix-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1rem;
+    text-transform: uppercase;
+  }
+
+  .clinix-field {
+    min-height: 3.375rem;
+    width: 100%;
+    border: 1px solid var(--color-sage);
+    border-radius: 1rem;
+    background: var(--color-surface);
+    padding: 0.875rem 1rem;
+    color: var(--color-ink);
+  }
+
+  .clinix-field::placeholder {
+    color: var(--color-graphite);
+    opacity: 0.65;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -16,14 +16,14 @@ import { MedicineEditor } from "@/components/medicine-editor";
 import { fetchApi, useApiData } from "@/lib/api";
 
 const nav = [
-  { label: "Home", href: "/app/doctor" },
+  { label: "Desk", href: "/app/doctor" },
   { label: "Schedule", href: "/app/doctor/schedule" },
   { label: "Patients", href: "/app/doctor/patients" },
   { label: "Drafts", href: "/app/doctor/drafts", active: true },
   { label: "Follow-ups", href: "/app/doctor", disabled: true },
 ];
 
-/** Page 20 — draft review + finalization (SCREEN_CATALOG §7). */
+/** Page 20 — draft review + finalization (SCREEN_CATALOG §7, Figma 61:2 & 61:215). */
 export default function PrescriptionDraftPage() {
   const params = useParams<{ draftId: string }>();
   const router = useRouter();
@@ -134,7 +134,9 @@ export default function PrescriptionDraftPage() {
   if (state.status === "error") {
     return (
       <WorkspaceShell workspace="Doctor" title="Prescription draft" nav={nav}>
-        <p className="font-sans text-sm text-critical">{state.error}</p>
+        <section className="clinix-doctor-card p-5">
+          <p className="font-sans text-sm text-critical">{state.error}</p>
+        </section>
       </WorkspaceShell>
     );
   }
@@ -152,7 +154,7 @@ export default function PrescriptionDraftPage() {
             type="button"
             onClick={save}
             disabled={busy}
-            className="flex-1 rounded-full border border-hairline bg-surface px-4 py-3 font-sans text-base font-semibold text-graphite disabled:opacity-60"
+            className="min-h-12 flex-1 rounded-2xl border border-white/10 bg-doctor-panel font-sans text-xs font-semibold uppercase tracking-wider text-surface disabled:opacity-60"
           >
             Save draft
           </button>
@@ -160,62 +162,83 @@ export default function PrescriptionDraftPage() {
             type="button"
             onClick={() => setConfirming(true)}
             disabled={busy}
-            className="flex-1 rounded-full bg-copper px-4 py-3 font-sans text-base font-semibold text-botanical disabled:opacity-60"
+            className="min-h-12 flex-1 rounded-2xl bg-copper font-sans text-xs font-semibold uppercase tracking-wider text-ink transition-transform active:translate-y-px disabled:opacity-60"
           >
-            Finalize
+            Finalize prescription
           </button>
         </div>
       )}
+
+      {/* Finalization Confirmation Modal (Figma 61:215) */}
       {confirming && (
-        <section className="rounded-2xl border border-review bg-surface p-5">
-          <p className="font-sans text-sm font-semibold text-review">
-            Finalize this prescription? It becomes an immutable record (Version 1). Later changes
-            create a new version, never an edit.
-          </p>
-          <div className="mt-3 flex gap-3">
-            <button
-              type="button"
-              onClick={() => setConfirming(false)}
-              className="flex-1 rounded-full border border-hairline px-4 py-2 font-sans text-sm font-semibold text-graphite"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={finalize}
-              disabled={busy}
-              className="flex-1 rounded-full bg-botanical px-4 py-2 font-sans text-sm font-semibold text-surface disabled:opacity-60"
-            >
-              Confirm finalize
-            </button>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="finalize-dialog-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4"
+        >
+          <div className="w-full max-w-sm rounded-[1.75rem] border border-copper bg-doctor-panel p-6 shadow-2xl">
+            <span className="rounded-full border border-copper/50 px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-copper">
+              Final Review
+            </span>
+            <h3 id="finalize-dialog-title" className="mt-2 font-sans text-xl font-bold text-surface">
+              Finalize this prescription?
+            </h3>
+            <p className="mt-2 font-sans text-xs leading-5 text-doctor-muted/75">
+              Finalizing locks this prescription into an authoritative, immutable record (Version 1).
+              Any subsequent modifications require creating a new revision.
+            </p>
+            <div className="mt-4 space-y-2 rounded-xl bg-black/30 p-3 font-sans text-xs text-doctor-muted/80">
+              <p className="flex items-center gap-2"><span>✓</span> Structured items verified ({items.length} medicines)</p>
+              <p className="flex items-center gap-2"><span>✓</span> Authoritative clinical sign-off</p>
+            </div>
+            <div className="mt-6 flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={busy}
+                className="min-h-11 flex-1 rounded-xl border border-white/10 font-sans text-xs font-semibold text-surface"
+              >
+                Return to draft
+              </button>
+              <button
+                type="button"
+                onClick={finalize}
+                disabled={busy}
+                className="min-h-11 flex-1 rounded-xl bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
+              >
+                {busy ? "Finalizing…" : "Confirm finalize"}
+              </button>
+            </div>
           </div>
-        </section>
+        </div>
       )}
     </>
   );
 
   return (
-    <WorkspaceShell workspace="Doctor" title="Prescription draft" nav={nav}>
-      <header className="rounded-2xl bg-botanical p-5 text-surface">
-        <div className="flex items-start justify-between">
+    <WorkspaceShell workspace="Doctor" title="Prescription draft review" nav={nav}>
+      <header className="clinix-doctor-card border-copper p-5">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-sans text-lg font-semibold">{draft.patient_name}</p>
-            <p className="mt-1 font-sans text-xs text-sage">Source: {draft.source}</p>
+            <p className="clinix-label text-copper">Draft review</p>
+            <h2 className="mt-1 font-sans text-xl font-bold text-surface">{draft.patient_name}</h2>
+            <p className="mt-1 font-mono text-xs text-doctor-muted/65">Provenance: {draft.source}</p>
           </div>
           <StatusBadge status={draft.status} />
         </div>
       </header>
 
       {finalized ? (
-        <section className="rounded-2xl border border-hairline bg-surface p-5">
-          <p className="font-sans text-sm text-graphite">
-            This draft has been finalized and can no longer be edited.
+        <section className="clinix-doctor-card p-5">
+          <p className="font-sans text-sm text-doctor-muted/80">
+            This draft has been finalized and can no longer be edited directly.
           </p>
         </section>
       ) : sourceDoc ? (
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="md:sticky md:top-4 md:self-start">
-            <p className="font-sans text-xs font-semibold uppercase tracking-wide text-graphite">
+          <div className="clinix-doctor-card p-4 md:sticky md:top-4 md:self-start">
+            <p className="clinix-label text-copper">
               Source document
             </p>
             {sourceDoc.view_url && sourceDoc.mime_type.startsWith("image/") ? (
@@ -223,19 +246,19 @@ export default function PrescriptionDraftPage() {
               <img
                 src={sourceDoc.view_url}
                 alt="Source prescription"
-                className="mt-2 w-full rounded-2xl border border-hairline"
+                className="mt-3 w-full rounded-2xl border border-white/10"
               />
             ) : sourceDoc.view_url ? (
               <a
                 href={sourceDoc.view_url}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-block font-sans text-sm font-semibold text-copper"
+                className="mt-3 inline-block font-sans text-xs font-semibold text-copper hover:underline"
               >
-                Open source document →
+                Open source document in new tab →
               </a>
             ) : (
-              <p className="mt-2 font-sans text-sm text-graphite">Source preview unavailable.</p>
+              <p className="mt-3 font-sans text-xs text-doctor-muted/60">Source preview unavailable.</p>
             )}
           </div>
           <div className="space-y-6">{editor}</div>
