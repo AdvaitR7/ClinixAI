@@ -116,7 +116,7 @@ async function loadPrescriptionView(id: string): Promise<PrescriptionView | null
 /**
  * Prescription drafts + finalization (API §19, §22–26).
  *
- * SAFETY: finalize is reachable ONLY through a Clerk session verified as a
+ * SAFETY: finalize is reachable ONLY through a Supabase session verified as a
  * doctor (requireDoctor). No AI/service principal can call it. When the Phase 4
  * worker lands, it must never be able to reach this route.
  */

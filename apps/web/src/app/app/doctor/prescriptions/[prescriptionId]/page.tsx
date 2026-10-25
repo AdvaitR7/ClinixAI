@@ -1,8 +1,8 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+import { createIdentityObjectUrl, useAuth } from "@/lib/auth";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PrescriptionItemInput, PrescriptionView } from "@clinix/schemas";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
@@ -42,6 +42,12 @@ export default function PrescriptionPage() {
   const [items, setItems] = useState<PrescriptionItemInput[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const pdfUrls = useRef(new Set<string>());
+
+  useEffect(() => () => {
+    for (const url of pdfUrls.current) URL.revokeObjectURL(url);
+    pdfUrls.current.clear();
+  }, []);
 
   function beginAmend() {
     if (state.status === "ready") {
@@ -87,6 +93,7 @@ export default function PrescriptionPage() {
     }
   }
 
+  /** Renders the prescription PDF and opens a temporary account-scoped URL. */
   async function print() {
     try {
       const token = await getToken();
@@ -96,8 +103,9 @@ export default function PrescriptionPage() {
         `/doctor/prescriptions/${params.prescriptionId}/render`,
         { method: "POST" },
       );
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      const url = createIdentityObjectUrl(blob);
+      pdfUrls.current.add(url);
+      window.open(url, "_blank", "noopener,noreferrer");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not render PDF");
     }

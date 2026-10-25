@@ -43,10 +43,10 @@ Both use shared backend services and a shared encounter-oriented medical-data mo
 - `pgvector` for semantic retrieval
 
 ### Authentication
-- **Clerk** for login/session management only
+- **Supabase Auth** for email/password login and session management
 - Application roles (patient, doctor, clinic_staff, admin) stored in Postgres
-- Clerk webhook creates a `profiles` row on signup
-- Unclaimed patients (doctor-created) exist before any Clerk account
+- The Fastify API creates a `profiles` row during role onboarding
+- Unclaimed patients (doctor-created) exist before any Supabase Auth account
 
 ### File storage
 - **Supabase Storage** for prototype documents
@@ -216,15 +216,22 @@ Do not create microservices until real scaling or organizational boundaries just
 
 # 6. Identity model
 
-Use Clerk for session management, but resolve application roles and profiles from Postgres.
+Use Supabase Auth for session management, but resolve application roles and profiles from Postgres.
+
+Fastify links newly onboarded accounts by verified Supabase UUID in
+`profiles.supabase_user_id`. The migration retains existing profile and clinical
+IDs but does not link new accounts to legacy profiles by email or legacy auth
+subject. New accounts receive an empty workspace until they complete onboarding.
+Doctor onboarding records `PENDING` verification and currently opens the doctor
+workspace immediately; professional approval enforcement is not implemented.
 
 ```text
-Clerk user
-    ↓ (webhook / user_id)
+Supabase Auth user
+    ↓ (verified access token / UUID)
 profiles
-    ├── patient_profile
-    ├── doctor_profile
-    └── staff_profile
+    ├── patients.account_profile_id
+    ├── doctors.profile_id
+    └── CLINIC_STAFF role (membership model not implemented)
 ```
 
 A person may theoretically hold multiple roles later, but MVP can restrict one primary role per account.
@@ -1192,7 +1199,7 @@ For four students:
 ## Student 3 — Backend/data
 - Fastify API,
 - Supabase/PostgreSQL + Drizzle,
-- auth (Clerk integration),
+- auth (Supabase Auth integration),
 - data model,
 - consent,
 - audit,

@@ -253,14 +253,14 @@ OTHER
 
 # 4. Authentication and profiles
 
-Clerk manages session/login. Postgres stores application roles and profiles.
+Supabase Auth manages sessions and identities. Postgres stores application roles and profiles.
 
-Clerk's user ID (`clerk_user_id`) links a Clerk identity to a `profiles` row.
-The Fastify API verifies the Clerk session token and derives role/patient/doctor IDs
-from Postgres — never from client-supplied claims.
+`supabase_user_id` links a verified Supabase identity to a `profiles` row.
+The Fastify API verifies the Supabase access token and derives role/patient/doctor IDs
+from Postgres — never from client-supplied claims or user-editable metadata.
 
-A `user.created` Clerk webhook creates the corresponding `profiles` row on signup.
-Unclaimed patients (doctor-created) have no `profiles` row until claimed.
+Role onboarding creates the corresponding `profiles` row. Unclaimed patients
+(doctor-created) have no patient account profile until claimed.
 
 ## 4.1 `profiles`
 
@@ -270,7 +270,8 @@ Common application-level account metadata.
 profiles
 --------
 id uuid PK
-clerk_user_id text UNIQUE nullable
+supabase_user_id uuid UNIQUE nullable
+legacy_auth_subject text UNIQUE nullable
 primary_role user_role
 display_name text
 avatar_url text nullable
@@ -278,8 +279,9 @@ created_at timestamptz
 updated_at timestamptz
 ```
 
-`clerk_user_id = NULL` means the profile row was created internally before a
-Clerk identity was linked (e.g. during record claim); it should be linked at claim time.
+`supabase_user_id = NULL` means the profile has no active Supabase login. The
+renamed `legacy_auth_subject` column preserves previous identity values for
+rollback and is never used for runtime authentication or automatic account linking.
 
 Do not put full medical data here.
 
@@ -1663,6 +1665,13 @@ Do not include every AI internal event on the clinical timeline.
 # 37. Row-Level Security direction
 
 Supabase RLS should enforce broad ownership boundaries.
+
+Current prototype implementation: all 33 public application tables have RLS
+enabled and no browser policies. Migration `0007_browser_access_lockdown` removes
+direct `anon`/`authenticated` table privileges. Fastify's server database role
+enforces the application ownership and role rules below; the browser does not
+query clinical tables directly. Future consent-policy specifications below do
+not grant direct frontend database access.
 
 ## Patient rules
 

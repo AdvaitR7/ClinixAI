@@ -4,14 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthShell } from "@/components/auth-shell";
+import { useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/skeleton";
 import { useMe } from "@/lib/api";
-
-function workspacePath(role: string): string {
-  if (role === "DOCTOR") return "/app/doctor";
-  if (role === "CLINIC_STAFF") return "/app/staff";
-  return "/app/patient";
-}
+import { workspacePathForRole } from "@/lib/workspace-routing";
 
 const unavailableSettings = [
   ["Notifications", "Notification preferences are not configured yet."],
@@ -23,6 +19,7 @@ const unavailableSettings = [
 /** Page 5 — derived Settings surface; only current workspace is functional. */
 export default function SettingsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const state = useMe();
 
   useEffect(() => {
@@ -40,6 +37,12 @@ export default function SettingsPage() {
           <Skeleton className="h-36 rounded-3xl" />
           <Skeleton className="h-64 rounded-3xl" />
         </div>
+      )}
+      {state.status === "error" && (
+        <section className="clinix-card p-5">
+          <p role="alert" className="font-sans text-sm text-critical">We could not load your account settings. Please try again.</p>
+          <button type="button" onClick={() => void state.refresh()} className="mt-4 font-sans text-xs font-semibold uppercase text-evidence">Try again</button>
+        </section>
       )}
       {state.status === "ready" && (
         <div className="space-y-6">
@@ -64,11 +67,17 @@ export default function SettingsPage() {
               </div>
             )}
             <Link
-              href={workspacePath(state.me.role)}
+              href={workspacePathForRole(state.me.role) ?? "/after-sign-in"}
               className="mt-5 block min-h-12 rounded-[1.125rem] bg-botanical px-4 py-3 text-center font-sans text-sm font-semibold text-surface"
             >
               Open current workspace
             </Link>
+          </section>
+
+          <section className="clinix-card p-5">
+            <h2 className="clinix-label text-graphite">Account</h2>
+            <p className="mt-2 font-sans text-sm font-semibold text-ink">{user?.email ?? "Email unavailable"}</p>
+            <Link href="/forgot-password" className="mt-4 inline-block font-sans text-xs font-semibold uppercase text-evidence">Reset password</Link>
           </section>
 
           <section>
