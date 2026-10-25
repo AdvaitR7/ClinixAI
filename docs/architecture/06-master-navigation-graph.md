@@ -1,5 +1,7 @@
 # Master navigation graph
 
+**Implementation update (2026-10-25):** [Clinical record and navigation batch](07-implementation-progress.md) records the current code, test results and remaining blockers. Audit evidence below is the original snapshot except where explicitly updated. No whole screen is COMPLETE.
+
 [Index](README.md) · [Screen hierarchy](01-information-architecture.md) · [Complete interaction inventory](02-interaction-map.md) · [Source/API traces](04-design-code-traceability.md)
 
 ## Reading the graphs
@@ -647,16 +649,20 @@ flowchart TD
   R11 -->|"Visits"| R17
   R11 -->|"Care"| R15
   R11 -->|"empty-state check-in"| R8
+  R13 -->|"Timeline: restored"| R11
   R13 -->|"Home"| R6
   R13 -->|"Visits"| R17
   R13 -->|"Care"| R15
+  R15 -->|"Timeline: restored"| R11
   R15 -->|"Home"| R6
   R15 -->|"Vault"| R13
   R15 -->|"Visits"| R17
+  R17 -->|"Timeline: restored"| R11
   R17 -->|"Home"| R6
   R17 -->|"Vault"| R13
   R17 -->|"Care"| R15
   R17 -->|"Book new appointment"| R22
+  R22 -->|"Timeline: restored"| R11
   R22 -->|"Home"| R6
   R22 -->|"Vault"| R13
   R22 -->|"Care"| R15
@@ -720,8 +726,8 @@ flowchart TD
 | SCR-017 cancellation | `cancellingId`, then cancel POST | Confirmation and API mutation, not a new page |
 | SCR-022 → SCR-023 | `reviewing` | Local booking review; packet not persisted |
 | SCR-024 → SCR-025 | `tab=availability` | Availability editor in schedule route |
-| SCR-030 → SCR-031 | `confirmComplete` | Confirmation modal before complete POST |
-| SCR-033 → SCR-035 | `confirming` | Modal before finalization POST; unsaved fields omitted |
+| SCR-030 → SCR-031 | `confirmComplete` | Native review modal; ordered latest-save flush then reviewed_note complete POST |
+| SCR-033 → SCR-035 | `confirming` | Native review after save/read-back; reviewed_items content check before finalization |
 | SCR-038 → SCR-040 / SCR-039 | `review`, then candidates on 409 | Duplicate check after Create; designed preflight order not implemented |
 | SCR-058 amendment | `amending`, items/reason; POST amend | Revision state within finalized prescription route |
 
@@ -817,3 +823,9 @@ Upload, observation confirmation, note autosave, manual payment changes, draft d
 | [INT-675](02-interaction-map.md#int-675) | [SCR-046](01-information-architecture.md#scr-046) | PRACTICE SETTINGS | Missing; Open practice settings; specific screen/route UNKNOWN. |
 | [INT-697](02-interaction-map.md#int-697) | [SCR-051](01-information-architecture.md#scr-051) | VIEW REQUEST DETAILS → | Missing; View routing-safe request details; full decision controls unavailable. |
 | [INT-704](02-interaction-map.md#int-704) | [SCR-052](01-information-architecture.md#scr-052) | VIEW PRACTICE PROFILE | Missing; View practice profile; public/practice-profile screen is not separately present. |
+
+## Verified navigation update — 2026-10-25
+
+SCR-013/015/017/022 now link to the existing SCR-011 route, `/app/patient/timeline`; all four incoming paths were exercised in Chromium (INT-162/192/219 and the code-only booking dock). Page 0 reference frame 3 was read through FigCraft to verify this destination. No new route or unresolved Care/staff destination was fabricated.
+
+SCR-033 → save/read-back → SCR-035 → finalized SCR-058, and SCR-030 → SCR-031 → flushed/checked completion → SCR-030 → dated amendment/history were exercised with synthetic HTTP boundaries. Close, Escape and Return restore the invoking action. Exact routes, failure paths and backend verification limits are recorded in [07](07-implementation-progress.md).

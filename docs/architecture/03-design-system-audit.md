@@ -1,5 +1,7 @@
 # Design system and UI consistency audit
 
+**Implementation update (2026-10-25):** [Clinical record and navigation batch](07-implementation-progress.md) records the current code, test results and remaining blockers. Audit evidence below is the original snapshot except where explicitly updated. No whole screen is COMPLETE.
+
 [Index](README.md) · [Screen architecture](01-information-architecture.md) · [Interactions](02-interaction-map.md) · [Prioritized gaps](05-implementation-gap-analysis.md)
 
 ## Verification boundary
@@ -115,3 +117,9 @@ flowchart LR
   Contract --> Compare["Synthetic runtime + responsive visual comparison"]
   Compare --> Gate["Per-screen acceptance evidence"]
 ```
+
+## Implementation comparison — clinical reviews
+
+The original no-runtime verification boundary above applies to the audit snapshot. Subsequent FigCraft MCP reads/renders and synthetic Chromium captures cover SCR-031 and SCR-035; see [07](07-implementation-progress.md#verification-and-visual-evidence). Their shared native dialog now uses Ink/Graphite/Copper/Evidence surfaces, 24px gutters, 22px review-panel radii, source-derived summary/rule/action hierarchy and mobile full-screen presentation. Medicine labels now bind to their fields.
+
+Both remain visually PARTIAL. Unperformed source/safety/preview/follow-up reviews are not represented by reassuring checkmarks. Author/version/context values are not invented. Keyboard focus, Close/Escape/Return and horizontal fit were tested at 320/393/768/1440px. Full parent-screen, clinical typography, contrast, screen-reader and application-wide responsive acceptance remain open.

@@ -1,10 +1,18 @@
 # CliniX AI — design, interaction and implementation audit
 
+## Implementation progress — 2026-10-25
+
+The first code batch repairs prescription reviewed-content persistence and replay ownership (GAP-003/004), consultation saves/completion/amendments (GAP-007/008), and four disabled Timeline links (part of GAP-011). **No missing full screen was added and no screen is certified COMPLETE.** [Exact files, interaction IDs, verification and remaining work](07-implementation-progress.md).
+
+Validation: 27 web tests, 52 API tests and 19 browser tests passed; build/type checks passed. Lint has three unrelated existing warnings. Two confirmation frames were compared with FigCraft at their 393px design widths; visual alignment remains partial. API/database boundaries are synthetic; PostgreSQL integration is unverified.
+
+The measured screen inventory below remains the original audit baseline. Interaction counts reflect the explicitly updated rows in 02; all other baseline findings retain their original evidence boundary.
+
 **The completed-phase checklist overstates UI coverage.** The connected design has 52 distinct screen/state frames; 19 have no matching UI, and no screen qualifies as fully implemented and runtime-verified in this audit. Existing code also contains material clinical-data and authorization contradictions that should precede visual polishing.
 
-Audit date: **2026-10-25**. Repository snapshot: `8e82fe7f43f570fa5bc900846678f16a158944f7` plus inspected working tree. Source of visual intent: connected FigCraft document **ClinixAI v2**. Application source was not modified; no clinical records or cloud mutations were executed. Only documentation and design evidence were created under this directory.
+Audit date: **2026-10-25**. Repository snapshot: `8e82fe7f43f570fa5bc900846678f16a158944f7` plus inspected working tree. Source of visual intent: connected FigCraft document **ClinixAI v2**. During the original audit, application source was not modified; no clinical records or cloud mutations were executed. Only documentation and design evidence were created under this directory.
 
-## Measured coverage
+## Measured audit coverage
 
 | Measure | Count |
 | --- | --- |
@@ -19,9 +27,9 @@ Audit date: **2026-10-25**. Repository snapshot: `8e82fe7f43f570fa5bc900846678f1
 | Design frame captures preserved | 52 |
 | Distinct frontend route files | 29 |
 | Registered backend endpoint declarations | 63 |
-| Interactions/elements/events inventoried | 738 |
+| Interactions/elements/events inventoried | 739 (738 audit + INT-739) |
 | Design-affordance occurrences | 641 |
-| Code-only controls/events | 97 |
+| Code-only controls/events | 98 |
 | Code/document-derived screen IDs, outside design count | 6 |
 | Explicit prototype connections exposed | 0 |
 | Navigation/modal/external rows with UNKNOWN destination | 84 |
@@ -44,10 +52,10 @@ These exclusive statuses total 52 design frames. A PARTIAL/MISMATCH screen can a
 
 | Interaction status (source inspection) | Count |
 | --- | --- |
-| Implemented | 195 |
-| Partial | 127 |
-| Missing | 377 |
-| Broken | 15 |
+| Implemented | 207 |
+| Partial | 120 |
+| Missing | 375 |
+| Broken | 13 |
 | Unverified | 24 |
 
 ## Documents

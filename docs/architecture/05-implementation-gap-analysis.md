@@ -1,8 +1,10 @@
 # Implementation gap analysis and ordered backlog
 
+**Implementation update (2026-10-25):** [Clinical record and navigation batch](07-implementation-progress.md) records the current code, test results and remaining blockers. Audit evidence below is the original snapshot except where explicitly updated. No whole screen is COMPLETE.
+
 [Index](README.md) · [Interaction evidence](02-interaction-map.md) · [Design/code mapping](04-design-code-traceability.md)
 
-This is a backlog for a later implementation phase. **No fixes were applied.** Critical findings concern clinical facts, data isolation or authoritative records. High findings block safe/complete workflows. Medium findings cover missing functionality or consistency. Runtime failures are not claimed where only static evidence exists; verification methods below explicitly use synthetic records.
+This backlog started as a read-only audit. **Implementation progress is recorded below and in [07](07-implementation-progress.md); the original evidence remains distinguishable from subsequent verification.** Critical findings concern clinical facts, data isolation or authoritative records. High findings block safe/complete workflows. Medium findings cover missing functionality or consistency. Runtime failures are not claimed where only static evidence exists; verification methods below explicitly use synthetic records.
 
 ## Existing development-plan reconciliation
 
@@ -120,6 +122,8 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Shared authorization contract. |
 | Existing phase / scope mismatch | Phase 3 finalization, marked complete. |
 | Verification method | Two synthetic doctors: foreign finalized draft replay rejected; owner replay returns same immutable version. |
+| Implementation update | Implemented; synthetic Fastify ownership/replay tests pass. No live PostgreSQL security run. See [batch report](07-implementation-progress.md). |
+
 
 <a id="gap-004"></a>
 
@@ -138,6 +142,8 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Prescription save/version contract. |
 | Existing phase / scope mismatch | Phase 3/4, marked complete. |
 | Verification method | Edit a synthetic draft without pressing Save then finalize: final Rx must match the explicit reviewed content or finalization must remain blocked. |
+| Implementation update | Save-before-review, saved medicine snapshot and stale-content checks implemented/tested. GAP-024 source/safety/ambiguity/preview gates remain open; no whole-screen completion. See [batch report](07-implementation-progress.md). |
+
 
 <a id="gap-005"></a>
 
@@ -192,6 +198,8 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Note revision/finalization contract. |
 | Existing phase / scope mismatch | Phase 3 marked complete. |
 | Verification method | Under delayed/failed synthetic PUT, immediate completion cannot lose last edits or claim success before save; retry preserves text. |
+| Implementation update | Serialized saves, explicit failure/retry, completion flush, reviewed_note comparison and atomic completion implemented/tested. Actual PostgreSQL concurrency remains unverified. See [batch report](07-implementation-progress.md). |
+
 
 <a id="gap-008"></a>
 
@@ -210,6 +218,8 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Note revision contract; completion fix. |
 | Existing phase / scope mismatch | Phase 3 scope mismatch. |
 | Verification method | Finalize synthetic note, amend assessment, reopen consultation: original and new assessment/reason/author/time are visible. |
+| Implementation update | Editable amendment sections, immutable original, final-note guard and dated author-ID history implemented; synthetic UI/API/browser tests pass. See [batch report](07-implementation-progress.md). |
+
 
 <a id="gap-009"></a>
 
@@ -264,6 +274,8 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Product decision on Page 0 vs rendered docks; missing-module milestones. |
 | Existing phase / scope mismatch | Phases 1/2 shell complete claims; staff nav explicitly unresolved in design. |
 | Verification method | Route crawl with synthetic roles plus keyboard/mobile checks: every enabled label reaches intended destination, existing Timeline is reachable, unknown modules are not misleading self-links. |
+| Implementation update | PARTIAL: Timeline links from Vault, medications, Visits and booking restored and browser-tested. Care/staff/follow-up/shared manifest decisions remain open. See [batch report](07-implementation-progress.md). |
+
 
 <a id="gap-012"></a>
 

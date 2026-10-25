@@ -2,6 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { and, asc, desc, eq, gte, inArray, lte, ne } from "drizzle-orm";
 import {
   bookAppointmentSchema,
+  completeConsultationSchema,
+  noteSectionsSchema,
   paymentStatusUpdateSchema,
 } from "@clinix/schemas";
 import { requireDoctor, requirePatient } from "../auth/guards.js";
@@ -238,28 +240,46 @@ export async function appointmentRoutes(app: FastifyInstance) {
         return error(request, reply, 403, "FORBIDDEN", "Not your appointment");
       }
 
-      await database
-        .update(appointments)
-        .set({ status: "COMPLETED", completedAt: new Date(), updatedAt: new Date() })
-        .where(eq(appointments.id, appt.id));
+      const parsed = completeConsultationSchema.safeParse(request.body ?? {});
+      if (!parsed.success) return error(request, reply, 400, "VALIDATION_ERROR", "Invalid reviewed note");
+      if (!appt.encounterId) return error(request, reply, 409, "NOTE_REQUIRED", "Save a clinical note before completing");
 
-      // Completing the consultation finalizes the doctor's note and closes the
-      // encounter (Phase 3: Page 18 "Complete Consultation").
-      if (appt.encounterId) {
-        await database
-          .update(consultationNotes)
-          .set({ isFinal: true, finalizedAt: new Date(), updatedAt: new Date() })
-          .where(
-            and(
-              eq(consultationNotes.encounterId, appt.encounterId),
-              eq(consultationNotes.noteType, "CONSULTATION"),
-            ),
-          );
-        await database
-          .update(encounters)
-          .set({ status: "COMPLETED", closedAt: new Date(), updatedAt: new Date() })
-          .where(eq(encounters.id, appt.encounterId));
-      }
+      // Note writes take the same encounter lock, so completion cannot race an autosave.
+      const result = await database.transaction(async (tx) => {
+        await tx.select().from(encounters).where(eq(encounters.id, appt.encounterId!)).for("update");
+        const [note] = await tx.select().from(consultationNotes).where(and(
+          eq(consultationNotes.encounterId, appt.encounterId!),
+          eq(consultationNotes.noteType, "CONSULTATION"),
+        )).limit(1);
+        if (!note) return "NOTE_REQUIRED";
+        if (parsed.data.reviewed_note) {
+          let content: unknown;
+          try {
+            content = JSON.parse(note.content ?? "{}");
+          } catch {
+            return "NOTE_CHANGED";
+          }
+          const saved = noteSectionsSchema.safeParse(content);
+          const reviewed = parsed.data.reviewed_note;
+          if (!saved.success || (["complaint", "observations", "assessment", "plan"] as const).some(
+            (key) => (saved.data[key] ?? "") !== (reviewed[key] ?? ""),
+          )) return "NOTE_CHANGED";
+        }
+        const now = new Date();
+        await tx.update(consultationNotes)
+          .set({ isFinal: true, finalizedAt: note.finalizedAt ?? now, updatedAt: now })
+          .where(eq(consultationNotes.id, note.id));
+        await tx.update(encounters)
+          .set({ status: "COMPLETED", closedAt: now, updatedAt: now })
+          .where(eq(encounters.id, appt.encounterId!));
+        await tx.update(appointments)
+          .set({ status: "COMPLETED", completedAt: appt.completedAt ?? now, updatedAt: now })
+          .where(eq(appointments.id, appt.id));
+        return null;
+      });
+      if (result) return error(request, reply, 409, result, result === "NOTE_REQUIRED"
+        ? "Save a clinical note before completing"
+        : "The note changed after review. Reload and review the latest note.");
       return { ok: true };
     },
   );

@@ -2,11 +2,12 @@
 
 import { useAuth } from "@/lib/auth";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ConsultationContext, NoteSections } from "@clinix/schemas";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
+import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
 import { fetchApi, useApiData } from "@/lib/api";
 
 const nav = [
@@ -26,6 +27,7 @@ const SECTIONS: { key: keyof NoteSections; label: string }[] = [
 
 const PAYMENT_OPTIONS = ["UNPAID", "REQUESTED", "PAID", "WAIVED", "REFUNDED"];
 
+/** Formats consultation and amendment timestamps in the practice timezone. */
 function fmtAt(iso: string) {
   return new Date(iso).toLocaleString("en-IN", {
     timeZone: "Asia/Kolkata",
@@ -53,48 +55,83 @@ export default function ConsultationPage() {
   const [amendReason, setAmendReason] = useState("");
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const initialized = useRef(false);
+  const completeButton = useRef<HTMLButtonElement>(null);
+  const latestSections = useRef<NoteSections>({});
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const encounterId = state.status === "ready" ? state.data.encounter_id : null;
+  const noteIsFinal = state.status === "ready" && state.data.note_is_final;
+  const loadedNote = state.status === "ready" ? state.data.note : undefined;
 
   useEffect(() => {
-    if (state.status === "ready" && !initialized.current) {
+    if (loadedNote !== undefined && !initialized.current) {
       initialized.current = true;
-      setSections(state.data.note ?? {});
+      setSections(loadedNote ?? {});
+      latestSections.current = loadedNote ?? {};
     }
-  }, [state.status]);
+  }, [loadedNote]);
 
-  // Debounced autosave (800ms) of the structured note.
+  /** Serializes writes so a slower earlier autosave cannot overwrite the latest note. */
+  const saveNote = useCallback((snapshot: NoteSections) => {
+    const pending = saveQueue.current.catch(() => {}).then(async () => {
+      if (!encounterId) throw new Error("Consultation is not ready");
+      setSaving(true);
+      try {
+        const token = await getToken();
+        if (!token) throw new Error("Not signed in");
+        await fetchApi(token, `/doctor/encounters/${encounterId}/note`, {
+          method: "PUT",
+          body: JSON.stringify(snapshot),
+        });
+        setSavedAt(new Date());
+        setError(null);
+        if (latestSections.current === snapshot) setDirty(false);
+      } finally {
+        setSaving(false);
+      }
+    });
+    saveQueue.current = pending;
+    return pending;
+  }, [encounterId, getToken]);
+
+  // Debounced autosave is suspended while the clinician reviews or completes the note.
   useEffect(() => {
-    if (!dirty || state.status !== "ready" || state.data.note_is_final) return;
-    const t = setTimeout(async () => {
-      const token = await getToken();
-      if (!token) return;
-      await fetchApi(token, `/doctor/encounters/${state.data.encounter_id}/note`, {
-        method: "PUT",
-        body: JSON.stringify(sections),
+    if (!dirty || !encounterId || noteIsFinal || busy || confirmComplete) return;
+    const t = setTimeout(() => {
+      void saveNote(sections).catch((cause) => {
+        setError(cause instanceof Error ? cause.message : "Could not save note");
       });
-      setSavedAt(new Date());
     }, 800);
     return () => clearTimeout(t);
-  }, [sections, dirty, state.status, getToken]);
+  }, [sections, dirty, encounterId, noteIsFinal, busy, confirmComplete, saveNote]);
 
+  /** Flushes the last visible edits before asking the API to lock the same note. */
   async function complete() {
     setBusy(true);
+    setError(null);
     try {
+      await saveNote(sections);
       const token = await getToken();
       if (!token) throw new Error("Not signed in");
       await fetchApi(token, `/doctor/appointments/${params.appointmentId}/complete`, {
         method: "POST",
-        body: "{}",
+        body: JSON.stringify({ reviewed_note: sections }),
       });
       await state.refresh();
       setConfirmComplete(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not complete consultation");
     } finally {
       setBusy(false);
     }
   }
 
+  /** Appends revised sections and a reason while preserving the original finalized note. */
   async function amend() {
     setBusy(true);
+    setError(null);
     try {
       const token = await getToken();
       if (!token) throw new Error("Not signed in");
@@ -105,19 +142,27 @@ export default function ConsultationPage() {
       setAmending(false);
       setAmendReason("");
       await state.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not save amendment");
     } finally {
       setBusy(false);
     }
   }
 
+  /** Updates payment status and retains the current note when the request fails. */
   async function setPayment(status: string) {
-    const token = await getToken();
-    if (!token) return;
-    await fetchApi(token, `/doctor/appointments/${params.appointmentId}/payment-status`, {
-      method: "POST",
-      body: JSON.stringify({ payment_status: status }),
-    });
-    await state.refresh();
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) return;
+      await fetchApi(token, `/doctor/appointments/${params.appointmentId}/payment-status`, {
+        method: "POST",
+        body: JSON.stringify({ payment_status: status }),
+      });
+      await state.refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not update payment");
+    }
   }
 
   if (state.status === "loading") {
@@ -174,10 +219,21 @@ export default function ConsultationPage() {
             </select>
           </div>
           <span className="font-sans text-[11px] text-doctor-muted/60">
-            {readOnly ? "Note is finalized (immutable)" : savedAt ? `Saved ${savedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "Autosaving"}
+            {readOnly ? "Note is finalized (immutable)" : saving ? "Saving…" : dirty ? "Unsaved changes" : savedAt ? `Saved ${savedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "No changes"}
           </span>
         </div>
       </header>
+
+      {error && (
+        <div role="alert" className="clinix-doctor-card p-4 font-sans text-sm text-critical">
+          <p>{error}</p>
+          {dirty && !readOnly && !confirmComplete && (
+            <button type="button" disabled={busy || saving} onClick={() => {
+              void saveNote(sections).catch((cause) => setError(cause instanceof Error ? cause.message : "Could not save note"));
+            }} className="mt-2 underline">Retry save</button>
+          )}
+        </div>
+      )}
 
       {/* Structured clinical note */}
       <section className="clinix-doctor-card p-5">
@@ -188,7 +244,7 @@ export default function ConsultationPage() {
           </span>
         </div>
 
-        {readOnly ? (
+        {readOnly && !amending ? (
           <dl className="mt-4 space-y-3 font-sans text-sm">
             {SECTIONS.map((s) => (
               <div key={s.key} className="border-t border-white/5 pt-2.5">
@@ -200,16 +256,19 @@ export default function ConsultationPage() {
             ))}
           </dl>
         ) : (
-          <div className="mt-4 space-y-4">
+          <fieldset disabled={busy || confirmComplete} className="mt-4 min-w-0 space-y-4">
             {SECTIONS.map((s) => (
               <div key={s.key}>
-                <label className="font-sans text-xs font-semibold uppercase tracking-wider text-doctor-muted/75">
+                <label htmlFor={`note-${s.key}`} className="font-sans text-xs font-semibold uppercase tracking-wider text-doctor-muted/75">
                   {s.label}
                 </label>
                 <textarea
+                  id={`note-${s.key}`}
                   value={sections[s.key] ?? ""}
                   onChange={(e) => {
-                    setSections((prev) => ({ ...prev, [s.key]: e.target.value }));
+                    const next = { ...sections, [s.key]: e.target.value };
+                    latestSections.current = next;
+                    setSections(next);
                     setDirty(true);
                   }}
                   rows={3}
@@ -217,9 +276,30 @@ export default function ConsultationPage() {
                 />
               </div>
             ))}
-          </div>
+          </fieldset>
         )}
       </section>
+
+      {ctx.note_amendments && ctx.note_amendments.length > 0 && (
+        <section className="clinix-doctor-card p-5">
+          <p className="clinix-label text-copper">Amendment history</p>
+          {ctx.note_amendments.map((amendment) => (
+            <article key={amendment.id} className="mt-4 border-t border-white/10 pt-3 font-sans text-sm text-doctor-muted/80">
+              <p>{fmtAt(amendment.created_at)}</p>
+              <p className="break-all text-xs">Doctor: {amendment.doctor_id}</p>
+              <p className="mt-1 whitespace-pre-wrap">Reason: {amendment.reason}</p>
+              <dl className="mt-2 space-y-2">
+                {SECTIONS.map((section) => (
+                  <div key={section.key}>
+                    <dt className="font-semibold text-surface">{section.label}</dt>
+                    <dd className="whitespace-pre-wrap">{amendment.sections[section.key] || "—"}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
+          ))}
+        </section>
+      )}
 
       {/* Current medications */}
       <section className="clinix-doctor-card p-5">
@@ -258,8 +338,10 @@ export default function ConsultationPage() {
           amending ? (
             <section className="clinix-doctor-card border-copper p-5">
               <p className="clinix-label text-copper">Amend note</p>
-              <label className="mt-2 block font-sans text-xs text-doctor-muted/80">Reason for amendment *</label>
+              <label htmlFor="amend-reason" className="mt-2 block font-sans text-xs text-doctor-muted/80">Reason for amendment *</label>
               <input
+                id="amend-reason"
+                disabled={busy}
                 type="text"
                 value={amendReason}
                 onChange={(e) => setAmendReason(e.target.value)}
@@ -270,6 +352,7 @@ export default function ConsultationPage() {
                 <button
                   type="button"
                   onClick={() => setAmending(false)}
+                  disabled={busy}
                   className="min-h-11 flex-1 rounded-xl border border-white/10 bg-doctor-panel font-sans text-xs font-semibold text-surface"
                 >
                   Cancel
@@ -287,7 +370,12 @@ export default function ConsultationPage() {
           ) : (
             <button
               type="button"
-              onClick={() => setAmending(true)}
+              onClick={() => {
+                const latest = ctx.note_amendments?.[0]?.sections ?? ctx.note ?? {};
+                setSections(latest);
+                latestSections.current = latest;
+                setAmending(true);
+              }}
               className="min-h-[52px] w-full rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold text-surface"
             >
               Amend note
@@ -295,6 +383,7 @@ export default function ConsultationPage() {
           )
         ) : (
           <button
+            ref={completeButton}
             type="button"
             onClick={() => setConfirmComplete(true)}
             className="min-h-[52px] w-full rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold text-surface"
@@ -306,46 +395,67 @@ export default function ConsultationPage() {
 
       {/* Complete Consultation confirmation modal (Node 56:33) */}
       {confirmComplete && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="complete-consult-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
+        <ClinicalReviewDialog
+          titleId="complete-consult-title"
+          busy={busy}
+          returnFocusRef={completeButton}
+          onClose={() => setConfirmComplete(false)}
         >
-          <div className="w-full max-w-sm rounded-[1.75rem] border border-copper bg-doctor-panel p-6 shadow-2xl">
+          <div>
             <span className="rounded-full border border-copper/50 px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-copper">
               Final Review
             </span>
-            <h3 id="complete-consult-title" className="mt-2 font-sans text-xl font-bold text-surface">
+            <h3 id="complete-consult-title" className="mt-5 font-sans text-[28px] leading-tight font-semibold text-surface">
               Complete consultation?
             </h3>
             <p className="mt-2 font-sans text-xs leading-5 text-doctor-muted/75">
-              The clinical note will be finalized and locked into an immutable record. Later changes will create dated amendments.
+              Confirm the encounter record before it becomes completed.
             </p>
-            <div className="mt-4 space-y-2 rounded-xl bg-black/30 p-3 font-sans text-xs text-doctor-muted/80">
-              <p className="flex items-center gap-2"><span>✓</span> Clinical note recorded</p>
-              <p className="flex items-center gap-2"><span>✓</span> Encounter status will become Completed</p>
+            <section className="mt-6 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+              <h4 className="text-xl">{ctx.appointment.patient_name}</h4>
+              <dl className="mt-4 space-y-2">
+                <div className="flex gap-3"><dt className="w-20 text-copper">Time</dt><dd>{fmtAt(ctx.appointment.scheduled_start)}</dd></div>
+                <div className="flex gap-3"><dt className="w-20 text-copper">Reason</dt><dd>{ctx.appointment.reason || "—"}</dd></div>
+                <div className="flex gap-3"><dt className="w-20 text-copper">Payment</dt><dd>{ctx.appointment.payment_status}</dd></div>
+              </dl>
+            </section>
+            <div className="mt-6 space-y-3 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+              <p>The latest note will be saved before completion.</p>
+              <dl className="space-y-3">
+                {SECTIONS.map((section) => (
+                  <div key={section.key}>
+                    <dt className="font-semibold">{section.label}</dt>
+                    <dd className="whitespace-pre-wrap break-words">{sections[section.key] || "—"}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
-            <div className="mt-6 flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => setConfirmComplete(false)}
-                disabled={busy}
-                className="min-h-11 flex-1 rounded-xl border border-white/10 font-sans text-xs font-semibold text-surface"
-              >
-                Return to draft
-              </button>
+            {error && <p role="alert" className="mt-3 font-sans text-sm text-critical">{error}</p>}
+            <section className="mt-6 rounded-[22px] border border-evidence bg-graphite p-4 font-sans text-xs leading-5 text-surface">
+              <h4 className="text-lg">Completed notes are locked</h4>
+              <p className="mt-2">Later corrections are added as dated amendments. The original finalized note remains preserved.</p>
+            </section>
+            <p className="mt-5 font-sans text-xs leading-5 text-surface">This changes the encounter and appointment status to Completed.</p>
+            <div className="mt-6 flex flex-col gap-3">
               <button
                 type="button"
                 onClick={complete}
                 disabled={busy}
-                className="min-h-11 flex-1 rounded-xl bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
+                className="min-h-[60px] rounded-[18px] bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
               >
-                {busy ? "Finalizing…" : "Confirm complete"}
+                {busy ? "Finalizing…" : "Complete consultation"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmComplete(false)}
+                disabled={busy}
+                className="min-h-[52px] rounded-[18px] border border-copper font-sans text-xs font-semibold text-surface"
+              >
+                Return to draft
               </button>
             </div>
           </div>
-        </div>
+        </ClinicalReviewDialog>
       )}
     </WorkspaceShell>
   );

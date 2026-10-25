@@ -4,8 +4,10 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   amendPrescriptionSchema,
   createPrescriptionDraftSchema,
+  finalizePrescriptionDraftSchema,
   patchPrescriptionDraftSchema,
   type PrescriptionItemInput,
+  type PrescriptionItemView,
   type PrescriptionView,
 } from "@clinix/schemas";
 import { authorizePatientAccess, requireDoctor, requirePatient } from "../auth/guards.js";
@@ -29,7 +31,8 @@ import {
 } from "./map.js";
 import { renderPrescriptionPdf } from "./pdf.js";
 
-function contentHash(items: PrescriptionItemInput[]): string {
+/** Hashes ordered clinical fields so a review cannot finalize different content. */
+function contentHash(items: (PrescriptionItemInput | PrescriptionItemView)[]): string {
   const canonical = items.map((it) => [
     it.medicine_name,
     it.strength ?? "",
@@ -266,44 +269,48 @@ export async function prescriptionRoutes(app: FastifyInstance) {
       const body = parsed.data;
 
       const database = requireDb();
-      const [draft] = await database
-        .select()
-        .from(prescriptionDrafts)
-        .where(eq(prescriptionDrafts.id, request.params.draft_id))
-        .limit(1);
-      if (!draft) return error(request, reply, 404, "NOT_FOUND", "Draft not found");
-      if (draft.doctorId !== doctorId) {
-        return error(request, reply, 403, "FORBIDDEN", "Not your draft");
-      }
-      if (draft.status === "APPROVED") {
-        return error(request, reply, 409, "DRAFT_FINALIZED", "Finalized drafts cannot be edited");
-      }
+      const result = await database.transaction(async (tx) => {
+        const [draft] = await tx
+          .select()
+          .from(prescriptionDrafts)
+          .where(eq(prescriptionDrafts.id, request.params.draft_id))
+          .for("update");
+        if (!draft) return { status: 404, code: "NOT_FOUND", message: "Draft not found" };
+        if (draft.doctorId !== doctorId) {
+          return { status: 403, code: "FORBIDDEN", message: "Not your draft" };
+        }
+        if (draft.status === "APPROVED") {
+          return { status: 409, code: "DRAFT_FINALIZED", message: "Finalized drafts cannot be edited" };
+        }
 
-      if (body.items) {
-        await database
-          .delete(prescriptionDraftItems)
-          .where(eq(prescriptionDraftItems.draftId, draft.id));
-        await database.insert(prescriptionDraftItems).values(
-          body.items.map((it, i) => ({
-            draftId: draft.id,
-            sequenceNumber: i + 1,
-            medicineName: it.medicine_name,
-            strength: it.strength ?? null,
-            dose: it.dose ?? null,
-            route: it.route ?? null,
-            frequency: it.frequency ?? null,
-            timing: it.timing ?? null,
-            duration: it.duration ?? null,
-            instructions: it.instructions ?? null,
-          })),
-        );
-      }
-      if (body.status) {
-        await database
-          .update(prescriptionDrafts)
-          .set({ status: body.status, updatedAt: new Date() })
-          .where(eq(prescriptionDrafts.id, draft.id));
-      }
+        if (body.items) {
+          await tx
+            .delete(prescriptionDraftItems)
+            .where(eq(prescriptionDraftItems.draftId, draft.id));
+          await tx.insert(prescriptionDraftItems).values(
+            body.items.map((it, i) => ({
+              draftId: draft.id,
+              sequenceNumber: i + 1,
+              medicineName: it.medicine_name,
+              strength: it.strength ?? null,
+              dose: it.dose ?? null,
+              route: it.route ?? null,
+              frequency: it.frequency ?? null,
+              timing: it.timing ?? null,
+              duration: it.duration ?? null,
+              instructions: it.instructions ?? null,
+            })),
+          );
+        }
+        if (body.items || body.status) {
+          await tx
+            .update(prescriptionDrafts)
+            .set({ ...(body.status ? { status: body.status } : {}), updatedAt: new Date() })
+            .where(eq(prescriptionDrafts.id, draft.id));
+        }
+        return null;
+      });
+      if (result) return error(request, reply, result.status, result.code, result.message);
       return { ok: true };
     },
   );
@@ -349,9 +356,17 @@ export async function prescriptionRoutes(app: FastifyInstance) {
         return error(request, reply, 400, "IDEMPOTENCY_KEY_REQUIRED", "Idempotency-Key header is required");
       }
 
+      const parsed = finalizePrescriptionDraftSchema.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return error(request, reply, 400, "VALIDATION_ERROR", "Invalid reviewed prescription");
+      }
+
       const database = requireDb();
-      const existing = await loadPrescriptionByDraft(request.params.draft_id);
+      const existing = await loadPrescriptionByDraft(request.params.draft_id, doctorId);
       if (existing) {
+        if (parsed.data.reviewed_items && contentHash(parsed.data.reviewed_items) !== contentHash(existing.versions[0].items)) {
+          return error(request, reply, 409, "DRAFT_CHANGED", "This draft was finalized with different content. Reopen the prescription to review it.");
+        }
         // Idempotent replay: a re-finalize of an already-APPROVED draft returns
         // the same prescription (ponytail: no key store; draft state is the signal).
         return reply.send(existing);
@@ -381,6 +396,21 @@ export async function prescriptionRoutes(app: FastifyInstance) {
             .orderBy(asc(prescriptionDraftItems.sequenceNumber));
           if (items.length === 0 || items.some((i) => !i.medicineName.trim())) {
             throw Object.assign(new Error("empty prescription"), { code: 409 });
+          }
+
+          if (parsed.data.reviewed_items && contentHash(parsed.data.reviewed_items) !== contentHash(
+            items.map((i) => ({
+              medicine_name: i.medicineName,
+              strength: i.strength ?? undefined,
+              dose: i.dose ?? undefined,
+              route: i.route ?? undefined,
+              frequency: i.frequency ?? undefined,
+              timing: i.timing ?? undefined,
+              duration: i.duration ?? undefined,
+              instructions: i.instructions ?? undefined,
+            })),
+          )) {
+            throw Object.assign(new Error("Draft changed after review. Review the latest draft before finalizing."), { code: "DRAFT_CHANGED" });
           }
 
           const now = new Date();
@@ -444,6 +474,9 @@ export async function prescriptionRoutes(app: FastifyInstance) {
           return rx.id;
         });
       } catch (err) {
+        if ((err as { code?: string }).code === "DRAFT_CHANGED") {
+          return error(request, reply, 409, "DRAFT_CHANGED", (err as Error).message);
+        }
         const code = (err as { code?: number }).code;
         if (code === 404) return error(request, reply, 404, "NOT_FOUND", "Draft not found");
         if (code === 403) return error(request, reply, 403, "FORBIDDEN", "Not your draft");
@@ -454,8 +487,13 @@ export async function prescriptionRoutes(app: FastifyInstance) {
       }
 
       if (!prescriptionId) {
-        const replay = await loadPrescriptionByDraft(request.params.draft_id);
-        if (replay) return reply.send(replay);
+        const replay = await loadPrescriptionByDraft(request.params.draft_id, doctorId);
+        if (replay) {
+          if (parsed.data.reviewed_items && contentHash(parsed.data.reviewed_items) !== contentHash(replay.versions[0].items)) {
+            return error(request, reply, 409, "DRAFT_CHANGED", "This draft was finalized with different content. Reopen the prescription to review it.");
+          }
+          return reply.send(replay);
+        }
         return error(request, reply, 409, "DRAFT_FINALIZED", "Draft already finalized");
       }
 
@@ -629,13 +667,13 @@ export async function prescriptionRoutes(app: FastifyInstance) {
   );
 }
 
-/** Replay helper: returns the finalized prescription for a draft, if any. */
-async function loadPrescriptionByDraft(draftId: string): Promise<PrescriptionView | null> {
+/** Returns a draft's finalized prescription only for its owning doctor. */
+async function loadPrescriptionByDraft(draftId: string, doctorId: string): Promise<PrescriptionView | null> {
   const database = requireDb();
   const [rx] = await database
     .select()
     .from(prescriptions)
-    .where(eq(prescriptions.createdFromDraftId, draftId))
+    .where(and(eq(prescriptions.createdFromDraftId, draftId), eq(prescriptions.doctorId, doctorId)))
     .limit(1);
   return rx ? loadPrescriptionView(rx.id) : null;
 }
