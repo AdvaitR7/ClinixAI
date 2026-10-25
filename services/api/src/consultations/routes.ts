@@ -21,6 +21,7 @@ import { medicationsForPatient } from "../medications/derive.js";
 const NOTE_CONSULTATION = "CONSULTATION";
 const NOTE_AMENDMENT = "CONSULTATION_AMENDMENT";
 
+/** Parses stored note sections, returning null when their JSON is malformed. */
 function parseSections(content: string | null): NoteSections | null {
   if (!content) return null;
   try {
@@ -221,12 +222,26 @@ export async function consultationRoutes(app: FastifyInstance) {
 
       const names = await patientNames([appt.patientId]);
       const currentMedications = await medicationsForPatient(appt.patientId);
+      const amendments = await database.select().from(consultationNotes).where(and(
+        eq(consultationNotes.encounterId, encounterId),
+        eq(consultationNotes.noteType, NOTE_AMENDMENT),
+      )).orderBy(desc(consultationNotes.createdAt));
 
       return {
         appointment: appointmentView(appt, names.get(appt.patientId) ?? ""),
         encounter_id: encounterId,
         note: parseSections(note?.content ?? null),
         note_is_final: note?.isFinal ?? false,
+        note_amendments: amendments.map((amendment) => {
+          const parsed = noteAmendSchema.safeParse(JSON.parse(amendment.content ?? "{}"));
+          return {
+            id: amendment.id,
+            doctor_id: amendment.doctorId,
+            created_at: amendment.createdAt.toISOString(),
+            reason: parsed.success ? parsed.data.reason : "Amendment content unavailable",
+            sections: parsed.success ? noteSectionsSchema.parse(parsed.data) : {},
+          };
+        }),
         allergies: [],
         current_medications: currentMedications,
       };
@@ -258,38 +273,43 @@ export async function consultationRoutes(app: FastifyInstance) {
         return error(request, reply, 403, "FORBIDDEN", "Not authorized for this encounter");
       }
 
-      const note = (
-        await database
-          .select()
-          .from(consultationNotes)
-          .where(
-            and(
-              eq(consultationNotes.encounterId, enc.id),
-              eq(consultationNotes.noteType, NOTE_CONSULTATION),
-            ),
-          )
-          .limit(1)
-      )[0];
+      const result = await database.transaction(async (tx) => {
+        await tx.select().from(encounters).where(eq(encounters.id, enc.id)).for("update");
+        const note = (
+          await tx
+            .select()
+            .from(consultationNotes)
+            .where(
+              and(
+                eq(consultationNotes.encounterId, enc.id),
+                eq(consultationNotes.noteType, NOTE_CONSULTATION),
+              ),
+            )
+            .limit(1)
+        )[0];
 
-      if (note?.isFinal) {
-        return error(request, reply, 409, "NOTE_FINALIZED", "Finalized notes use amendments, not edits");
-      }
+        if (note?.isFinal) {
+          return "NOTE_FINALIZED";
+        }
 
-      const content = JSON.stringify(parsed.data);
-      if (note) {
-        await database
-          .update(consultationNotes)
-          .set({ content, updatedAt: new Date() })
-          .where(eq(consultationNotes.id, note.id));
-      } else {
-        await database.insert(consultationNotes).values({
-          patientId: enc.patientId,
-          encounterId: enc.id,
-          doctorId,
-          noteType: NOTE_CONSULTATION,
-          content,
-        });
-      }
+        const content = JSON.stringify(parsed.data);
+        if (note) {
+          await tx
+            .update(consultationNotes)
+            .set({ content, updatedAt: new Date() })
+            .where(eq(consultationNotes.id, note.id));
+        } else {
+          await tx.insert(consultationNotes).values({
+            patientId: enc.patientId,
+            encounterId: enc.id,
+            doctorId,
+            noteType: NOTE_CONSULTATION,
+            content,
+          });
+        }
+        return null;
+      });
+      if (result) return error(request, reply, 409, result, "Finalized notes use amendments, not edits");
       return { ok: true };
     },
   );
@@ -320,15 +340,25 @@ export async function consultationRoutes(app: FastifyInstance) {
         return error(request, reply, 403, "FORBIDDEN", "Not authorized for this encounter");
       }
 
-      await database.insert(consultationNotes).values({
-        patientId: enc.patientId,
-        encounterId: enc.id,
-        doctorId,
-        noteType: NOTE_AMENDMENT,
-        content: JSON.stringify({ reason, ...sections }),
-        isFinal: true,
-        finalizedAt: new Date(),
+      const amended = await database.transaction(async (tx) => {
+        await tx.select().from(encounters).where(eq(encounters.id, enc.id)).for("update");
+        const [original] = await tx.select().from(consultationNotes).where(and(
+          eq(consultationNotes.encounterId, enc.id),
+          eq(consultationNotes.noteType, NOTE_CONSULTATION),
+        )).limit(1);
+        if (!original?.isFinal) return false;
+        await tx.insert(consultationNotes).values({
+          patientId: enc.patientId,
+          encounterId: enc.id,
+          doctorId,
+          noteType: NOTE_AMENDMENT,
+          content: JSON.stringify({ reason, ...sections }),
+          isFinal: true,
+          finalizedAt: new Date(),
+        });
+        return true;
       });
+      if (!amended) return error(request, reply, 409, "NOTE_NOT_FINAL", "Save draft changes directly until the note is finalized");
       return reply.code(201).send({ ok: true });
     },
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import type { PrescriptionItemInput } from "@clinix/schemas";
+import { useId } from "react";
 
 const FIELDS: { key: keyof PrescriptionItemInput; label: string; wide?: boolean }[] = [
   { key: "medicine_name", label: "Medicine name", wide: true },
@@ -24,6 +25,7 @@ export function MedicineEditor({
   items: PrescriptionItemInput[];
   onChange: (items: PrescriptionItemInput[]) => void;
 }) {
+  const fieldId = useId();
   function update(i: number, key: keyof PrescriptionItemInput, value: string) {
     onChange(items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
   }
@@ -82,8 +84,9 @@ export function MedicineEditor({
           <div className="mt-3 grid grid-cols-2 gap-3">
             {FIELDS.map((f) => (
               <div key={f.key} className={f.wide ? "col-span-2" : undefined}>
-                <label className="font-sans text-xs text-doctor-muted/70">{f.label}</label>
+                <label htmlFor={`${fieldId}-${i}-${f.key}`} className="font-sans text-xs text-doctor-muted/70">{f.label}</label>
                 <input
+                  id={`${fieldId}-${i}-${f.key}`}
                   type="text"
                   value={it[f.key] ?? ""}
                   onChange={(e) => update(i, f.key, e.target.value)}

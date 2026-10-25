@@ -9,10 +9,12 @@ import type {
   PrescriptionItemInput,
   PrescriptionView,
 } from "@clinix/schemas";
+import { patchPrescriptionDraftSchema } from "@clinix/schemas";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { MedicineEditor } from "@/components/medicine-editor";
+import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
 import { fetchApi, useApiData } from "@/lib/api";
 
 const nav = [
@@ -34,10 +36,14 @@ export default function PrescriptionDraftPage() {
 
   const [items, setItems] = useState<PrescriptionItemInput[]>([]);
   const [confirming, setConfirming] = useState(false);
+  const [reviewedItems, setReviewedItems] = useState<PrescriptionItemInput[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [sourceDoc, setSourceDoc] = useState<DocumentView | null>(null);
   const initialized = useRef(false);
+  const finalizeButton = useRef<HTMLButtonElement>(null);
+  const loadedItems = state.status === "ready" ? state.data.items : null;
 
   const sourceDocId =
     state.status === "ready" && state.data.source === "OCR"
@@ -59,10 +65,10 @@ export default function PrescriptionDraftPage() {
   }, [sourceDocId, getToken]);
 
   useEffect(() => {
-    if (state.status === "ready" && !initialized.current) {
+    if (loadedItems && !initialized.current) {
       initialized.current = true;
       setItems(
-        state.data.items.map((i) => ({
+        loadedItems.map((i) => ({
           medicine_name: i.medicine_name,
           strength: i.strength,
           dose: i.dose,
@@ -74,12 +80,14 @@ export default function PrescriptionDraftPage() {
         })),
       );
     }
-  }, [state.status]);
+  }, [loadedItems]);
 
-  async function save() {
-    const cleaned = items.filter((i) => i.medicine_name.trim());
-    if (cleaned.length === 0) {
-      setError("Add at least one medicine.");
+  /** Saves every visible row before allowing the clinician to review the saved snapshot. */
+  async function save(review = false) {
+    setSaved(false);
+    const parsed = patchPrescriptionDraftSchema.safeParse({ items });
+    if (!parsed.success || items.some((item) => !item.medicine_name.trim())) {
+      setError("Check every medicine name and field length before saving.");
       return;
     }
     setError(null);
@@ -89,9 +97,16 @@ export default function PrescriptionDraftPage() {
       if (!token) throw new Error("Not signed in");
       await fetchApi(token, `/doctor/prescription-drafts/${params.draftId}`, {
         method: "PATCH",
-        body: JSON.stringify({ items: cleaned }),
+        body: JSON.stringify(parsed.data),
       });
-      await state.refresh();
+      setSaved(true);
+      if (review) {
+        const saved = await fetchApi<PrescriptionDraftView>(token, `/doctor/prescription-drafts/${params.draftId}`);
+        if (saved.status === "APPROVED") throw new Error("This draft has already been finalized. Reopen it to view the prescription.");
+        setItems(saved.items);
+        setReviewedItems(saved.items);
+        setConfirming(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save draft");
     } finally {
@@ -99,7 +114,9 @@ export default function PrescriptionDraftPage() {
     }
   }
 
+  /** Finalizes only the persisted snapshot displayed in the confirmation. */
   async function finalize() {
+    if (!reviewedItems) return;
     setBusy(true);
     setError(null);
     try {
@@ -110,7 +127,7 @@ export default function PrescriptionDraftPage() {
         `/doctor/prescription-drafts/${params.draftId}/finalize`,
         {
           method: "POST",
-          body: "{}",
+          body: JSON.stringify({ reviewed_items: reviewedItems }),
           headers: { "Idempotency-Key": crypto.randomUUID() },
         },
       );
@@ -146,21 +163,28 @@ export default function PrescriptionDraftPage() {
 
   const editor = (
     <>
-      <MedicineEditor items={items} onChange={setItems} />
+      <fieldset disabled={busy || confirming} className="min-w-0">
+        <MedicineEditor items={items} onChange={(next) => {
+          setItems(next);
+          setSaved(false);
+        }} />
+      </fieldset>
+      {saved && <p role="status" className="font-sans text-sm text-doctor-muted">Draft saved.</p>}
       {error && <p role="alert" className="font-sans text-sm font-medium text-critical">{error}</p>}
       {!finalized && (
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={save}
+            onClick={() => save()}
             disabled={busy}
             className="min-h-12 flex-1 rounded-2xl border border-white/10 bg-doctor-panel font-sans text-xs font-semibold uppercase tracking-wider text-surface disabled:opacity-60"
           >
             Save draft
           </button>
           <button
+            ref={finalizeButton}
             type="button"
-            onClick={() => setConfirming(true)}
+            onClick={() => save(true)}
             disabled={busy}
             className="min-h-12 flex-1 rounded-2xl bg-copper font-sans text-xs font-semibold uppercase tracking-wider text-ink transition-transform active:translate-y-px disabled:opacity-60"
           >
@@ -171,47 +195,67 @@ export default function PrescriptionDraftPage() {
 
       {/* Finalization Confirmation Modal (Figma 61:215) */}
       {confirming && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="finalize-dialog-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4"
+        <ClinicalReviewDialog
+          titleId="finalize-dialog-title"
+          busy={busy}
+          returnFocusRef={finalizeButton}
+          onClose={() => setConfirming(false)}
         >
-          <div className="w-full max-w-sm rounded-[1.75rem] border border-copper bg-doctor-panel p-6 shadow-2xl">
+          <div>
             <span className="rounded-full border border-copper/50 px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-copper">
               Final Review
             </span>
-            <h3 id="finalize-dialog-title" className="mt-2 font-sans text-xl font-bold text-surface">
-              Finalize this prescription?
+            <h3 id="finalize-dialog-title" className="mt-5 font-sans text-[28px] leading-tight font-semibold text-surface">
+              Finalize prescription?
             </h3>
             <p className="mt-2 font-sans text-xs leading-5 text-doctor-muted/75">
-              Finalizing locks this prescription into an authoritative, immutable record (Version 1).
-              Any subsequent modifications require creating a new revision.
+              Confirm the doctor-authored record before it becomes finalized.
             </p>
-            <div className="mt-4 space-y-2 rounded-xl bg-black/30 p-3 font-sans text-xs text-doctor-muted/80">
-              <p className="flex items-center gap-2"><span>✓</span> Structured items verified ({items.length} medicines)</p>
-              <p className="flex items-center gap-2"><span>✓</span> Authoritative clinical sign-off</p>
+            <section className="mt-6 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-xl">{draft.patient_name}</h4>
+                <span className="rounded-full border border-evidence px-3 py-2 text-[10px]">Version 1</span>
+              </div>
+              <dl className="mt-4 space-y-2">
+                <div className="flex gap-3"><dt className="w-20 text-copper">Source</dt><dd>{draft.source}</dd></div>
+                <div className="flex gap-3"><dt className="w-20 text-copper">Medicines</dt><dd>{reviewedItems?.length}</dd></div>
+              </dl>
+            </section>
+            <div className="mt-6 space-y-3 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+              <p>Saved medicines ({reviewedItems?.length})</p>
+              <ul className="max-h-60 space-y-2 overflow-y-auto">
+                {reviewedItems?.map((item, index) => (
+                  <li key={index} className="whitespace-pre-wrap break-words">
+                    <strong className="text-surface">{item.medicine_name}</strong>
+                    <p>{[item.strength, item.dose, item.route, item.frequency, item.timing, item.duration, item.instructions].filter(Boolean).join(" · ")}</p>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div className="mt-6 flex gap-2.5">
-              <button
-                type="button"
-                onClick={() => setConfirming(false)}
-                disabled={busy}
-                className="min-h-11 flex-1 rounded-xl border border-white/10 font-sans text-xs font-semibold text-surface"
-              >
-                Return to draft
-              </button>
+            <section className="mt-6 rounded-[22px] border border-evidence bg-graphite p-4 font-sans text-xs leading-5 text-surface">
+              <h4 className="text-lg">Edits become amendments</h4>
+              <p className="mt-2">Finalization preserves this version. Later corrections create a dated amendment or a new version; the original cannot be silently replaced.</p>
+            </section>
+            <div className="mt-6 flex flex-col gap-3">
               <button
                 type="button"
                 onClick={finalize}
                 disabled={busy}
-                className="min-h-11 flex-1 rounded-xl bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
+                className="min-h-[60px] rounded-[18px] bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
               >
-                {busy ? "Finalizing…" : "Confirm finalize"}
+                {busy ? "Finalizing…" : "Finalize prescription"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={busy}
+                className="min-h-[52px] rounded-[18px] border border-copper font-sans text-xs font-semibold text-surface"
+              >
+                Return to draft
               </button>
             </div>
           </div>
-        </div>
+        </ClinicalReviewDialog>
       )}
     </>
   );

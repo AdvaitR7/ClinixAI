@@ -1,5 +1,7 @@
 # Information architecture
 
+**Implementation update (2026-10-25):** [Clinical record and navigation batch](07-implementation-progress.md) records the current code, test results and remaining blockers. Audit evidence below is the original snapshot except where explicitly updated. No whole screen is COMPLETE.
+
 [Audit index](README.md) · [Interactions](02-interaction-map.md) · [Traceability](04-design-code-traceability.md)
 
 ## Evidence and counting
@@ -430,6 +432,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Evidence capture: [rendered frame 2966](evidence/design-2966.png). 18 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-030).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-030). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
+- Implementation update: Ordered note persistence/completion and editable amendments/history implemented and synthetic-tested. Parent-screen source/AI/consent sections remain partial. See [07](07-implementation-progress.md).
+
 <a id="scr-031"></a>
 
 ### SCR-031 — Page 18a / ClinixAI / Complete Consultation Confirmation
@@ -443,6 +447,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Finding: Completion modal exists but designed review checklist/summary missing; complete does not await latest note save.
 - Evidence capture: [rendered frame 3103](evidence/design-3103.png). 3 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-031).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-031). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
+
+- Implementation update: Close/Return/Escape, saved-content completion and data-backed review added. FigCraft 3103 compared at 393 × 1180; appearance remains partial. See [07](07-implementation-progress.md).
 
 <a id="scr-032"></a>
 
@@ -472,6 +478,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Evidence capture: [rendered frame 3377](evidence/design-3377.png). 23 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-033).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-033). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
+- Implementation update: Visible medicine edits now save before review; saved fields are submitted to finalization. Source/safety/ambiguity/preview workflow remains GAP-024. See [07](07-implementation-progress.md).
+
 <a id="scr-034"></a>
 
 ### SCR-034 — Page 20a / ClinixAI / Prescription Workspace / Direct
@@ -499,6 +507,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Finding: Finalization modal exists but no source/safety/preview checklist; counts local items while endpoint finalizes stored items.
 - Evidence capture: [rendered frame 3590](evidence/design-3590.png). 3 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-035).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-035). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
+
+- Implementation update: Data-backed medicine review and stale-content checks added with shared modal dismissal/focus. FigCraft 3590 compared at 393 × 1260; appearance remains partial. See [07](07-implementation-progress.md).
 
 <a id="scr-036"></a>
 

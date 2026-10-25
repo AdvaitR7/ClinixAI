@@ -354,6 +354,11 @@ export const patchPrescriptionDraftSchema = z.object({
 });
 export type PatchPrescriptionDraft = z.infer<typeof patchPrescriptionDraftSchema>;
 
+/** Optional reviewed snapshot keeps older clients compatible while detecting stale reviews. */
+export const finalizePrescriptionDraftSchema = z.object({
+  reviewed_items: z.array(prescriptionItemInputSchema).min(1).optional(),
+});
+
 /** POST /doctor/prescriptions/{id}/amend (API §24). */
 export const amendPrescriptionSchema = z.object({
   reason: z.string().min(1).max(1000),
@@ -369,6 +374,11 @@ export const noteSectionsSchema = z.object({
   plan: z.string().max(5000).optional(),
 });
 export type NoteSections = z.infer<typeof noteSectionsSchema>;
+
+/** Completion may bind the final record to the note the clinician reviewed. */
+export const completeConsultationSchema = z.object({
+  reviewed_note: noteSectionsSchema.optional(),
+});
 
 export const noteAmendSchema = noteSectionsSchema.extend({
   reason: z.string().min(1).max(1000),
@@ -481,6 +491,13 @@ export const consultationContextSchema = z.object({
   encounter_id: z.string().uuid(),
   note: noteSectionsSchema.nullable(),
   note_is_final: z.boolean(),
+  note_amendments: z.array(z.object({
+    id: z.string().uuid(),
+    doctor_id: z.string().uuid(),
+    created_at: z.string(),
+    reason: z.string(),
+    sections: noteSectionsSchema,
+  })).optional(),
   allergies: z.array(z.string()),
   current_medications: z.array(medicationViewSchema),
 });

@@ -17,7 +17,7 @@ import { fetchApi, useApiData } from "@/lib/api";
 
 const nav = [
   { label: "Home", href: "/app/patient" },
-  { label: "Timeline", href: "/app/patient", disabled: true },
+  { label: "Timeline", href: "/app/patient/timeline" },
   { label: "Vault", href: "/app/patient/vault", active: true },
   { label: "Visits", href: "/app/patient/appointments" },
   { label: "Care", href: "/app/patient/medications" },
