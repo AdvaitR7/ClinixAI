@@ -6,7 +6,7 @@
 
 ## 1. API rules
 
-Authentication uses Clerk session tokens. Fastify verifies the bearer session token and resolves the user's application profile and role from the PostgreSQL `profiles` table. Never trust a role or patient/doctor ID supplied by the client when it can be derived from the authenticated identity.
+Authentication uses Supabase Auth access tokens. Fastify verifies the bearer token and resolves the user's application profile and role from the PostgreSQL `profiles` table. Never trust a role or patient/doctor ID supplied by the client when it can be derived from the authenticated identity.
 
 Every request gets an `X-Request-ID`. Operations that must not duplicate accidentally—appointment creation, record claiming, prescription finalization, AI-analysis start—also support an `Idempotency-Key` header.
 
@@ -77,7 +77,9 @@ Updates permitted patient-controlled identity/preferences. Sensitive changes pro
 }
 ```
 
-Prototype may use verified demo accounts or `PENDING` verification.
+Doctor self-onboarding creates a `PENDING` verification record. Under the current
+demo policy, a completed doctor profile can open the doctor workspace immediately;
+verification status is not an authorization gate.
 
 ### `GET /doctors/self`
 

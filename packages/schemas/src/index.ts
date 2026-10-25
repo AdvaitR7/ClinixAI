@@ -23,8 +23,7 @@ export const userRoleSchema = z.enum([
 export type UserRole = z.infer<typeof userRoleSchema>;
 
 /**
- * POST /patients/self (API spec §3). full_name optional here so Clerk's
- * signup name can prefill it; server requires it non-empty.
+ * POST /patients/self (API spec §3). Patient onboarding requires a full name.
  */
 export const patientOnboardingSchema = z.object({
   full_name: z.string().min(1).max(200),

@@ -1,9 +1,10 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
+import { useState } from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ClinixBrand } from "@/components/clinix-brand";
+import { useAuth } from "@/lib/auth";
 
 type NavItem = {
   label: string;
@@ -12,6 +13,38 @@ type NavItem = {
   disabled?: boolean;
 };
 
+/** Provides account access and sign-out in the original workspace header. */
+function AccountMenu() {
+  const { user, signOut } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const initial = user?.email?.slice(0, 1).toUpperCase() ?? "•";
+
+  async function handleSignOut() {
+    setError(null);
+    try {
+      await signOut();
+    } catch {
+      setError("Could not sign out. Try again.");
+    }
+  }
+
+  return (
+    <details className="relative">
+      <summary aria-label="Account options" className="grid size-[38px] cursor-pointer list-none place-items-center rounded-full font-sans text-sm font-bold text-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evidence">
+        {initial}
+      </summary>
+      <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-sage bg-surface p-4 text-ink shadow-xl">
+        <p className="truncate font-sans text-xs text-graphite">{user?.email ?? "Signed in"}</p>
+        <Link href="/settings" className="mt-4 block rounded-xl px-3 py-2 font-sans text-sm font-medium hover:bg-canvas">Account settings</Link>
+        <Link href="/forgot-password" className="block rounded-xl px-3 py-2 font-sans text-sm font-medium hover:bg-canvas">Change password</Link>
+        {error && <p role="alert" className="mt-2 font-sans text-xs text-critical">{error}</p>}
+        <button type="button" onClick={() => void handleSignOut()} className="mt-2 w-full rounded-xl px-3 py-2 text-left font-sans text-sm font-semibold text-critical hover:bg-canvas">Sign out</button>
+      </div>
+    </details>
+  );
+}
+
+/** Draws the compact workspace navigation icon that matches each label. */
 function NavIcon({ label }: { label: string }) {
   const common = {
     viewBox: "0 0 24 24",
@@ -101,13 +134,7 @@ export function WorkspaceShell({
             </svg>
           </span>
           <span className={`grid size-[38px] place-items-center rounded-full ${doctor ? "bg-copper" : "bg-botanical"}`}>
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "size-[38px]",
-                },
-              }}
-            />
+            <AccountMenu />
           </span>
         </div>
       </header>

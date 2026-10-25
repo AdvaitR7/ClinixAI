@@ -2,7 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
 import { doctorOnboardingSchema } from "@clinix/schemas";
 import { publicRoute } from "../auth/context.js";
-import { ensureProfile, verifySession } from "../auth/clerk.js";
+import { verifiedBearer } from "../auth/bearer.js";
+import { ensureProfile, ProfileRoleConflictError } from "../auth/supabase.js";
 import { error, requireDb } from "../http.js";
 import { doctors } from "../schema.js";
 
@@ -12,16 +13,8 @@ export async function doctorRoutes(app: FastifyInstance) {
     "/doctors/self",
     { config: publicRoute() },
     async (request, reply) => {
-      const header = request.headers.authorization;
-      if (!header?.startsWith("Bearer ")) {
-        return error(request, reply, 401, "UNAUTHORIZED", "Missing bearer token");
-      }
-      let clerkUserId: string;
-      try {
-        clerkUserId = await verifySession(header.slice("Bearer ".length));
-      } catch {
-        return error(request, reply, 401, "UNAUTHORIZED", "Invalid session token");
-      }
+      const identity = await verifiedBearer(request, reply);
+      if (!identity) return reply;
 
       const parsed = doctorOnboardingSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -30,37 +23,34 @@ export async function doctorRoutes(app: FastifyInstance) {
       const body = parsed.data;
 
       const database = requireDb();
-      const profile = await ensureProfile(clerkUserId, "DOCTOR");
+      try {
+        const result = await database.transaction(async (tx) => {
+          const profile = await ensureProfile(identity, "DOCTOR", tx);
+          const [existing] = await tx.select().from(doctors)
+            .where(eq(doctors.profileId, profile.id)).limit(1);
+          if (existing) return { doctor: existing, created: false };
 
-      // Idempotent: onboarding twice returns the existing doctor.
-      const existing = await database
-        .select()
-        .from(doctors)
-        .where(eq(doctors.profileId, profile.id))
-        .limit(1);
-      if (existing.length > 0) {
-        return {
-          doctor_id: existing[0].id,
-          verification_status: existing[0].verificationStatus,
-        };
+          const [doctor] = await tx.insert(doctors).values({
+            profileId: profile.id,
+            registrationNumber: body.registration_number,
+            registrationAuthority: body.registration_authority,
+            qualification: body.qualification ?? null,
+            speciality: body.speciality ?? null,
+            verificationStatus: "PENDING",
+          }).returning({ id: doctors.id, verificationStatus: doctors.verificationStatus });
+          return { doctor, created: true };
+        });
+
+        return reply.code(result.created ? 201 : 200).send({
+          doctor_id: result.doctor.id,
+          verification_status: result.doctor.verificationStatus,
+        });
+      } catch (cause) {
+        if (cause instanceof ProfileRoleConflictError) {
+          return error(request, reply, 409, "PROFILE_ROLE_CONFLICT", "This account already has a different application role");
+        }
+        throw cause;
       }
-
-      const inserted = await database
-        .insert(doctors)
-        .values({
-          profileId: profile.id,
-          registrationNumber: body.registration_number,
-          registrationAuthority: body.registration_authority,
-          qualification: body.qualification ?? null,
-          speciality: body.speciality ?? null,
-          verificationStatus: "PENDING",
-        })
-        .returning({ id: doctors.id, verificationStatus: doctors.verificationStatus });
-
-      return reply.code(201).send({
-        doctor_id: inserted[0].id,
-        verification_status: inserted[0].verificationStatus,
-      });
     },
   );
 

@@ -1,16 +1,10 @@
 import { config } from "dotenv";
-import { createClerkClient } from "@clerk/backend";
+import { createGateUser, findGateUser, sessionTokenFor } from "./gate-auth.mjs";
 
 config({ path: new URL("./.env", import.meta.url).pathname });
 
 const API = "http://localhost:4000/api/v1";
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
-async function sessionTokenFor(userId) {
-  const session = await clerk.sessions.createSession({ userId });
-  const token = await clerk.sessions.getToken(session.id);
-  return token.jwt;
-}
 
 async function api(token, method, path, body) {
   const res = await fetch(`${API}${path}`, {
@@ -31,12 +25,11 @@ function check(name, ok, detail) {
   if (!ok) process.exitCode = 1;
 }
 
-const users = (await clerk.users.getUserList({ limit: 50 })).data;
-const doctorUser = users.find((u) => u.emailAddresses[0]?.emailAddress === "doctor_test@example.com");
-const patientUser = users.find((u) => u.emailAddresses[0]?.emailAddress.includes("clerk_test"));
+const doctorUser = await findGateUser(process.env.SUPABASE_GATE_DOCTOR_EMAIL);
+const patientUser = await findGateUser(process.env.SUPABASE_GATE_PATIENT_EMAIL);
 
 if (!doctorUser || !patientUser) {
-  console.log("MISSING USERS", users.map((u) => u.emailAddresses[0]?.emailAddress));
+  console.log("Configure SUPABASE_GATE_DOCTOR_EMAIL and SUPABASE_GATE_PATIENT_EMAIL in services/api/.env");
   process.exit(1);
 }
 
@@ -98,11 +91,7 @@ check("book appointment → REQUESTED", book.status === 201 && book.json?.appoin
 const apptId = book.json?.appointment?.id;
 
 // 4b. Second patient tries the same slot → 409 SLOT_TAKEN
-const p2 = await clerk.users.createUser({
-  emailAddress: [`p2-${Date.now()}+clerk_test@example.com`],
-  phoneNumber: [`+1650555${String(Math.floor(1000 + Math.random() * 9000)).padStart(4, "0")}`],
-  password: "TestPass123!@#$%",
-});
+const p2 = await createGateUser("p2");
 const p2token = await sessionTokenFor(p2.id);
 await api(p2token, "POST", "/patients/self", {
   full_name: "Second Patient", phone: `+91${Math.floor(1000000000 + Math.random() * 8999999999)}`,

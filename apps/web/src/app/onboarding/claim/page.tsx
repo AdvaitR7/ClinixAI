@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthShell, FormError } from "@/components/auth-shell";
@@ -19,9 +19,9 @@ export default function ClaimPage() {
     setError(null);
     setBusy(true);
     try {
-      const clerkToken = await getToken();
-      if (!clerkToken) throw new Error("Not signed in");
-      await fetchApi<{ patient_id: string }>(clerkToken, "/patient-claims", {
+      const accessToken = await getToken();
+      if (!accessToken) throw new Error("Not signed in");
+      await fetchApi<{ patient_id: string }>(accessToken, "/patient-claims", {
         method: "POST",
         body: JSON.stringify({ invite_token: token.trim() }),
       });

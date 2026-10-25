@@ -5,10 +5,10 @@ import type { UserRole } from "@clinix/schemas";
 import { db } from "../db.js";
 import { error } from "../http.js";
 import { doctors, patients, profiles } from "../schema.js";
-import { verifySession } from "./clerk.js";
+import { verifiedBearer } from "./bearer.js";
 
 export interface AuthContext {
-  clerkUserId: string;
+  supabaseUserId: string;
   profileId: string;
   role: UserRole;
   patientId: string | null;
@@ -22,29 +22,20 @@ declare module "fastify" {
 }
 
 /**
- * requireAuth: verifies the Clerk bearer token, then derives role + domain
+ * requireAuth: verifies the Supabase bearer token, then derives role + domain
  * ids from Postgres. Client-supplied role/ids are never trusted.
  * 401 = bad/missing token; 403 = valid token but onboarding incomplete.
  */
 async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
-  const header = request.headers.authorization;
-  if (!header?.startsWith("Bearer ")) {
-    return error(request, reply, 401, "UNAUTHORIZED", "Missing bearer token");
-  }
-
-  let clerkUserId: string;
-  try {
-    clerkUserId = await verifySession(header.slice("Bearer ".length));
-  } catch {
-    return error(request, reply, 401, "UNAUTHORIZED", "Invalid session token");
-  }
+  const identity = await verifiedBearer(request, reply);
+  if (!identity) return;
 
   if (!db) return error(request, reply, 503, "DB_UNAVAILABLE", "Database is not configured");
 
   const rows = await db
     .select()
     .from(profiles)
-    .where(eq(profiles.clerkUserId, clerkUserId))
+    .where(eq(profiles.supabaseUserId, identity.userId))
     .limit(1);
   const profile = rows[0];
   if (!profile) {
@@ -72,7 +63,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
     doctorId = drs[0]?.id ?? null;
   }
 
-  request.auth = { clerkUserId, profileId: profile.id, role, patientId, doctorId };
+  request.auth = { supabaseUserId: identity.userId, profileId: profile.id, role, patientId, doctorId };
 }
 
 export default fp(async function authPlugin(app) {
