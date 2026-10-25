@@ -69,7 +69,8 @@ export const actorType = pgEnum("actor_type", [
 /** §4.1 — application-level account metadata. Roles resolve from here. */
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
-  clerkUserId: text("clerk_user_id").unique(),
+  legacyAuthSubject: text("legacy_auth_subject").unique(),
+  supabaseUserId: uuid("supabase_user_id").unique(),
   primaryRole: userRole("primary_role").notNull(),
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),

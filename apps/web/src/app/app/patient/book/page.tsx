@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AvailabilitySlot, DoctorOption } from "@clinix/schemas";

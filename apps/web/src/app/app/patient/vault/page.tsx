@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+import { createIdentityRequest, useAuth } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import type {
   DocumentView,
@@ -129,6 +129,7 @@ export default function VaultPage() {
 
   async function upload() {
     if (!file) return;
+    const identityRequest = createIdentityRequest();
     setUploading(true);
     setUploadError(null);
     try {
@@ -146,6 +147,7 @@ export default function VaultPage() {
         method: "PUT",
         headers: { "Content-Type": file.type },
         body: file,
+        signal: identityRequest.signal,
       });
       await fetchApi(token, `/patients/self/documents/${init.document_id}/upload-complete`, {
         method: "POST",
@@ -157,6 +159,7 @@ export default function VaultPage() {
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
     } finally {
+      identityRequest.release();
       setUploading(false);
     }
   }
