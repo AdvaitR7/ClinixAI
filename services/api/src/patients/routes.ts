@@ -5,7 +5,8 @@ import {
   patientUpdateSchema,
 } from "@clinix/schemas";
 import { publicRoute } from "../auth/context.js";
-import { ensureProfile, verifySession } from "../auth/clerk.js";
+import { verifiedBearer } from "../auth/bearer.js";
+import { ensureProfile, ProfileRoleConflictError } from "../auth/supabase.js";
 import { encryptIdentity, hashIdentity } from "../crypto.js";
 import { error, requireDb } from "../http.js";
 import { patientIdentity, patients, profiles } from "../schema.js";
@@ -17,16 +18,8 @@ export async function patientRoutes(app: FastifyInstance) {
     "/patients/self",
     { config: publicRoute() },
     async (request, reply) => {
-      const header = request.headers.authorization;
-      if (!header?.startsWith("Bearer ")) {
-        return error(request, reply, 401, "UNAUTHORIZED", "Missing bearer token");
-      }
-      let clerkUserId: string;
-      try {
-        clerkUserId = await verifySession(header.slice("Bearer ".length));
-      } catch {
-        return error(request, reply, 401, "UNAUTHORIZED", "Invalid session token");
-      }
+      const identity = await verifiedBearer(request, reply);
+      if (!identity) return reply;
 
       const parsed = patientOnboardingSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -38,43 +31,44 @@ export async function patientRoutes(app: FastifyInstance) {
       }
 
       const database = requireDb();
-      const profile = await ensureProfile(clerkUserId, "PATIENT");
+      try {
+        const result = await database.transaction(async (tx) => {
+          const profile = await ensureProfile(identity, "PATIENT", tx);
+          const [existing] = await tx
+            .select({ id: patients.id })
+            .from(patients)
+            .where(eq(patients.accountProfileId, profile.id))
+            .limit(1);
+          if (existing) return { patientId: existing.id, created: false };
 
-      // Idempotent: onboarding twice returns the existing patient.
-      const existing = await database
-        .select({ id: patients.id })
-        .from(patients)
-        .where(eq(patients.accountProfileId, profile.id))
-        .limit(1);
-      if (existing.length > 0) {
-        return { patient_id: existing[0].id };
+          const [inserted] = await tx
+            .insert(patients)
+            .values({
+              accountProfileId: profile.id,
+              status: "ACTIVE",
+              claimedAt: new Date(),
+              createdByActorType: "PATIENT",
+              createdByActorId: profile.id,
+            })
+            .returning({ id: patients.id });
+          await tx.insert(patientIdentity).values({
+            patientId: inserted.id,
+            ...encryptPatientIdentity(body),
+          });
+          if (!profile.displayName && body.full_name) {
+            await tx.update(profiles)
+              .set({ displayName: body.full_name, updatedAt: new Date() })
+              .where(eq(profiles.id, profile.id));
+          }
+          return { patientId: inserted.id, created: true };
+        });
+        return reply.code(result.created ? 201 : 200).send({ patient_id: result.patientId });
+      } catch (cause) {
+        if (cause instanceof ProfileRoleConflictError) {
+          return error(request, reply, 409, "PROFILE_ROLE_CONFLICT", "This account already has a different application role");
+        }
+        throw cause;
       }
-
-      const inserted = await database
-        .insert(patients)
-        .values({
-          accountProfileId: profile.id,
-          status: "ACTIVE",
-          claimedAt: new Date(),
-          createdByActorType: "PATIENT",
-          createdByActorId: profile.id,
-        })
-        .returning({ id: patients.id });
-      const patientId = inserted[0].id;
-
-      await database.insert(patientIdentity).values({
-        patientId,
-        ...encryptPatientIdentity(body),
-      });
-
-      if (!profile.displayName && body.full_name) {
-        await database
-          .update(profiles)
-          .set({ displayName: body.full_name, updatedAt: new Date() })
-          .where(eq(profiles.id, profile.id));
-      }
-
-      return reply.code(201).send({ patient_id: patientId });
     },
   );
 

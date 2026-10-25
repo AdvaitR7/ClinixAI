@@ -1,5 +1,6 @@
 # Secrets — never commit
 .sensitive_docs/credentials.md
+.sensitive_docs/auth-migration-backups/
 .env
 .env.*
 !.env.example
@@ -11,6 +12,8 @@ node_modules/
 dist/
 .turbo/
 *.tsbuildinfo
+test-results/
+playwright-report/
 
 # Misc
 .DS_Store

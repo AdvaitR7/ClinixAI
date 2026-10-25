@@ -1,18 +1,12 @@
 import { config } from "dotenv";
-import { createClerkClient } from "@clerk/backend";
+import { createGateUser, findGateUser, sessionTokenFor } from "./gate-auth.mjs";
 import postgres from "postgres";
 
 config({ path: new URL("./.env", import.meta.url).pathname });
 
 const API = "http://localhost:4000/api/v1";
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const sql = postgres(process.env.DATABASE_URL);
 
-async function sessionTokenFor(userId) {
-  const session = await clerk.sessions.createSession({ userId });
-  const token = await clerk.sessions.getToken(session.id);
-  return token.jwt;
-}
 
 async function api(token, method, path, body, headers) {
   const res = await fetch(`${API}${path}`, {
@@ -50,10 +44,9 @@ function check(name, ok, detail) {
 
 const rndMobile = () => `+91${Math.floor(1000000000 + Math.random() * 8999999999)}`;
 
-const users = (await clerk.users.getUserList({ limit: 100 })).data;
-const doctorUser = users.find((u) => u.emailAddresses[0]?.emailAddress === "doctor_test@example.com");
+const doctorUser = await findGateUser(process.env.SUPABASE_GATE_DOCTOR_EMAIL);
 if (!doctorUser) {
-  console.log("MISSING doctor_test user");
+  console.log("Configure SUPABASE_GATE_DOCTOR_EMAIL in services/api/.env");
   process.exit(1);
 }
 const doctorToken = await sessionTokenFor(doctorUser.id);
@@ -146,11 +139,7 @@ check("patch APPROVED draft → 409 DRAFT_FINALIZED", patchApproved.status === 4
 
 // 11. Claim flow (self-contained: no dependency on a pre-existing patient user)
 const mkUser = async (tag) => {
-  const u = await clerk.users.createUser({
-    emailAddress: [`${tag}-${Date.now()}+clerk_test@example.com`],
-    phoneNumber: [`+1650555${String(Math.floor(1000 + Math.random() * 9000)).padStart(4, "0")}`],
-    password: "TestPass123!@#$%",
-  });
+  const u = await createGateUser(tag);
   return u;
 };
 

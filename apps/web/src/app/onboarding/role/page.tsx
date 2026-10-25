@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { AuthShell } from "@/components/auth-shell";
+import { useEffect, useState } from "react";
+import { AuthShell, FormError } from "@/components/auth-shell";
 import { useMe } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { workspacePathForRole } from "@/lib/workspace-routing";
 
 /**
  * Page 2 role selector (SCREEN_CATALOG §7: initial Primary UI selector —
@@ -12,15 +14,41 @@ import { useMe } from "@/lib/api";
  */
 export default function RoleSelectPage() {
   const router = useRouter();
+  const { status: authStatus, signOut } = useAuth();
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const state = useMe();
+  const applicationRole = state.status === "ready" ? state.me.role : null;
+
+  /** Lets a new account sign out before it creates a clinical profile. */
+  async function handleSignOut() {
+    setSigningOut(true);
+    setSignOutError(null);
+    try { await signOut(); }
+    catch { setSignOutError("Could not sign out. Please try again."); }
+    finally { setSigningOut(false); }
+  }
 
   useEffect(() => {
-    if (state.status === "ready") {
-      router.replace(
-        state.me.role === "DOCTOR" ? "/app/doctor" : "/app/patient",
-      );
-    }
-  }, [state, router]);
+    if (authStatus === "recovery" || state.status === "recovery") router.replace("/reset-password");
+    else if (state.status === "ready") {
+      const destination = workspacePathForRole(applicationRole ?? "");
+      if (destination) router.replace(destination);
+    } else if (state.status === "signed-out") router.replace("/sign-in");
+  }, [applicationRole, authStatus, router, state.status]);
+
+  if (authStatus === "error") {
+    return <AuthShell eyebrow="Onboarding" title="Authentication unavailable" orientation="Check the browser auth configuration and try again."><span /></AuthShell>;
+  }
+  if (authStatus === "recovery" || state.status === "recovery") {
+    return <AuthShell eyebrow="Account recovery" title="Reset your password" orientation="Complete password recovery to continue."><div className="h-12 animate-pulse rounded-xl bg-hairline" aria-hidden="true" /></AuthShell>;
+  }
+  if (state.status === "error") {
+    return <AuthShell eyebrow="Onboarding" title="Account unavailable" orientation="We could not confirm your application profile. Try again shortly."><button type="button" onClick={() => void state.refresh()} className="font-sans text-xs font-semibold uppercase text-evidence">Try again</button></AuthShell>;
+  }
+  if (state.status === "ready" && !workspacePathForRole(state.me.role)) {
+    return <AuthShell eyebrow="CliniX" title="Access unavailable" orientation="This account does not have an authorized CliniX workspace."><span /></AuthShell>;
+  }
 
   return (
     <AuthShell
@@ -48,7 +76,7 @@ export default function RoleSelectPage() {
           <span>
             <span className="block font-sans text-lg font-semibold text-ink">I am a doctor</span>
             <span className="mt-1 block font-sans text-sm leading-5 text-graphite">
-              Set up a verified professional profile and clinical workspace.
+              Set up your professional profile and clinical workspace.
             </span>
           </span>
           <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-copper text-xl text-ink">→</span>
@@ -71,6 +99,8 @@ export default function RoleSelectPage() {
           <p className="mt-1 font-sans text-sm text-graphite">Link a clinic-created record to your account.</p>
         </Link>
       </div>
+      <FormError message={signOutError} />
+      <button type="button" disabled={signingOut} onClick={() => void handleSignOut()} className="mt-5 block w-full text-center font-sans text-xs font-semibold uppercase text-evidence disabled:opacity-60">{signingOut ? "Signing out…" : "Sign out"}</button>
     </AuthShell>
   );
 }

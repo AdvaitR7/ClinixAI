@@ -97,7 +97,7 @@ export default function PatientTimelinePage() {
             </p>
             <button
               type="button"
-              onClick={state.refresh}
+            onClick={() => void state.refresh()}
               className="mt-3 rounded-lg bg-critical px-4 py-1.5 font-sans text-xs font-semibold text-surface"
             >
               Retry

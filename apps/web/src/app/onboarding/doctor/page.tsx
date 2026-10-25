@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -44,7 +44,7 @@ export default function DoctorOnboardingPage() {
     <AuthShell
       eyebrow="Doctor onboarding · 1 of 3"
       title="Your clinical profile"
-      orientation="Add a few professional details. Your registration is reviewed before Doctor workspace access."
+      orientation="Add a few professional details. Your Doctor workspace opens when setup is complete."
       tone="doctor"
     >
       <section className="mb-8 rounded-[1.75rem] border-[6px] border-copper bg-graphite p-4">
@@ -94,7 +94,7 @@ export default function DoctorOnboardingPage() {
         <div className="rounded-2xl border border-copper/70 bg-graphite p-4">
           <p className="clinix-label text-copper">Verification: pending</p>
           <p className="mt-1 font-sans text-sm text-doctor-muted/75">
-            New applications start as Pending. Evidence upload arrives in a later phase.
+            Your details are recorded as Pending; workspace access opens after setup.
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export default function DoctorOnboardingPage() {
           disabled={isSubmitting}
           className="min-h-[58px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-base font-semibold text-ink transition-transform active:translate-y-px disabled:opacity-60"
         >
-          {isSubmitting ? "Submitting…" : "Submit for verification"}
+          {isSubmitting ? "Setting up…" : "Finish setup"}
         </button>
         <FormError message={submitError} />
       </form>

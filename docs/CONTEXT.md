@@ -1155,10 +1155,10 @@ However:
 - pg-boss for background jobs (Postgres-backed queue, no Redis)
 
 ### Authentication
-- Clerk for login/session management only
+- Supabase Auth for email/password login and session management
 - Application roles (patient, doctor, clinic_staff, admin) stored in Postgres
-- Clerk webhook creates profiles row on signup
-- Unclaimed patients exist before any Clerk account
+- Role onboarding creates the profiles row after Fastify verifies the Supabase token
+- Unclaimed patients exist before any Supabase Auth account
 
 ### Database
 - PostgreSQL

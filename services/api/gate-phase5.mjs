@@ -1,18 +1,12 @@
 import { config } from "dotenv";
-import { createClerkClient } from "@clerk/backend";
+import { createGateUser, findGateUser, sessionTokenFor } from "./gate-auth.mjs";
 import postgres from "postgres";
 
 config({ path: new URL("./.env", import.meta.url).pathname });
 
 const API = "http://localhost:4000/api/v1";
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 const sql = postgres(process.env.DATABASE_URL);
 
-async function sessionTokenFor(userId) {
-  const session = await clerk.sessions.createSession({ userId });
-  const token = await clerk.sessions.getToken(session.id);
-  return token.jwt;
-}
 
 async function api(token, method, path, body, headers) {
   const res = await fetch(`${API}${path}`, {
@@ -53,10 +47,10 @@ async function main() {
   console.log("=== CliniX AI Phase 5 Gate: AI Check-in & Test Milestone B ===");
 
   // 1. Resolve Doctor User (doctor_test@example.com)
-  const users = await clerk.users.getUserList({ emailAddress: ["doctor_test@example.com"] });
-  check("Doctor user exists in Clerk", users.data.length > 0, users.data[0]?.id);
-  const doctorClerkId = users.data[0].id;
-  const doctorToken = await sessionTokenFor(doctorClerkId);
+  const doctorUser = await findGateUser(process.env.SUPABASE_GATE_DOCTOR_EMAIL);
+  check("Configured Supabase doctor account exists", Boolean(doctorUser), doctorUser?.id);
+  if (!doctorUser) throw new Error("Configure SUPABASE_GATE_DOCTOR_EMAIL in services/api/.env");
+  const doctorToken = await sessionTokenFor(doctorUser.id);
 
   const meDoc = await api(doctorToken, "GET", "/me");
   check("Doctor /me returns DOCTOR role", meDoc.json?.role === "DOCTOR");
@@ -65,15 +59,9 @@ async function main() {
 
   // 2. Create Ephemeral Patient for Phase 5 (Persona A - Maya Rao)
   const tag = `p5_${Date.now()}`;
-  const clerkPatient = await clerk.users.createUser({
-    emailAddress: [`maya-rao-${tag}+clerk_test@example.com`],
-    phoneNumber: [`+1650555${String(Math.floor(1000 + Math.random() * 9000)).padStart(4, "0")}`],
-    password: "TestPass123!@#$%",
-    firstName: "Maya",
-    lastName: "Rao",
-  });
-  check("Ephemeral patient created in Clerk", Boolean(clerkPatient.id), clerkPatient.id);
-  const patientToken = await sessionTokenFor(clerkPatient.id);
+  const supabasePatient = await createGateUser(tag, { display_name: "Maya Rao" });
+  check("Synthetic Supabase patient created", Boolean(supabasePatient.id), supabasePatient.id);
+  const patientToken = await sessionTokenFor(supabasePatient.id);
 
   // Patient onboarding (18+ adult DOB, 1992-06-12)
   const onbRes = await api(patientToken, "POST", "/patients/self", {
@@ -237,16 +225,8 @@ async function main() {
   check("POST /ai-analysis returns 202 Accepted", aiTrigger.status === 202, aiTrigger.json?.ai_session_id);
   const aiSessionId = aiTrigger.json?.ai_session_id;
 
-  // In testing environment, run worker analysis directly to guarantee instant consensus
-  const { processAiAnalyze } = await import("../worker/src/handlers/ai-analyze.ts");
-  try {
-    await processAiAnalyze({ aiSessionId, encounterId: checkinEncId });
-    check("Worker executed Multi-Analyst + Judge pipeline", true);
-  } catch (err) {
-    check("Worker executed Multi-Analyst + Judge pipeline", false, err.message);
-  }
-
-  // Poll /ai-sessions/:id for patient-safe outcome
+  // The separate worker must consume the real queued job. Directly importing
+  // its TypeScript handler both bypasses that boundary and can run the job twice.
   const aiResult = await pollAiSession(patientToken, aiSessionId);
   check("AI session transitioned to SUCCEEDED", aiResult?.status === "SUCCEEDED", aiResult?.status);
 
@@ -352,8 +332,7 @@ async function main() {
   `;
   check("access_events audit ledger recorded DOCTOR:VIEW", Boolean(docAccessLog));
 
-  // Clean up ephemeral Clerk patient
-  await clerk.users.deleteUser(clerkPatient.id);
+  // Keep synthetic account rows intact so the gate never deletes auth or clinical data.
 
   console.log("\n========================================================");
   console.log(process.exitCode ? "❌ Test Milestone B FAILED" : "✅ Test Milestone B PASSED (All checks green)");
