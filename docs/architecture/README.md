@@ -1,6 +1,14 @@
 # CliniX AI — design, interaction and implementation audit
 
-## Latest batch — Phase 3 medication provenance
+## Latest batch — Prescription safety, ambiguity and preview gates
+
+SCR-033/034/035 now persist per-line review decisions, block finalization until flagged extracted lines are confirmed (client and server), show truthful safety context, recover from source-load failures and provide a printable non-final preview. [Details and verification](14-prescription-gates-implementation.md).
+
+## Previous batch — Doctor schedule, availability and appointment context
+
+SCR-024/025/026 now provide a day/week calendar, saved multi-rule availability (windows, breaks, online hours, blocked dates, overrides) and an appointment context screen. Clinic assignment and the scoped consultation packet stay unavailable and are labelled so. [Details and verification](13-schedule-implementation.md).
+
+## Previous batch — Phase 3 medication provenance
 
 SCR-015/016 now provide grouped medication history, explicit discontinued/unknown filters, full-screen record detail, exact-version patient prescription sources and selected encounter chapters with a full Timeline exit. Exposure/reaction authorship is not invented; prescribed items stay UNKNOWN_STATUS. [Exact files, IDs, verification and remaining limits](12-medication-implementation.md).
 
@@ -90,7 +98,7 @@ These exclusive statuses total 52 design frames. A PARTIAL/MISMATCH screen can a
 
 ## Documents
 
-Current implementation evidence: [batch 1](07-implementation-progress.md), [batch 2](08-patient-record-implementation.md), [batch 3](09-checkin-implementation.md), [batch 4](10-appointment-implementation.md), [batch 5](11-vault-implementation.md), [batch 6](12-medication-implementation.md).
+Current implementation evidence: [batch 1](07-implementation-progress.md), [batch 2](08-patient-record-implementation.md), [batch 3](09-checkin-implementation.md), [batch 4](10-appointment-implementation.md), [batch 5](11-vault-implementation.md), [batch 6](12-medication-implementation.md), [batch 7](13-schedule-implementation.md), [batch 8](14-prescription-gates-implementation.md).
 
 1. [Information architecture](01-information-architecture.md) — every design frame, exact names/IDs, roles, containment, shells, code-derived screens and state/accessibility requirements.
 2. [Complete interaction map](02-interaction-map.md) — 788 current individually identified controls/events, expected/actual behavior, destinations, confidence and source manifest.

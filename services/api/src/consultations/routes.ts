@@ -185,6 +185,10 @@ export async function consultationRoutes(app: FastifyInstance) {
         return error(request, reply, 403, "FORBIDDEN", "Not your appointment");
       }
 
+      if (!["CONFIRMED", "COMPLETED"].includes(appt.status) || (appt.status === "COMPLETED" && !appt.encounterId)) {
+        return error(request, reply, 409, "APPOINTMENT_CLOSED", "This appointment cannot start a consultation");
+      }
+
       // Ensure an encounter exists (self-contained: Page 18 may call this first).
       let encounterId = appt.encounterId;
       if (!encounterId) {
@@ -192,7 +196,7 @@ export async function consultationRoutes(app: FastifyInstance) {
           .insert(encounters)
           .values({
             patientId: appt.patientId,
-            encounterType: "DOCTOR_IN_PERSON",
+            encounterType: appt.appointmentType === "ONLINE" ? "DOCTOR_ONLINE" : "DOCTOR_IN_PERSON",
             status: "OPEN",
             initiatedByActorType: "DOCTOR",
             initiatedByActorId: doctorId,

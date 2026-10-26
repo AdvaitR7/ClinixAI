@@ -1,0 +1,4 @@
+ALTER TABLE "prescription_draft_items" ADD COLUMN "reviewed_by_doctor_id" uuid;--> statement-breakpoint
+ALTER TABLE "prescription_draft_items" ADD COLUMN "reviewed_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "prescription_draft_items" ADD CONSTRAINT "prescription_draft_items_reviewed_by_doctor_id_doctors_id_fk" FOREIGN KEY ("reviewed_by_doctor_id") REFERENCES "public"."doctors"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+UPDATE "prescription_draft_items" SET "needs_review" = false WHERE "draft_id" IN (SELECT "id" FROM "prescription_drafts" WHERE "source" = 'DIRECT_ENTRY');

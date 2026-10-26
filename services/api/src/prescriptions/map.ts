@@ -31,6 +31,7 @@ export function draftItemView(row: DraftItemRow): PrescriptionDraftItemView {
     instructions: row.instructions ?? undefined,
     needs_review: row.needsReview,
     field_confidence: row.fieldConfidence,
+    reviewed_at: row.reviewedAt ? row.reviewedAt.toISOString() : null,
   };
 }
 

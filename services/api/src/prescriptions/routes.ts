@@ -173,6 +173,8 @@ export async function prescriptionRoutes(app: FastifyInstance) {
           timing: it.timing ?? null,
           duration: it.duration ?? null,
           instructions: it.instructions ?? null,
+          // Doctor-authored lines have no uncertain extraction to resolve.
+          needsReview: false,
         })),
       );
 
@@ -284,22 +286,40 @@ export async function prescriptionRoutes(app: FastifyInstance) {
         }
 
         if (body.items) {
+          const previous = await tx
+            .select()
+            .from(prescriptionDraftItems)
+            .where(eq(prescriptionDraftItems.draftId, draft.id));
+          const now = new Date();
+          const sameContent = (a: (typeof previous)[number], it: (typeof body.items)[number]) =>
+            contentHash([{ medicine_name: a.medicineName, strength: a.strength ?? undefined, dose: a.dose ?? undefined, route: a.route ?? undefined, frequency: a.frequency ?? undefined, timing: a.timing ?? undefined, duration: a.duration ?? undefined, instructions: a.instructions ?? undefined }]) ===
+            contentHash([it]);
           await tx
             .delete(prescriptionDraftItems)
             .where(eq(prescriptionDraftItems.draftId, draft.id));
           await tx.insert(prescriptionDraftItems).values(
-            body.items.map((it, i) => ({
-              draftId: draft.id,
-              sequenceNumber: i + 1,
-              medicineName: it.medicine_name,
-              strength: it.strength ?? null,
-              dose: it.dose ?? null,
-              route: it.route ?? null,
-              frequency: it.frequency ?? null,
-              timing: it.timing ?? null,
-              duration: it.duration ?? null,
-              instructions: it.instructions ?? null,
-            })),
+            body.items.map((it, i) => {
+              // Only an explicit confirmation clears a flag; unchanged lines keep their saved flag, changed or new lines in extracted drafts must be confirmed again.
+              const prior = previous.find((row) => sameContent(row, it));
+              const confirmed = it.reviewed === true;
+              const needsReview = draft.source === "DIRECT_ENTRY" ? false : confirmed ? false : prior ? prior.needsReview : true;
+              return {
+                draftId: draft.id,
+                sequenceNumber: i + 1,
+                medicineName: it.medicine_name,
+                strength: it.strength ?? null,
+                dose: it.dose ?? null,
+                route: it.route ?? null,
+                frequency: it.frequency ?? null,
+                timing: it.timing ?? null,
+                duration: it.duration ?? null,
+                instructions: it.instructions ?? null,
+                fieldConfidence: prior?.fieldConfidence ?? null,
+                needsReview,
+                reviewedByDoctorId: confirmed ? doctorId : !needsReview ? prior?.reviewedByDoctorId ?? null : null,
+                reviewedAt: confirmed ? now : !needsReview ? prior?.reviewedAt ?? null : null,
+              };
+            }),
           );
         }
         if (body.items || body.status) {
@@ -398,6 +418,10 @@ export async function prescriptionRoutes(app: FastifyInstance) {
             throw Object.assign(new Error("empty prescription"), { code: 409 });
           }
 
+          if (items.some((i) => i.needsReview)) {
+            throw Object.assign(new Error("Confirm every flagged medicine against its source before finalizing."), { code: "REVIEW_REQUIRED" });
+          }
+
           if (parsed.data.reviewed_items && contentHash(parsed.data.reviewed_items) !== contentHash(
             items.map((i) => ({
               medicine_name: i.medicineName,
@@ -474,6 +498,9 @@ export async function prescriptionRoutes(app: FastifyInstance) {
           return rx.id;
         });
       } catch (err) {
+        if ((err as { code?: string }).code === "REVIEW_REQUIRED") {
+          return error(request, reply, 409, "REVIEW_REQUIRED", (err as Error).message);
+        }
         if ((err as { code?: string }).code === "DRAFT_CHANGED") {
           return error(request, reply, 409, "DRAFT_CHANGED", (err as Error).message);
         }

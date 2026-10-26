@@ -166,18 +166,46 @@ export const paymentStatusUpdateSchema = z.object({
 });
 export type PaymentStatusUpdate = z.infer<typeof paymentStatusUpdateSchema>;
 
-/** PUT /doctors/self/availability (contract extension). */
+/** Strict local scheduling times; overnight ranges must be expressed on separate days. */
+export const scheduleTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+export const scheduleDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((date) => {
+  const value = new Date(`${date}T00:00:00Z`);
+  return Number.isFinite(value.getTime()) && value.toISOString().slice(0, 10) === date;
+}, "Choose a valid calendar date");
+export const scheduleIntervalSchema = z.object({ start_time: scheduleTimeSchema, end_time: scheduleTimeSchema }).strict()
+  .refine((row) => row.start_time < row.end_time, "End time must follow start time");
+export const weeklyIntervalSchema = z.object({ day_of_week: z.number().int().min(0).max(6), start_time: scheduleTimeSchema, end_time: scheduleTimeSchema }).strict()
+  .refine((row) => row.start_time < row.end_time, "End time must follow start time");
+/** Rejects intersecting windows instead of publishing duplicate or contradictory slots. */
+function nonOverlapping(rows: { day_of_week?: number; start_time: string; end_time: string }[]) {
+  const sorted = [...rows].sort((a, b) => (a.day_of_week ?? 0) - (b.day_of_week ?? 0) || a.start_time.localeCompare(b.start_time));
+  return sorted.every((row, index) => !index || sorted[index - 1].day_of_week !== row.day_of_week || sorted[index - 1].end_time <= row.start_time);
+}
+export const weeklyScheduleSchema = z.array(weeklyIntervalSchema).max(70).refine(nonOverlapping, "Working windows must not overlap");
+export const availabilityRulesSchema = z.object({
+  breaks: weeklyScheduleSchema.default([]),
+  blocked_dates: z.array(z.object({ date: scheduleDateSchema, reason: z.string().max(200).default("") }).strict()).max(366).default([])
+    .refine((rows) => new Set(rows.map((row) => row.date)).size === rows.length, "Blocked dates must be unique"),
+  overrides: z.array(z.object({ date: scheduleDateSchema, intervals: z.array(scheduleIntervalSchema).max(10).refine(nonOverlapping, "Override windows must not overlap") }).strict()).max(366).default([])
+    .refine((rows) => new Set(rows.map((row) => row.date)).size === rows.length, "Override dates must be unique"),
+  online_template: weeklyScheduleSchema.nullable().default(null),
+}).strict();
+export type AvailabilityRules = z.infer<typeof availabilityRulesSchema>;
+
+/** PUT/GET own availability; an omitted rules field preserves legacy clients' existing exceptions. */
 export const doctorAvailabilitySchema = z.object({
-  template: z.array(
-    z.object({
-      day_of_week: z.number().int().min(0).max(6),
-      start_time: z.string().min(1),
-      end_time: z.string().min(1),
-    }),
-  ),
+  template: weeklyScheduleSchema,
   slot_duration_minutes: z.number().int().min(5).max(240).optional(),
-});
+  rules: availabilityRulesSchema.optional(),
+}).strict();
 export type DoctorAvailability = z.infer<typeof doctorAvailabilitySchema>;
+export const doctorAvailabilityViewSchema = z.object({
+  configured: z.boolean(),
+  template: weeklyScheduleSchema,
+  slot_duration_minutes: z.number().int().min(5).max(240),
+  rules: availabilityRulesSchema,
+});
+export type DoctorAvailabilityView = z.infer<typeof doctorAvailabilityViewSchema>;
 
 export const availabilityQuerySchema = z.object({
   from: z.string().min(1),
@@ -358,9 +386,13 @@ export const createPrescriptionDraftSchema = z.object({
 });
 export type CreatePrescriptionDraft = z.infer<typeof createPrescriptionDraftSchema>;
 
+/** Draft line plus the doctor's explicit confirmation that a flagged/uncertain line was checked against its source. */
+export const draftItemInputSchema = prescriptionItemInputSchema.extend({ reviewed: z.boolean().optional() });
+export type DraftItemInput = z.infer<typeof draftItemInputSchema>;
+
 /** PATCH /doctor/prescription-drafts/{id} — replace items, or set a terminal status. */
 export const patchPrescriptionDraftSchema = z.object({
-  items: z.array(prescriptionItemInputSchema).min(1).optional(),
+  items: z.array(draftItemInputSchema).min(1).optional(),
   status: z.enum(["DRAFT", "REJECTED", "EXPIRED"]).optional(),
 });
 export type PatchPrescriptionDraft = z.infer<typeof patchPrescriptionDraftSchema>;
@@ -427,6 +459,7 @@ export const prescriptionDraftItemViewSchema = prescriptionItemInputSchema.exten
   sequence_number: z.number(),
   needs_review: z.boolean(),
   field_confidence: z.unknown().nullable(),
+  reviewed_at: z.string().nullable().optional(),
 });
 export type PrescriptionDraftItemView = z.infer<typeof prescriptionDraftItemViewSchema>;
 

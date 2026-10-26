@@ -64,6 +64,20 @@
       "when": 1792951570151,
       "tag": "0008_freezing_slyde",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793018209251,
+      "tag": "0009_tearful_tarot",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793035345105,
+      "tag": "0010_equal_sleepwalker",
+      "breakpoints": true
     }
   ]
 }
