@@ -1,5 +1,7 @@
 # Implementation progress — clinical record review and Timeline navigation
 
+**Historical batch 1:** subsequent patient-record work is recorded in [batch 2](08-patient-record-implementation.md).
+
 [Audit index](README.md) · [Gap backlog](05-implementation-gap-analysis.md) · [Interaction inventory](02-interaction-map.md)
 
 Implementation date: **2026-10-25**. This is the first implementation batch, not whole-application acceptance. No screen is promoted to COMPLETE. No missing route is filled with a placeholder. The 19 missing design screens/states in the audit still require work.

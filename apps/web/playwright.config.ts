@@ -8,6 +8,7 @@ export default defineConfig({
     url: "http://127.0.0.1:3100/sign-in",
     reuseExistingServer: false,
     env: {
+      CLINIX_TEST_DIST_DIR: ".next-browser-tests",
       NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "synthetic-publishable-key",
       NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL: "http://127.0.0.1:3100",

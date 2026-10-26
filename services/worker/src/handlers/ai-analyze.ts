@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
-import type { Job } from "pg-boss";
+import { evaluatePostJudge, logSafetyEvaluation } from "@clinix/api/safety";
 import {
   accessEvents,
   aiHistoricalMatches,
@@ -29,10 +29,12 @@ export interface AiAnalyzeJobData {
   encounterId: string;
 }
 
+/** Hashes frozen pipeline inputs and outputs for audit attribution. */
 function hashJson(val: unknown): string {
   return crypto.createHash("sha256").update(JSON.stringify(val)).digest("hex");
 }
 
+/** Processes the queue batch without suppressing failed analysis jobs. */
 export async function handleAiAnalyze(
   jobs: Array<{ data: AiAnalyzeJobData }>,
 ): Promise<void> {
@@ -41,6 +43,7 @@ export async function handleAiAnalyze(
   }
 }
 
+/** Persists a checked patient outcome before publishing a successful session. */
 export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
   const { aiSessionId, encounterId } = data;
   const database = requireDb();
@@ -54,6 +57,10 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
   if (!session) {
     throw new Error(`AI Session ${aiSessionId} not found`);
   }
+
+  if (session.encounterId !== encounterId)
+    throw new Error("AI job encounter mismatch");
+  if (session.status === "SUCCEEDED") return;
 
   // 1. Mark session as running
   await database
@@ -176,11 +183,22 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
       ...a2Result.historical_matches,
     ];
 
-    const { historicalMatches } = buildPatientSafeOutcome(
+    const { outcome, historicalMatches } = buildPatientSafeOutcome(
       payload,
       judgeResult,
       combinedAnalystMatches,
     );
+
+    await logSafetyEvaluation(database, {
+      encounterId: session.encounterId,
+      aiSessionId: session.id,
+      stage: "POST_JUDGE",
+      evaluation: evaluatePostJudge({
+        ...judgeResult,
+        requires_doctor_review:
+          outcome.requires_doctor_review ?? judgeResult.requires_doctor_review,
+      }),
+    });
 
     // 9. Store historical matches in ai_historical_matches
     for (const match of historicalMatches) {
@@ -202,6 +220,7 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
       .update(aiSessions)
       .set({
         status: "SUCCEEDED",
+        patientOutcome: outcome,
         completedAt: new Date(),
       })
       .where(eq(aiSessions.id, session.id));

@@ -1,5 +1,35 @@
 # CliniX AI — design, interaction and implementation audit
 
+## Latest batch — Phase 3 medication provenance
+
+SCR-015/016 now provide grouped medication history, explicit discontinued/unknown filters, full-screen record detail, exact-version patient prescription sources and selected encounter chapters with a full Timeline exit. Exposure/reaction authorship is not invented; prescribed items stay UNKNOWN_STATUS. [Exact files, IDs, verification and remaining limits](12-medication-implementation.md).
+
+Both screens remain PARTIAL pending live database acceptance and unresolved source/navigation metadata. **27 web, 153 API and 72 browser tests pass**; build, type checks and lint pass. Two 393px screens compared; 320/393/768/1440 fit and keyboard checks passed. No route, endpoint or migration was added.
+
+## Previous batch — Phase 4 Health Vault and original sources
+
+SCR-013/014 now support the designed source shelf, checked upload/retry, synchronized OCR reports, patient-confirmed corrections, actual measurement trends and an accessible original-file drawer with real PDF pagination, image preview, original open/download and report return. [Exact files, IDs, screenshots, checks and remaining limits](11-vault-implementation.md).
+
+**27 web, 140 API and 61 browser tests pass**; production build, type checks and lint pass. Two 393px screens visually compared and 320/393/768/1440 keyboard/layout checks passed. No missing route was necessary. Both screens remain PARTIAL: live PostgreSQL/storage/worker acceptance, exact OCR-page provenance and unresolved You/background-header behavior are not certified complete.
+
+## Previous batch — Phase 3 booking and appointment management
+
+SCR-017/022/023 now support actual doctor/mode/date/slot/reason selection, complete visit review, cancellation recovery and the approved cancel-and-rebook flow. Patient requests connect to doctor confirmation and back to the patient's updated visit. Fake packet/receipt/verification claims removed; unsupported sharing fails closed. [Exact files, IDs, screenshots, checks and blockers](10-appointment-implementation.md).
+
+Validation: **27 web tests, 121 API tests and 49 browser tests** pass; production build/type checks and remaining limits are recorded in 10. Three 393px screens compared; 320/768/1440 layout/dialog checks passed. Packet consent, draft storage, clinic directions, live database integration and video joining remain open/excluded. No missing route was needed; no screen is COMPLETE.
+
+## Previous batch — Phase 5 check-in and timeline detail
+
+SCR-012 AI timeline detail is now implemented. SCR-008/009/010 restore saved question state, persistent safety interrupts, checked outcomes, actual evidence, JSON result download and connected AI timeline navigation. Session reads are owner-only; cross-record doctor AI fails closed until scoped consent exists. [Exact files, IDs, screenshots, checks and blockers](09-checkin-implementation.md).
+
+Validation: **27 web tests, 96 API tests and 38 browser tests** pass; typecheck/build and migration consistency checks pass; lint has one existing Vault warning. No whole screen is COMPLETE. New migration `0008_freezing_slyde` is generated, not live-applied. Packet sharing, optional measurements, richer adaptive blocks and live worker/database acceptance remain open. Missing design states decrease to **17**.
+
+## Previous batch — Phase 2 patient records
+
+SCR-028 compact context is now implemented; SCR-027/029 are corrected and connected to consultation, prescriptions, own sources and uploads. Live fixture medical facts and blanket consent/author/current-medication claims were removed. Source composition is restricted to the clinician’s own records until scoped sharing exists. [Files, IDs, captures, tests and blockers](08-patient-record-implementation.md).
+
+Validation: **27 web tests, 63 API tests, 28 browser tests** pass; typecheck/build pass; lint has two unrelated existing warnings. Source frames were inspected and three 393px runtime screens compared. No screen is COMPLETE: consent/AI/safety-data/follow-up services and live database/storage/worker acceptance remain explicit gaps. Missing design states decrease from 19 to **18**.
+
 ## Implementation progress — 2026-10-25
 
 The first code batch repairs prescription reviewed-content persistence and replay ownership (GAP-003/004), consultation saves/completion/amendments (GAP-007/008), and four disabled Timeline links (part of GAP-011). **No missing full screen was added and no screen is certified COMPLETE.** [Exact files, interaction IDs, verification and remaining work](07-implementation-progress.md).
@@ -8,7 +38,7 @@ Validation: 27 web tests, 52 API tests and 19 browser tests passed; build/type c
 
 The measured screen inventory below remains the original audit baseline. Interaction counts reflect the explicitly updated rows in 02; all other baseline findings retain their original evidence boundary.
 
-**The completed-phase checklist overstates UI coverage.** The connected design has 52 distinct screen/state frames; 19 have no matching UI, and no screen qualifies as fully implemented and runtime-verified in this audit. Existing code also contains material clinical-data and authorization contradictions that should precede visual polishing.
+**The completed-phase checklist overstates UI coverage.** The connected design has 52 distinct screen/state frames; 17 currently have no matching UI, and no screen qualifies as fully implemented and runtime-verified in this audit. Existing code also contains material clinical-data and authorization contradictions that should precede visual polishing.
 
 Audit date: **2026-10-25**. Repository snapshot: `8e82fe7f43f570fa5bc900846678f16a158944f7` plus inspected working tree. Source of visual intent: connected FigCraft document **ClinixAI v2**. During the original audit, application source was not modified; no clinical records or cloud mutations were executed. Only documentation and design evidence were created under this directory.
 
@@ -25,15 +55,15 @@ Audit date: **2026-10-25**. Repository snapshot: `8e82fe7f43f570fa5bc900846678f1
 | Screen frames partially inspected | 0 |
 | Screen frames not inspected | 0 |
 | Design frame captures preserved | 52 |
-| Distinct frontend route files | 29 |
+| Distinct frontend route files | 34 current; 29 at audit |
 | Registered backend endpoint declarations | 63 |
-| Interactions/elements/events inventoried | 739 (738 audit + INT-739) |
+| Interactions/elements/events inventoried | 788 (738 audit + 50 implementation controls) |
 | Design-affordance occurrences | 641 |
-| Code-only controls/events | 98 |
+| Code-only controls/events | 147 |
 | Code/document-derived screen IDs, outside design count | 6 |
 | Explicit prototype connections exposed | 0 |
-| Navigation/modal/external rows with UNKNOWN destination | 84 |
-| All-type rows with UNKNOWN destination/result | 199 |
+| Original audit: navigation/modal/external rows with UNKNOWN destination | 84 |
+| Original audit: all-type rows with UNKNOWN destination/result | 199 |
 | Prioritized backlog issues | 37 |
 | Screens runtime-verified complete | 0 |
 
@@ -42,37 +72,39 @@ Audit date: **2026-10-25**. Repository snapshot: `8e82fe7f43f570fa5bc900846678f1
 | Primary design-screen implementation classification | Count |
 | --- | --- |
 | COMPLETE | 0 |
-| PARTIAL | 25 |
-| MISSING | 19 |
-| MISMATCH | 7 |
-| BROKEN | 1 |
+| PARTIAL | 32 |
+| MISSING | 17 |
+| MISMATCH | 3 |
+| BROKEN | 0 |
 | UNVERIFIED | 0 |
 
-These exclusive statuses total 52 design frames. A PARTIAL/MISMATCH screen can also contain broken individual interactions. “Implemented screen count” is therefore **0 COMPLETE**, not the count of route files or the number of source handlers. Source-associated design states exist for 33 frames; the other 19 have no matching UI.
+These exclusive statuses total 52 design frames. A PARTIAL/MISMATCH screen can also contain broken individual interactions. “Implemented screen count” is therefore **0 COMPLETE**, not the count of route files or the number of source handlers. Source-associated design states now exist for 35 frames; the other 17 have no matching UI.
 
 | Interaction status (source inspection) | Count |
 | --- | --- |
-| Implemented | 207 |
-| Partial | 120 |
-| Missing | 375 |
-| Broken | 13 |
+| Implemented | 340 |
+| Partial | 95 |
+| Missing | 323 |
+| Broken | 6 |
 | Unverified | 24 |
 
 ## Documents
 
+Current implementation evidence: [batch 1](07-implementation-progress.md), [batch 2](08-patient-record-implementation.md), [batch 3](09-checkin-implementation.md), [batch 4](10-appointment-implementation.md), [batch 5](11-vault-implementation.md), [batch 6](12-medication-implementation.md).
+
 1. [Information architecture](01-information-architecture.md) — every design frame, exact names/IDs, roles, containment, shells, code-derived screens and state/accessibility requirements.
-2. [Complete interaction map](02-interaction-map.md) — 738 individually identified controls/events, expected/actual behavior, destinations, confidence and source manifest.
+2. [Complete interaction map](02-interaction-map.md) — 788 current individually identified controls/events, expected/actual behavior, destinations, confidence and source manifest.
 3. [Design-system and consistency audit](03-design-system-audit.md) — measured colors/type/geometry, shared patterns, structural differences and responsive/keyboard verification matrix.
-4. [Design-to-code traceability](04-design-code-traceability.md) — all 52 frames, all 29 frontend routes, all 63 API declarations, shared UI→API chains and missing/orphan inventories.
+4. [Design-to-code traceability](04-design-code-traceability.md) — all 52 frames, 29 audit-baseline frontend routes (34 current route files), all 63 API declarations, shared UI→API chains and missing/orphan inventories.
 5. [Implementation gap analysis](05-implementation-gap-analysis.md) — 37 ordered issues with design/control/source evidence, dependencies, severity, existing phase and synthetic verification method.
 6. [Master navigation graph](06-master-navigation-graph.md) — module design projections, actual code-route graph, non-navigation states and explicit unresolved destinations.
 
 ## Highest-priority findings and next sequence
 
-- **Clinical truth:** SCR-029 shows hardcoded allergy/conditions/medicines/labs and “CONSENT ACTIVE” in live dossiers; SCR-010/SCR-011 can present unconditional low-risk text. See GAP-001/GAP-005.
-- **Data isolation:** AI/session read paths lack resource ownership/relationship checks; a finalized prescription replay returns before ownership authorization. See GAP-002/GAP-003.
-- **Authoritative records:** prescription finalization omits unsaved visible edits; consultation completion does not await latest note autosave, and amendment UI cannot edit revised sections. See GAP-004/GAP-007/GAP-008.
-- **Disconnected UI:** Timeline detail links are spans; result save is local-only; share/download have no handler; booking ignores selected packet and incoming encounter query. See GAP-012/GAP-015/GAP-016.
+- **Clinical truth:** dossier fixture facts and unconditional check-in/timeline low-risk copy are repaired in batches 2/3; live backend/worker acceptance remains unverified. See GAP-001/GAP-005.
+- **Data isolation:** session ownership and prescription replay checks are repaired; doctor cross-record AI now fails closed. Full scoped consent remains GAP-006.
+- **Authoritative records:** reviewed draft/note persistence and amendments repaired in batch 1; cloud database acceptance remains open. See GAP-004/GAP-007/GAP-008.
+- **Disconnected UI:** AI timeline detail and checked-result download now work; non-AI entry detail, optional measurements and scoped packet booking/sharing remain open. See GAP-012/GAP-015/GAP-016.
 - **Missing modules:** Care/discovery/consent/privacy, follow-ups, intake, practice memberships, retention and professional profile are absent or stubs. Backend relationship/doctor-upload/evidence/patient-Rx endpoints do not supply their missing consumers.
 - **Navigation/layout:** Care points to medications, existing Timeline is disabled on several pages, staff navigation self-links, and the Settings route lacks an incoming app link. Rendered four-item docks conflict with documented five-item architecture; staff navigation is explicitly unresolved in design. Visual fidelity/responsiveness cannot be certified without the app.
 
@@ -99,28 +131,28 @@ Each checked row has full tree traversal, rendered appearance review and control
 | [x] | [SCR-005](01-information-architecture.md#scr-005) | `Page 2` | Page2c / ClinixAI / Clinic Staff Invitation & Onboarding · `400` | 4 | PARTIAL | [Design capture](evidence/design-400.png) · [Controls](02-interaction-map.md#scr-005) |
 | [x] | [SCR-006](01-information-architecture.md#scr-006) | `Page 3 [Patient]` | Page 3 / ClinixAI / Patient Dashboard · `478` | 19 | PARTIAL | [Design capture](evidence/design-478.png) · [Controls](02-interaction-map.md#scr-006) |
 | [x] | [SCR-007](01-information-architecture.md#scr-007) | `Page 4 [Doctor]` | Page 4 / ClinixAI / Doctor Dashboard · `594` | 22 | PARTIAL | [Design capture](evidence/design-594.png) · [Controls](02-interaction-map.md#scr-007) |
-| [x] | [SCR-008](01-information-architecture.md#scr-008) | `Page 6 [Patient]` | Page 6 / ClinixAI / AI Health Check-in · `766` | 13 | BROKEN | [Design capture](evidence/design-766.png) · [Controls](02-interaction-map.md#scr-008) |
-| [x] | [SCR-009](01-information-architecture.md#scr-009) | `Page 6 [Patient]` | Page 6a / ClinixAI / Red-flag Safety Interrupt · `815` | 3 | PARTIAL | [Design capture](evidence/design-815.png) · [Controls](02-interaction-map.md#scr-009) |
-| [x] | [SCR-010](01-information-architecture.md#scr-010) | `Page 7 [Patient]` | Page 7 / ClinixAI / Check-in Result · `843` | 15 | MISMATCH | [Design capture](evidence/design-843.png) · [Controls](02-interaction-map.md#scr-010) |
+| [x] | [SCR-008](01-information-architecture.md#scr-008) | `Page 6 [Patient]` | Page 6 / ClinixAI / AI Health Check-in · `766` | 14 | PARTIAL | [Design capture](evidence/design-766.png) · [Controls](02-interaction-map.md#scr-008) |
+| [x] | [SCR-009](01-information-architecture.md#scr-009) | `Page 6 [Patient]` | Page 6a / ClinixAI / Red-flag Safety Interrupt · `815` | 4 | PARTIAL | [Design capture](evidence/design-815.png) · [Controls](02-interaction-map.md#scr-009) |
+| [x] | [SCR-010](01-information-architecture.md#scr-010) | `Page 7 [Patient]` | Page 7 / ClinixAI / Check-in Result · `843` | 19 | PARTIAL | [Design capture](evidence/design-843.png) · [Controls](02-interaction-map.md#scr-010) |
 | [x] | [SCR-011](01-information-architecture.md#scr-011) | `Page 8 [Patient]` | Page 8 / ClinixAI / Health Timeline · `951` | 21 | PARTIAL | [Design capture](evidence/design-951.png) · [Controls](02-interaction-map.md#scr-011) |
-| [x] | [SCR-012](01-information-architecture.md#scr-012) | `Page 8 [Patient]` | Page 8a / ClinixAI / Timeline Entry Detail · `1060` | 6 | MISSING | [Design capture](evidence/design-1060.png) · [Controls](02-interaction-map.md#scr-012) |
+| [x] | [SCR-012](01-information-architecture.md#scr-012) | `Page 8 [Patient]` | Page 8a / ClinixAI / Timeline Entry Detail · `1060` | 9 | PARTIAL | [Design capture](evidence/design-1060.png) · [Controls](02-interaction-map.md#scr-012) |
 | [x] | [SCR-013](01-information-architecture.md#scr-013) | `Page 9 [Patient]` | Page 9 / ClinixAI / Health Vault & Document Hub · `1130` | 25 | PARTIAL | [Design capture](evidence/design-1130.png) · [Controls](02-interaction-map.md#scr-013) |
 | [x] | [SCR-014](01-information-architecture.md#scr-014) | `Page 9 [Patient]` | Page 9a / ClinixAI / Source Preview Drawer · `1249` | 7 | PARTIAL | [Design capture](evidence/design-1249.png) · [Controls](02-interaction-map.md#scr-014) |
 | [x] | [SCR-015](01-information-architecture.md#scr-015) | `Page 10 [Patient]` | Page 10 / ClinixAI / Medication History · `1310` | 14 | PARTIAL | [Design capture](evidence/design-1310.png) · [Controls](02-interaction-map.md#scr-015) |
 | [x] | [SCR-016](01-information-architecture.md#scr-016) | `Page 10 [Patient]` | Page 10a / ClinixAI / Medication Detail · `1495` | 5 | PARTIAL | [Design capture](evidence/design-1495.png) · [Controls](02-interaction-map.md#scr-016) |
-| [x] | [SCR-017](01-information-architecture.md#scr-017) | `Page 11 [Patient]` | Page 11 / ClinixAI / Patient Appointments · `1555` | 25 | PARTIAL | [Design capture](evidence/design-1555.png) · [Controls](02-interaction-map.md#scr-017) |
+| [x] | [SCR-017](01-information-architecture.md#scr-017) | `Page 11 [Patient]` | Page 11 / ClinixAI / Patient Appointments · `1555` | 29 | PARTIAL | [Design capture](evidence/design-1555.png) · [Controls](02-interaction-map.md#scr-017) |
 | [x] | [SCR-018](01-information-architecture.md#scr-018) | `Page 12 [Patient]` | Page 12 / ClinixAI / Care Circle & Directory · `1703` | 19 | MISSING | [Design capture](evidence/design-1703.png) · [Controls](02-interaction-map.md#scr-018) |
 | [x] | [SCR-019](01-information-architecture.md#scr-019) | `Page 12 [Patient]` | Page 12a / ClinixAI / Discover Doctors · `1832` | 22 | MISSING | [Design capture](evidence/design-1832.png) · [Controls](02-interaction-map.md#scr-019) |
 | [x] | [SCR-020](01-information-architecture.md#scr-020) | `Page 12 [Patient]` | Page 12b / ClinixAI / Consent Scope Picker · `1944` | 10 | MISSING | [Design capture](evidence/design-1944.png) · [Controls](02-interaction-map.md#scr-020) |
 | [x] | [SCR-021](01-information-architecture.md#scr-021) | `Page 13 [Patient]` | Page 13 / ClinixAI / Privacy & Access Ledger · `2021` | 19 | MISSING | [Design capture](evidence/design-2021.png) · [Controls](02-interaction-map.md#scr-021) |
-| [x] | [SCR-022](01-information-architecture.md#scr-022) | `Page 14 [Patient]` | Page 14 / ClinixAI / Consultation Booking & Packet Builder · `2143` | 23 | MISMATCH | [Design capture](evidence/design-2143.png) · [Controls](02-interaction-map.md#scr-022) |
-| [x] | [SCR-023](01-information-architecture.md#scr-023) | `Page 14 [Patient]` | Page 14a / ClinixAI / Review Consultation Booking · `2255` | 6 | MISMATCH | [Design capture](evidence/design-2255.png) · [Controls](02-interaction-map.md#scr-023) |
+| [x] | [SCR-022](01-information-architecture.md#scr-022) | `Page 14 [Patient]` | Page 14 / ClinixAI / Consultation Booking & Packet Builder · `2143` | 30 | PARTIAL | [Design capture](evidence/design-2143.png) · [Controls](02-interaction-map.md#scr-022) |
+| [x] | [SCR-023](01-information-architecture.md#scr-023) | `Page 14 [Patient]` | Page 14a / ClinixAI / Review Consultation Booking · `2255` | 7 | PARTIAL | [Design capture](evidence/design-2255.png) · [Controls](02-interaction-map.md#scr-023) |
 | [x] | [SCR-024](01-information-architecture.md#scr-024) | `Page 15 [Doctor]` | Page 15 / ClinixAI / Doctor Schedule · `2317` | 28 | PARTIAL | [Design capture](evidence/design-2317.png) · [Controls](02-interaction-map.md#scr-024) |
 | [x] | [SCR-025](01-information-architecture.md#scr-025) | `Page 15 [Doctor]` | Page 15a / ClinixAI / Doctor Availability · `2453` | 25 | PARTIAL | [Design capture](evidence/design-2453.png) · [Controls](02-interaction-map.md#scr-025) |
 | [x] | [SCR-026](01-information-architecture.md#scr-026) | `Page 15 [Doctor]` | Page 15b / ClinixAI / Appointment Consultation Context · `2548` | 7 | MISSING | [Design capture](evidence/design-2548.png) · [Controls](02-interaction-map.md#scr-026) |
 | [x] | [SCR-027](01-information-architecture.md#scr-027) | `Page 16 [Doctor]` | Page 16 / ClinixAI / Patient Directory · `2609` | 15 | PARTIAL | [Design capture](evidence/design-2609.png) · [Controls](02-interaction-map.md#scr-027) |
-| [x] | [SCR-028](01-information-architecture.md#scr-028) | `Page 16 [Doctor]` | Page 16a / ClinixAI / Patient Clinical Workspace · `2722` | 7 | MISSING | [Design capture](evidence/design-2722.png) · [Controls](02-interaction-map.md#scr-028) |
-| [x] | [SCR-029](01-information-architecture.md#scr-029) | `Page 17 [Doctor]` | Page 17 / ClinixAI / Patient Clinical Workspace · `2789` | 12 | MISMATCH | [Design capture](evidence/design-2789.png) · [Controls](02-interaction-map.md#scr-029) |
+| [x] | [SCR-028](01-information-architecture.md#scr-028) | `Page 16 [Doctor]` | Page 16a / ClinixAI / Patient Clinical Workspace · `2722` | 7 | PARTIAL | [Design capture](evidence/design-2722.png) · [Controls](02-interaction-map.md#scr-028) |
+| [x] | [SCR-029](01-information-architecture.md#scr-029) | `Page 17 [Doctor]` | Page 17 / ClinixAI / Patient Clinical Workspace · `2789` | 12 | PARTIAL | [Design capture](evidence/design-2789.png) · [Controls](02-interaction-map.md#scr-029) |
 | [x] | [SCR-030](01-information-architecture.md#scr-030) | `Page 18 [Doctor]` | Page 18 / ClinixAI / Consultation Workspace · `2966` | 18 | PARTIAL | [Design capture](evidence/design-2966.png) · [Controls](02-interaction-map.md#scr-030) |
 | [x] | [SCR-031](01-information-architecture.md#scr-031) | `Page 18 [Doctor]` | Page 18a / ClinixAI / Complete Consultation Confirmation · `3103` | 3 | PARTIAL | [Design capture](evidence/design-3103.png) · [Controls](02-interaction-map.md#scr-031) |
 | [x] | [SCR-032](01-information-architecture.md#scr-032) | `Page 19 [Doctor]` | Page 19 / ClinixAI / Prescription Draft Queue · `3158` | 30 | MISMATCH | [Design capture](evidence/design-3158.png) · [Controls](02-interaction-map.md#scr-032) |
@@ -189,3 +221,5 @@ Each checked row has full tree traversal, rendered appearance review and control
 ## Documentation validation performed
 
 All 7 requested Markdown files were checked for valid relative file links, stable screen/interaction anchors, balanced code fences and consistent table columns. The audit contains 58 unique screen anchors (52 design + 6 code/document-derived), 738 unique interaction anchors, and 52 linked design captures. All 14 Mermaid diagrams passed `mermaid.parse` using Mermaid 12.2.0 in a temporary validation directory, with zero syntax errors. No application package/config/source was changed for validation. Parsing validates syntax; full rendered graph layout and application runtime behavior remain separate verification tasks.
+
+Batch 2 resolves the original missing compact-context finding. Original route/discovery and unknown-destination counts remain audit-snapshot metrics unless explicitly updated; current route/interaction/status changes and verification boundaries are in [08](08-patient-record-implementation.md).

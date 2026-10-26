@@ -1,5 +1,19 @@
 # Implementation gap analysis and ordered backlog
 
+**Batch 6 (2026-10-26):** [Phase 3 medication provenance](12-medication-implementation.md) supersedes SCR-015/016 findings. Registry groups/filters, source-aligned detail, exact-version patient prescription view and selected encounter chapter are implemented and tested. Prescribed items remain UNKNOWN_STATUS; exposure/reaction authorship is not invented. Live database acceptance and unresolved You navigation remain open; neither screen is COMPLETE.
+
+
+**Batch 5 (2026-10-26):** [Phase 4 Health Vault and source lifecycle](11-vault-implementation.md) supersedes SCR-013/014 source findings. Source shelf, upload recovery, refreshed OCR reports, confirmed corrections, actual trends and a paginated original-file drawer are implemented and tested. Live storage/worker/database acceptance, exact observation-page provenance and the unresolved You destination remain open. Neither screen is certified COMPLETE.
+
+
+**Batch 4 (2026-10-26):** [Phase 3 booking and appointment management](10-appointment-implementation.md) supersedes the original SCR-017/022/023 findings. Visit selection/review, cancellation and approved cancel-and-rebook are implemented and tested; scoped packets, draft storage, clinic directions and video joining remain explicit limits.
+
+
+**Batch 3 (2026-10-25):** [Phase 5 check-in, safety, result and timeline detail](09-checkin-implementation.md) records current implementation and synthetic verification. SCR-012 now exists; SCR-008/009/010 and AI timeline links are corrected. Packet consent, optional measurements, richer adaptive blocks and live database/worker acceptance remain open.
+
+
+**Batch 2 (2026-10-25):** [Phase 2 patient-record implementation](08-patient-record-implementation.md) supersedes the original SCR-027/028/029 findings. Supported own-record workflows are implemented/tested; consent, safety-data and follow-up dependencies remain explicit.
+
 **Implementation update (2026-10-25):** [Clinical record and navigation batch](07-implementation-progress.md) records the current code, test results and remaining blockers. Audit evidence below is the original snapshot except where explicitly updated. No whole screen is COMPLETE.
 
 [Index](README.md) · [Interaction evidence](02-interaction-map.md) · [Design/code mapping](04-design-code-traceability.md)
@@ -86,6 +100,8 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | None; block clinical fidelity acceptance until resolved. |
 | Existing phase / scope mismatch | Phase 2 dossier + Phase 5 update, both marked complete. |
 | Verification method | Use two synthetic patients with different/empty allergies and labs; no shared fictional facts, explicit unavailable state and correct consent display. |
+| Batch 2 update | Implemented/tested within the patient-record module: fictional clinical values, consent, author/date/active-use claims removed; own-record DTO and explicit unavailable states. No whole-screen COMPLETE claim. See [08](08-patient-record-implementation.md). |
+
 
 <a id="gap-002"></a>
 
@@ -104,6 +120,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Shared authorization contract. |
 | Existing phase / scope mismatch | Phase 5 implemented surface; privacy hardening is Phase 6 but existing isolation cannot wait. |
 | Verification method | With synthetic IDs, patient B cannot GET patient A sessions/evidence/interactions; unrelated doctor cannot read assistance; legitimate own paths still work. No real-record probing. |
+| Batch 3 update | Owner-only result/evidence/interaction reads and read auditing implemented/tested. Doctor encounter reads require own encounter plus relationship; cross-record AI endpoints fail closed with CONSENT_REQUIRED until Phase 6 scope exists. No live PostgreSQL policy certification. See [09](09-checkin-implementation.md). |
 
 <a id="gap-003"></a>
 
@@ -162,6 +179,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | AI outcome DTO and safety-state contract. |
 | Existing phase / scope mismatch | Phase 5 marked Figma-faithful/complete. |
 | Verification method | Synthetic urgent and nonurgent judge outputs produce distinct correct labels; sanitized guidance survives API round trip; no urgent case gets unconditional low-risk text. |
+| Batch 3 update | Worker now stores deterministic checked patient_outcome with SUCCEEDED; result/timeline read it instead of raw consensus. Urgent results show a blocking urgent-care screen, review/disagreement states differ, unavailable legacy results fail closed. Synthetic worker/API/browser tests pass. New migration not live-applied. See [09](09-checkin-implementation.md). |
 
 <a id="gap-006"></a>
 
@@ -180,6 +198,8 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Resolve consent model before packet/source/UI completion. |
 | Existing phase / scope mismatch | Phase 6 pending; current Phase 2/3/5 surfaces already claim consent. |
 | Verification method | Synthetic related doctor with no/expired/revoked/limited grant sees only permitted groups; no broadening from Care relationship alone. |
+| Batch 2 update | PARTIAL containment: workspace/medication/source composition limited to this doctor’s own records; patient-shared/other-clinician groups locked. Full scoped grant/expiry/revocation service still unimplemented. See [08](08-patient-record-implementation.md). |
+
 
 <a id="gap-007"></a>
 
@@ -238,6 +258,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Safety state machine and ownership fix. |
 | Existing phase / scope mismatch | Phase 5 marked complete. |
 | Verification method | Synthetic escalation → review/back/reload/duplicate POST remains blocked or safely read-only; foreign block IDs rejected. |
+| Batch 3 update | Persistent safety_alert plus owner-checked restore; review is a native read-only dialog. Server refuses escalated response/analysis progression, binds blocks to session, serializes retries and earlier-answer edits. Browser/API tested; live database migration required. See [09](09-checkin-implementation.md). |
 
 <a id="gap-010"></a>
 
@@ -256,6 +277,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Product verification policy; auth model. |
 | Existing phase / scope mismatch | Phase 1 claims completion; professional directory in Phase 6/7. |
 | Verification method | Synthetic PENDING/VERIFIED/REJECTED profiles exercise workspace/action/discovery policies; client label never substitutes for server guard. |
+| Batch 4 update | Approved API contract §4 explicitly allows a completed PENDING doctor profile into the workspace under the demo policy; verification is advisory. No contrary verification gate was invented. Booking picker now displays actual status rather than a static VERIFIED badge. Future verified-only discovery/governance remains outside this completed-phase batch. See [10](10-appointment-implementation.md). |
 
 <a id="gap-011"></a>
 
@@ -275,7 +297,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Existing phase / scope mismatch | Phases 1/2 shell complete claims; staff nav explicitly unresolved in design. |
 | Verification method | Route crawl with synthetic roles plus keyboard/mobile checks: every enabled label reaches intended destination, existing Timeline is reachable, unknown modules are not misleading self-links. |
 | Implementation update | PARTIAL: Timeline links from Vault, medications, Visits and booking restored and browser-tested. Care/staff/follow-up/shared manifest decisions remain open. See [batch report](07-implementation-progress.md). |
-
+| Batch 4 update | Within visit/booking screens, existing Home/Timeline/Reports/Visits/medication destinations are preserved, the medication destination is labelled honestly, and navigation sits after content instead of covering forms. The four-item design You/Care discrepancy remains unresolved; no arbitrary You route added. See [10](10-appointment-implementation.md). |
 
 <a id="gap-012"></a>
 
@@ -294,6 +316,8 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Consent enforcement and source model. |
 | Existing phase / scope mismatch | Phase 3/5 marked complete; Phase 6 dependency unresolved. |
 | Verification method | Select only synthetic lab A and not B; book from result, reload, inspect authorized doctor context and receipt: only A plus explicitly selected context travels. |
+| Batch 3 update | Still BLOCKED: result now states sharing unavailable and opens a truthful scope explanation; ordinary booking no longer carries ignored packet/encounter query parameters or claims sharing. No packet or consent workflow invented. See [09](09-checkin-implementation.md). |
+| Batch 4 update | Still BLOCKED on scoped consent. Fake selectable packet attachments/receipt/expiry removed from booking/review; explicit no-sharing state shown. Existing booking endpoint rejects provided unsupported packet/consent fields rather than silently succeeding. No Phase 6 service invented. See [10](10-appointment-implementation.md). |
 
 <a id="gap-013"></a>
 
@@ -312,6 +336,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Booking/availability contract. |
 | Existing phase / scope mismatch | Phase 3 marked complete. |
 | Verification method | Book synthetic appointment with empty and filled reason in each permitted mode; verify request, persisted mode, receipt and error recovery. |
+| Batch 4 update | PARTIAL: mode/date/slot/reason/review/back/cancel, empty-reason omission, actual metadata, keyed availability and server slot replay/capacity checks implemented/tested. Persisted draft remains blocked: no approved storage contract/API; Save as draft is explicitly unavailable. Source 2143/2255 compared with 393px runtime captures. See [10](10-appointment-implementation.md). |
 
 <a id="gap-014"></a>
 
@@ -330,6 +355,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Question/session state model and safety fix. |
 | Existing phase / scope mismatch | Phase 5 marked adaptive/Figma-faithful complete. |
 | Verification method | Synthetic varying block types and branch counts; back/forward/reload restores correct answers and never duplicates submission. |
+| Batch 3 update | PARTIAL: real block/answer Back, resume URL/GET, configured three-step progress, empty-answer validation, server-bound free text, duplicate retry and dependent-answer invalidation implemented/tested. Full adaptive branch generation, multi/numeric/date/scale renderer and draft autosave remain open. See [09](09-checkin-implementation.md). |
 
 <a id="gap-015"></a>
 
@@ -348,6 +374,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Safe outcome, consent/source contracts. |
 | Existing phase / scope mismatch | Phase 5 marked complete. |
 | Verification method | Reload after save; open every source; downloaded/shared synthetic packet matches reviewed scope; failure cannot display saved success. |
+| Batch 3 update | PARTIAL: actual evidence/retry/focus-return dialog, data-backed labs, uncertainty/checked disposition, truthful saved-record timeline Link and parsed local JSON result download. Optional measurement mutation/reanalysis, Vault document save, scoped packet sharing/export and consent remain BLOCKED; no fake success. See [09](09-checkin-implementation.md). |
 
 <a id="gap-016"></a>
 
@@ -366,6 +393,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Shared authorized source viewer and navigation decisions. |
 | Existing phase / scope mismatch | Phase 5 marked complete, detail state omitted. |
 | Verification method | Open each synthetic record type; confirm correct resource ID/source and back preserves filter/scroll. |
+| Batch 3 update | PARTIAL: omitted SCR-012 implemented for AI check-ins with saved provenance/answer snapshot, selected-session full result links and Close/Back. Both AI timeline row templates connect to selected session. Non-AI source/detail routes and scoped packet remain open. See [09](09-checkin-implementation.md). |
 
 <a id="gap-017"></a>
 
@@ -379,11 +407,11 @@ Navigation and shared contracts should be established before isolated visual pol
 | Design reference | SCR-013: frame 1130; SCR-014: frame 1249 |
 | Relevant source files | [apps/web/src/app/app/patient/vault/page.tsx](../../apps/web/src/app/app/patient/vault/page.tsx); [services/api/src/documents/routes.ts](../../services/api/src/documents/routes.ts); [services/worker/src/handlers/document-extract.ts](../../services/worker/src/handlers/document-extract.ts) |
 | Expected behavior | Source shelf, processing/review states, observations and trends remain linked and refresh when extraction completes. |
-| Actual observed/code-derived behavior | Upload form leads instead of summary/shelf; signed PUT status unchecked; polling docs does not refresh later OCR reports; drawer uses external PDF with no pages/download/provenance navigation. |
-| Missing work | Validate upload response, synchronize extraction/report refresh, restore shelf/table hierarchy and accessible source viewer with page/original/download controls. |
-| Dependencies | Shared source viewer and async-state contract. |
+| Current implementation | Batch 5 implements source summary/shelf, checked resumable upload, shared document/report polling, patient value confirmation with source-locked review-state update, keyed actual trends, native PDF/image drawer, pagination, original open/download and report return. |
+| Remaining work | Live PostgreSQL/storage/queue/worker acceptance; OCR page-coordinate metadata; full PDF accessibility/complex-font/scanned-document acceptance; separate dimmed header Back and unresolved You destination. No OCR percentage or fixture medical facts invented. |
+| Dependencies | PDF.js 6.4.299 loads locally for actual PDF rendering; existing endpoints retained. No new migration or clinical sharing service. |
 | Existing phase / scope mismatch | Phase 4 marked complete. |
-| Verification method | Synthetic two-page lab upload reaches review/complete without reload; failed PUT stays failure; view correct source page and corrected trend. |
+| Verification | Two-page synthetic source renders/paginates; checked upload/completion recovery; extraction refresh without reload; review/correction updates queue and trend; bytes/filename/parent routes/keyboard/width checks. See [exact evidence and limitations](11-vault-implementation.md). |
 
 <a id="gap-018"></a>
 
@@ -397,11 +425,11 @@ Navigation and shared contracts should be established before isolated visual pol
 | Design reference | SCR-015: frame 1310; SCR-016: frame 1495 |
 | Relevant source files | [apps/web/src/app/app/patient/medications/page.tsx](../../apps/web/src/app/app/patient/medications/page.tsx); [services/api/src/medications/derive.ts](../../services/api/src/medications/derive.ts); [services/api/src/prescriptions/routes.ts](../../services/api/src/prescriptions/routes.ts) |
 | Expected behavior | Medication detail preserves dose/duration/author/reason/reaction provenance and links original prescription/encounter. |
-| Actual observed/code-derived behavior | Detail lacks original Rx and encounter actions despite returned IDs; duration/context absent; discontinued filter missing; API consciously uses UNKNOWN_STATUS for derived Rx. |
-| Missing work | Extend accurate view model and source actions; reconcile status vocabulary without inferring current use from an old prescription; add patient prescription view. |
-| Dependencies | Shared source viewer and medication status decision. |
+| Current implementation | Batch 6 implements source-aligned registry/detail, discontinued/unknown filters, stored exposure context/dates, exact item/version provenance, read-only patient prescription and originating owned encounter view. Derived prescribed items correctly retain UNKNOWN_STATUS. |
+| Remaining work | Seeded live database acceptance; absent exposure/reaction authorship metadata and legacy original-version links; unresolved You navigation. No exposure write service or current-use inference was added. |
+| Dependencies | Existing patient prescription and Timeline APIs reused; shared native dialog has opt-in full-screen patient mode. Explicit DISCONTINUED is preserved only for exposure records; no migration/new endpoint. |
 | Existing phase / scope mismatch | Phase 3 marked complete. |
-| Verification method | Synthetic active/completed/discontinued/unknown examples show truthful status and exact original source; no restart authorization implied. |
+| Verification | Synthetic active/past/discontinued/unknown projection and browser cases; original v1 remains visible when current is v2; missing/foreign sources fail without fallback; selected encounter and module exits work. See [batch 6](12-medication-implementation.md). |
 
 <a id="gap-019"></a>
 
@@ -420,6 +448,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Booking policy and product decision on design video vs deferred provider. |
 | Existing phase / scope mismatch | Phase 3 complete claim; video provider explicitly excluded. |
 | Verification method | Synthetic requested/confirmed/past cases test allowed/denied cancellation/reschedule and actionable errors; external actions verified without real appointments. |
+| Batch 4 update | PARTIAL: actual counts/date buckets, manual payment states, requested/confirmed cancellation, error/retry, and explicitly confirmed cancel-and-rebook implemented/tested. Existing Phase 3 plan specifies cancel + re-book, not an invented atomic reschedule endpoint. Doctor confirmation/completion cannot revive cancelled visits. Join provider excluded; directions blocked on missing clinic location. See [10](10-appointment-implementation.md). |
 
 <a id="gap-020"></a>
 
@@ -456,6 +485,8 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Truthful dossier, authorization, navigation and shared source panel. |
 | Existing phase / scope mismatch | Phase 2 marked complete; Phase 5 dossier update also incomplete. |
 | Verification method | Synthetic directory filters and each workspace action map to exact patient/context; tabs scroll/filter as agreed, no no-op control. |
+| Batch 2 update | PARTIAL: missing SCR-028 implemented; working directory Recent/Upcoming/Unclaimed/ID search, context links and dossier section/history/source actions verified. Follow-up and authoritative safety/consent metadata remain blocked. See [08](08-patient-record-implementation.md). |
+
 
 <a id="gap-022"></a>
 
@@ -708,6 +739,9 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Navigation/type conflicts and clinical/source contracts must be settled first. |
 | Existing phase / scope mismatch | Foundation Phase 0 + all UI phase acceptance. |
 | Verification method | Component states and representative compositions approved, then every screen checked at design width and responsive widths. |
+| Batch 2 update | PARTIAL: optional focused shell and source C mark preserve defaults for prior screens; shared record component and existing native dialog reused. See [08](08-patient-record-implementation.md). |
+| Batch 3 update | Focused check-in typography uses source Inter/Playfair, existing dialog reused and shared persistent safety component added. Other modules and global token mismatches unchanged. See [09](09-checkin-implementation.md). |
+| Batch 4 update | Optional source-style visit header and flow navigation added without changing other shell defaults; existing brand/native dialog reused. Source Plus Jakarta typography and focused card geometry applied to SCR-017/022/023 only. See [10](10-appointment-implementation.md). |
 
 <a id="gap-036"></a>
 
@@ -726,6 +760,9 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Shared components, synthetic fixtures and a working authenticated runtime. |
 | Existing phase / scope mismatch | Phase 8 phone/PWA gate pending; earlier phase visual fidelity not demonstrated. |
 | Verification method | 320/360/393/768/1024/1440px plus 200/400% zoom, keyboard-only, dialog focus return, selected-state/labels and long-content/slow-network cases. |
+| Batch 2 update | Patient-record/context/dialog widths and keyboard behavior tested at 320/393/768/1440; full app accessibility remains open. See [08](08-patient-record-implementation.md). |
+| Batch 3 update | Check-in/result/detail at 393px captured and compared; 320/768/1440 fit and keyboard dialog return verified with synthetic services. Full zoom/assistive-technology matrix remains open. See [09](09-checkin-implementation.md). |
+| Batch 4 update | Visit forms/review/native confirmations fit 320/393/768/1440; keyboard Escape/focus return verified; three 393px captures compared. Full zoom/assistive-technology and whole-app visual acceptance remain unverified. See [10](10-appointment-implementation.md). |
 
 <a id="gap-037"></a>
 
@@ -750,3 +787,7 @@ Navigation and shared contracts should be established before isolated visual pol
 No severity depends on real clinical data or unperformed exploitation. Missing patient/practice authority is inferred from complete registered route and guard inspection; a live database policy audit remains outstanding. “Figma fidelity” is not accepted as a current verification result simply because the historical plan says it. Pixel spacing, rendered contrast and breakpoints require the screenshot matrix in 03. Unknown messaging, public doctor profile, receipt, source-review and staff-booking destinations must be decided from specifications/design before implementation, rather than assigned convenient URLs.
 
 There is pre-existing unused state/import/dead-code noise in the inspected frontend (for example result `router` and dossier activeTab affecting only styling); no unrelated cleanup was performed. Future fixes should touch only lines needed for their issue and remove only orphans they create.
+
+## Batch 5 scope boundary
+
+GAP-017 is implemented and tested at synthetic HTTP/database boundaries; it is not marked fully complete pending live acceptance and the remaining source metadata/navigation ambiguities. GAP-011/035/036 improve only on SCR-013/014. Existing pending consent, prescription, schedule and medication work is not relabelled complete. [Details](11-vault-implementation.md).

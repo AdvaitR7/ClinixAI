@@ -1,5 +1,19 @@
 # Information architecture
 
+**Batch 6 (2026-10-26):** [Phase 3 medication provenance](12-medication-implementation.md) supersedes SCR-015/016 findings. Registry groups/filters, source-aligned detail, exact-version patient prescription view and selected encounter chapter are implemented and tested. Prescribed items remain UNKNOWN_STATUS; exposure/reaction authorship is not invented. Live database acceptance and unresolved You navigation remain open; neither screen is COMPLETE.
+
+
+**Batch 5 (2026-10-26):** [Phase 4 Health Vault and source lifecycle](11-vault-implementation.md) supersedes SCR-013/014 source findings. Source shelf, upload recovery, refreshed OCR reports, confirmed corrections, actual trends and a paginated original-file drawer are implemented and tested. Live storage/worker/database acceptance, exact observation-page provenance and the unresolved You destination remain open. Neither screen is certified COMPLETE.
+
+
+**Batch 4 (2026-10-26):** [Phase 3 booking and appointment management](10-appointment-implementation.md) supersedes the original SCR-017/022/023 findings. Visit selection/review, cancellation and approved cancel-and-rebook are implemented and tested; scoped packets, draft storage, clinic directions and video joining remain explicit limits.
+
+
+**Batch 3 (2026-10-25):** [Phase 5 check-in, safety, result and timeline detail](09-checkin-implementation.md) records current implementation and synthetic verification. SCR-012 now exists; SCR-008/009/010 and AI timeline links are corrected. Packet consent, optional measurements, richer adaptive blocks and live database/worker acceptance remain open.
+
+
+**Batch 2 (2026-10-25):** [Phase 2 patient-record implementation](08-patient-record-implementation.md) supersedes the original SCR-027/028/029 findings. Supported own-record workflows are implemented/tested; consent, safety-data and follow-up dependencies remain explicit.
+
 **Implementation update (2026-10-25):** [Clinical record and navigation batch](07-implementation-progress.md) records the current code, test results and remaining blockers. Audit evidence below is the original snapshot except where explicitly updated. No whole screen is COMPLETE.
 
 [Audit index](README.md) · [Interactions](02-interaction-map.md) · [Traceability](04-design-code-traceability.md)
@@ -124,6 +138,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Evidence capture: [rendered frame 766](evidence/design-766.png). 13 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-008).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-008). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
+- Batch 3 current evidence: Restores actual blocks/answers, resumable URL, valid free text, three-step configured server progress and analysis retry. Rich adaptive blocks remain open. [Implementation/verification report](09-checkin-implementation.md).
+
 <a id="scr-009"></a>
 
 ### SCR-009 — Page 6a / ClinixAI / Red-flag Safety Interrupt
@@ -137,6 +153,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Finding: Emergency call/map links exist; review dismisses interrupt in memory; server safety-state behavior requires runtime verification.
 - Evidence capture: [rendered frame 815](evidence/design-815.png). 3 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-009).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-009). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
+
+- Batch 3 current evidence: Persistent blocking safety alert; native read-only answer review; emergency links retained. Synthetic API/browser tested. [Implementation/verification report](09-checkin-implementation.md).
 
 <a id="scr-010"></a>
 
@@ -152,6 +170,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Evidence capture: [rendered frame 843](evidence/design-843.png). 15 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-010).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-010). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
+- Batch 3 current evidence: Checked outcome only; evidence/retry dialogs; no fictional labs or local save; scoped JSON result export. Optional measurement and packet/consent services blocked. [Implementation/verification report](09-checkin-implementation.md).
+
 <a id="scr-011"></a>
 
 ### SCR-011 — Page 8 / ClinixAI / Health Timeline
@@ -166,6 +186,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Evidence capture: [rendered frame 951](evidence/design-951.png). 21 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-011).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-011). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
+- Batch 3 current evidence: AI entries now open selected SCR-012; non-AI entry details remain unresolved. [Implementation/verification report](09-checkin-implementation.md).
+
 <a id="scr-012"></a>
 
 ### SCR-012 — Page 8a / ClinixAI / Timeline Entry Detail
@@ -173,12 +195,14 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Exact page: `Page 8 [Patient]`; frame: `1060`; 393 × 980 px.
 - Role/context: patient; parent/flow: SCR-011. Purpose: Timeline Entry Detail.
 - Structure: Header (`1061`); Content (`1072`)
-- Implementation candidate: UNKNOWN — no matching UI found. This is an actual route association, not a newly invented intended route.
+- Current actual route: `/app/patient/timeline/checkins/[sessionId]` in [source](../../apps/web/src/app/app/patient/timeline/checkins/[sessionId]/page.tsx). URL selected for the documented AI-entry detail behavior; no original design URL is claimed.
 - Layout metadata: vertical; clipping enabled; fixed 393px frame width. Gap 0px; padding [0, 0, 0, 0]. Desktop behavior is not encoded by a separate discovered frame.
 - Observed state/variant cues: 9:41; ▮▮▮ ︶ ▰; Check-in result. Native component/variant metadata and prototype state transitions are not exposed.
-- Finding: No timeline-detail rendering, handler or route found.
+- Current finding: AI timeline detail is implemented/tested and visually compared; scoped packet source remains unavailable. PARTIAL.
 - Evidence capture: [rendered frame 1060](evidence/design-1060.png). 6 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-012).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-012). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
+
+- Batch 3 current evidence: New owner-only AI timeline detail: saved provenance/answers and exact full-result links. Packet unavailable; full screen remains PARTIAL. [Implementation/verification report](09-checkin-implementation.md).
 
 <a id="scr-013"></a>
 
@@ -190,7 +214,7 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Implementation candidate: `/app/patient/vault` in [source](../../apps/web/src/app/app/patient/vault/page.tsx). This is an actual route association, not a newly invented intended route.
 - Layout metadata: absolute-positioned screen; clipping enabled; fixed 393px frame width. Desktop behavior is not encoded by a separate discovered frame.
 - Observed state/variant cues: 9:41; ▮▮▮ ︶ ▰; PRIVATE; Extracting text · 68%; OCR complete · 2 fields need review; REVIEW; TEST; RESULT; REFERENCE; Within range; Below range; Below reference. Native component/variant metadata and prototype state transitions are not exposed.
-- Finding: Upload and lab correction APIs wired; shelf layout differs; document polling does not refresh reports after OCR completes.
+- Current finding: Source-aligned summary/shelf/queue/table/trends, checked upload recovery and synchronized extraction consumers implemented. Corrections preserve original OCR confidence and update source review status. Tested with synthetic APIs/browser; live worker/storage/database acceptance remains open. See [batch 5](11-vault-implementation.md).
 - Evidence capture: [rendered frame 1130](evidence/design-1130.png). 25 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-013).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-013). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
@@ -204,7 +228,7 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Implementation candidate: `/app/patient/vault` in [source](../../apps/web/src/app/app/patient/vault/page.tsx). This is an actual route association, not a newly invented intended route.
 - Layout metadata: absolute-positioned screen; clipping enabled; fixed 393px frame width. Desktop behavior is not encoded by a separate discovered frame.
 - Observed state/variant cues: 9:41; ▮▮▮ ︶ ▰; ORIGINAL SOURCE. Native component/variant metadata and prototype state transitions are not exposed.
-- Finding: Drawer exists for images/external PDF link; no inline paginated PDF, extraction deep link or download control.
+- Current finding: Native source drawer renders actual PDF pages locally with real page count and text, image preview, fresh original link, exact-byte download, report return and retry/focus paths. Exact observation-to-page coordinates and separate dimmed header Back behavior remain unresolved. See [batch 5](11-vault-implementation.md).
 - Evidence capture: [rendered frame 1249](evidence/design-1249.png). 7 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-014).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-014). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
@@ -218,7 +242,7 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Implementation candidate: `/app/patient/medications` in [source](../../apps/web/src/app/app/patient/medications/page.tsx). This is an actual route association, not a newly invented intended route.
 - Layout metadata: vertical; clipping enabled; fixed 393px frame width. Gap 24px; padding [18, 24, 24, 24]. Desktop behavior is not encoded by a separate discovered frame.
 - Observed state/variant cues: 9:41; ▮▮▮ ︶ ▰; FILTER; All; Active; Completed; Discontinued; ACTIVE; COMPLETED; DISCONTINUED. Native component/variant metadata and prototype state transitions are not exposed.
-- Finding: Registry and local filters exist; no discontinued filter; source/encounter links absent.
+- Current finding: Source-aligned registry groups and all/active/completed/discontinued/unknown filters implemented. Actual exposure and prescribed fields stay separate; no current-use inference. Header/dock/detail/source/return paths tested. Live database acceptance and unknown You destination remain open. [Batch 6](12-medication-implementation.md).
 - Evidence capture: [rendered frame 1310](evidence/design-1310.png). 14 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-015).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-015). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
@@ -232,7 +256,7 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Implementation candidate: `/app/patient/medications` in [source](../../apps/web/src/app/app/patient/medications/page.tsx). This is an actual route association, not a newly invented intended route.
 - Layout metadata: absolute-positioned screen; clipping enabled; fixed 393px frame width. Desktop behavior is not encoded by a separate discovered frame.
 - Observed state/variant cues: 9:41; ▮▮▮ ︶ ▰; ACTIVE. Native component/variant metadata and prototype state transitions are not exposed.
-- Finding: Detail sheet exists but lacks original prescription, encounter navigation and complete provenance/duration.
+- Current finding: Full-screen native detail preserves known duration/reason/reaction/date/source fields. Local read-only prescription source pins the exact version when known, and encounter chapter matches the selected owned Timeline entry. Missing author/version/source data remains explicit. [Batch 6](12-medication-implementation.md).
 - Evidence capture: [rendered frame 1495](evidence/design-1495.png). 5 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-016).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-016). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
@@ -249,6 +273,7 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Finding: Tabs and REQUESTED cancellation wired; confirmed cancellation, reschedule, join and directions absent.
 - Evidence capture: [rendered frame 1555](evidence/design-1555.png). 25 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-017).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-017). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
+- Batch 4 current evidence: Actual counts/history, future/past buckets, manual payment badges, confirmed/requested cancellation with retry, explicit cancel-and-rebook, unavailable directions/video. 393px compared; browser/API tested; PARTIAL. [Details](10-appointment-implementation.md).
 
 <a id="scr-018"></a>
 
@@ -319,6 +344,7 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Finding: All bookings hardcode IN_PERSON; packet state is not submitted; incoming packetId/encounterId query is ignored.
 - Evidence capture: [rendered frame 2143](evidence/design-2143.png). 23 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-022).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-022). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
+- Batch 4 current evidence: Actual doctor verification, online/in-person selection, India dates and keyed slots, reason edit, reviewed submission and safe retry. No fake packet, receipt or draft. 393px compared; PARTIAL. [Details](10-appointment-implementation.md).
 
 <a id="scr-023"></a>
 
@@ -333,6 +359,7 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Finding: Review shares a count/preview with end-of-encounter expiry; POST omits packet and consent; designed 7-day receipt not implemented.
 - Evidence capture: [rendered frame 2255](evidence/design-2255.png). 6 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-023).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-023). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
+- Batch 4 current evidence: Visit review includes header/Edit/back links, reviewed mode/reason/time, submission errors and real REQUESTED acknowledgement. Scope unavailable; no seven-day consent claim. 393px compared; PARTIAL. [Details](10-appointment-implementation.md).
 
 <a id="scr-024"></a>
 
@@ -390,6 +417,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Evidence capture: [rendered frame 2609](evidence/design-2609.png). 15 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-027).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-027). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
 
+- Batch 2 implementation: Directory filters and ID search work; cards lead to distinct compact context. Follow-up and authoritative safety-data services remain blocked. [Verification and source comparison](08-patient-record-implementation.md).
+
 <a id="scr-028"></a>
 
 ### SCR-028 — Page 16a / ClinixAI / Patient Clinical Workspace
@@ -397,12 +426,14 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Exact page: `Page 16 [Doctor]`; frame: `2722`; 393 × 1450 px.
 - Role/context: doctor; parent/flow: SCR-027. Purpose: Patient Clinical Workspace.
 - Structure: Logo (`2725`); Patient Header (`2731`); Safety Banner (`2742`); Consultation Context (`2746`); Recent Record (`2759`); Medication Snapshot (`2774`); Role Access Note (`2780`); Start Consultation (`2783`); Open Patient Record (`2785`)
-- Implementation candidate: UNKNOWN — no matching UI found. This is an actual route association, not a newly invented intended route.
+- Implementation candidate: `/app/doctor/patients/[patientId]/context` (batch-2 route decision). This is an actual route association, not a newly invented intended route.
 - Layout metadata: absolute-positioned screen; clipping enabled; fixed 393px frame width. Desktop behavior is not encoded by a separate discovered frame.
 - Observed state/variant cues: ESTABLISHED; ONLINE. Native component/variant metadata and prototype state transitions are not exposed.
 - Finding: No compact pre-dossier workspace; directory goes directly to full dossier SCR-029.
 - Evidence capture: [rendered frame 2722](evidence/design-2722.png). 7 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-028).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-028). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
+
+- Batch 2 implementation: Implemented at `/app/doctor/patients/[patientId]/context`; existing doctor guard; Close/Back → directory, record → SCR-029, confirmed visit → SCR-030; own history/scope dialogs. PARTIAL, not COMPLETE. [Verification and source comparison](08-patient-record-implementation.md).
 
 <a id="scr-029"></a>
 
@@ -417,6 +448,8 @@ Explicit design roles: Patient, Doctor, Receptionist, Clinical Assistant/Nurse, 
 - Finding: Hardcoded Penicillin fallback, conditions, medicines, labs, dates, doctor and CONSENT ACTIVE; tabs change highlight only; several actions inert.
 - Evidence capture: [rendered frame 2789](evidence/design-2789.png). 12 inventoried controls/events; review [interaction inventory](02-interaction-map.md#scr-029).
 - Coverage: full nested tree + rendered appearance inspected; interaction references are listed under this screen in [02-interaction-map.md](02-interaction-map.md#scr-029). Prototype destination UNKNOWN unless separately evidenced; responsive behavior and keyboard operation unverified.
+
+- Batch 2 implementation: Source-backed own-record dossier replaces fixtures; real sections, histories, source preview/upload, explicit visit selection and composer connections. Consent/AI/safety/conditions/follow-up dependencies remain unavailable. [Verification and source comparison](08-patient-record-implementation.md).
 
 <a id="scr-030"></a>
 

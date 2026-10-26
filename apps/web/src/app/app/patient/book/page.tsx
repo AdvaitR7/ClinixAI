@@ -1,334 +1,804 @@
 "use client";
 
+import Link from "next/link";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import type {
+  AppointmentType,
+  AvailabilitySlot,
+  DoctorOption,
+  PatientAppointmentView,
+} from "@clinix/schemas";
 import { useAuth } from "@/lib/auth";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import type { AvailabilitySlot, DoctorOption } from "@clinix/schemas";
-import { WorkspaceShell } from "@/components/workspace-shell";
-import { Skeleton } from "@/components/skeleton";
 import { fetchApi, useApiData } from "@/lib/api";
+import { WorkspaceShell } from "@/components/workspace-shell";
+import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
+import {
+  PatientVisitHeader,
+  patientVisitNav,
+} from "@/components/patient-visit-header";
 
-const nav = [
-  { label: "Home", href: "/app/patient" },
-  { label: "Timeline", href: "/app/patient/timeline" },
-  { label: "Vault", href: "/app/patient/vault" },
-  { label: "Visits", href: "/app/patient/appointments" },
-  { label: "Care", href: "/app/patient/medications" },
-];
+const card = "rounded-[24px] border border-sage bg-surface p-4 shadow-sm";
+const label = "text-[10px] text-graphite uppercase";
 
-const PACKET_OPTIONS = [
-  "Recent reports & lab observations",
-  "Current active medications",
-  "Past consultation notes",
-  "Recent health timeline",
-] as const;
-
-function slotTime(iso: string) {
+/** Formats appointment times in the prototype's fixed India timezone. */
+function visitTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata",
     hour: "2-digit",
     minute: "2-digit",
   });
 }
+/** Returns a date-only key in the same timezone as the availability service. */
+function visitDay() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+/** Makes four real calendar choices without inventing published availability. */
+function daysFrom(day: string) {
+  return Array.from({ length: 4 }, (_, i) => {
+    const date = new Date(`${day}T12:00:00+05:30`);
+    date.setUTCDate(date.getUTCDate() + i);
+    return {
+      date: date.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }),
+      weekday: date.toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        weekday: "short",
+      }),
+      number: date.toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "numeric",
+      }),
+    };
+  });
+}
 
-/** Page 14 — Appointment booking + packet builder & review (Figma 40:2 & 42:113). */
+/** Keeps query-driven booking entry inside the App Router suspense boundary. */
 export default function BookPage() {
-  const router = useRouter();
-  const { getToken } = useAuth();
-  const doctors = useApiData<DoctorOption[]>("/doctors");
-
-  const [doctorId, setDoctorId] = useState("");
-  const [date, setDate] = useState("");
-  const [reason, setReason] = useState("");
-  const [slot, setSlot] = useState<AvailabilitySlot | null>(null);
-  const [packet, setPacket] = useState<string[]>(["Recent reports & lab observations", "Current active medications"]);
-  const [slots, setSlots] = useState<AvailabilitySlot[] | null>(null);
-  const [slotsLoading, setSlotsLoading] = useState(false);
-  const [reviewing, setReviewing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  async function loadSlots() {
-    if (!doctorId || !date) return;
-    setError(null);
-    setSlotsLoading(true);
-    setSlots(null);
-    setSlot(null);
-    try {
-      const token = await getToken();
-      if (!token) throw new Error("Not signed in");
-      const res = await fetchApi<{ slots: AvailabilitySlot[] }>(
-        token,
-        `/doctors/${doctorId}/availability?from=${date}&to=${date}`,
-      );
-      setSlots(res.slots);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load availability");
-    } finally {
-      setSlotsLoading(false);
-    }
-  }
-
-  async function book() {
-    if (!slot) return;
-    setError(null);
-    setSubmitting(true);
-    try {
-      const token = await getToken();
-      if (!token) throw new Error("Not signed in");
-      await fetchApi(token, "/patients/self/appointments", {
-        method: "POST",
-        body: JSON.stringify({
-          doctor_id: doctorId,
-          appointment_type: "IN_PERSON",
-          scheduled_start: slot.start,
-          reason: reason || null,
-        }),
-      });
-      router.replace("/app/patient/appointments");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Booking failed");
-      setSubmitting(false);
-    }
-  }
-
-  const selectedDoctor =
-    doctors.status === "ready"
-      ? doctors.data.find((d) => d.doctor_id === doctorId)
-      : undefined;
-
   return (
-    <WorkspaceShell workspace="Patient" title="Book appointment" nav={nav}>
-      {doctors.status === "loading" && <Skeleton className="h-28 rounded-3xl" />}
+    <Suspense
+      fallback={
+        <p role="status" className="p-6">
+          Loading booking…
+        </p>
+      }
+    >
+      <BookingEntry />
+    </Suspense>
+  );
+}
 
-      {doctors.status === "ready" && !reviewing && (
-        <div className="space-y-6">
-          <section className="clinix-card p-5">
-            <p className="clinix-label text-botanical">Step 1 · Schedule visit</p>
-            <h2 className="mt-1 font-sans text-xl font-bold text-ink">Choose doctor & time</h2>
+/** Restores only an owned, cancelled appointment for the approved cancel-and-rebook flow. */
+function BookingEntry() {
+  const query = useSearchParams();
+  const doctors = useApiData<DoctorOption[]>("/doctors");
+  const rebookId = query.get("rebook");
+  const previous = useApiData<PatientAppointmentView[]>(
+    rebookId ? "/patients/self/appointments" : null,
+  );
+  if (doctors.status !== "ready" || (rebookId && previous.status !== "ready")) {
+    const error =
+      doctors.status === "error"
+        ? doctors.error
+        : previous.status === "error"
+          ? previous.error
+          : null;
+    return (
+      <WorkspaceShell
+        workspace="Patient"
+        title="Book appointment"
+        nav={patientVisitNav}
+        focused
+        flowNavigation
+        hideHeading
+      >
+        <h1 className="text-2xl">Consultation booking</h1>
+        {error ? (
+          <>
+            <p role="alert" className="text-sm text-critical">
+              {error}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                void doctors.refresh();
+                if (rebookId) void previous.refresh();
+              }}
+              className="min-h-11 text-sm underline"
+            >
+              Retry booking data
+            </button>
+          </>
+        ) : (
+          <p role="status">Loading booking…</p>
+        )}
+        <Link
+          href="/app/patient/appointments"
+          className="block min-h-11 text-sm underline"
+        >
+          Return to appointments
+        </Link>
+      </WorkspaceShell>
+    );
+  }
+  const old =
+    rebookId && previous.status === "ready"
+      ? previous.data.find((a) => a.id === rebookId && a.status === "CANCELLED")
+      : undefined;
+  if (rebookId && !old)
+    return (
+      <WorkspaceShell
+        workspace="Patient"
+        title="Book appointment"
+        nav={patientVisitNav}
+        focused
+        flowNavigation
+      >
+        <p role="alert">
+          The cancelled appointment is unavailable in your record.
+        </p>
+        <Link
+          href="/app/patient/appointments"
+          className="block min-h-11 underline"
+        >
+          Return to appointments
+        </Link>
+      </WorkspaceShell>
+    );
+  return (
+    <BookingForm
+      key={rebookId ?? query.get("doctorId") ?? "new"}
+      doctors={doctors.data}
+      initialDoctorId={old?.doctor_id ?? query.get("doctorId") ?? ""}
+      previous={old}
+      incomingPacket={Boolean(
+        query.get("packetId") || query.get("encounterId"),
+      )}
+    />
+  );
+}
 
-            <div className="mt-4 space-y-4">
-              <div>
-                <label htmlFor="doctor" className="font-sans text-xs font-semibold text-graphite">
-                  Select doctor *
-                </label>
-                <select
-                  id="doctor"
-                  value={doctorId}
-                  onChange={(e) => {
-                    setDoctorId(e.target.value);
-                    setSlots(null);
-                    setSlot(null);
-                  }}
-                  className="clinix-field mt-1 font-sans text-sm font-medium"
-                >
-                  <option value="">Choose a physician</option>
-                  {doctors.data.map((d) => (
-                    <option key={d.doctor_id} value={d.doctor_id}>
-                      Dr. {d.name} {d.speciality ? `(${d.speciality})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
+/** Loads slots in a keyed component so a late response cannot populate another doctor's selection. */
+function AvailableSlots({
+  doctorId,
+  date,
+  mode,
+  selected,
+  onSelect,
+}: {
+  doctorId: string;
+  date: string;
+  mode: AppointmentType;
+  selected: AvailabilitySlot | null;
+  onSelect: (slot: AvailabilitySlot) => void;
+}) {
+  const [loadedAt] = useState(Date.now);
+  const state = useApiData<{ slots: AvailabilitySlot[] }>(
+    `/doctors/${doctorId}/availability?from=${date}&to=${date}&type=${mode}`,
+  );
+  if (state.status === "loading")
+    return (
+      <p role="status" className="text-xs text-graphite">
+        Loading available times…
+      </p>
+    );
+  if (state.status === "error")
+    return (
+      <div>
+        <p role="alert" className="text-xs text-critical">
+          {state.error}
+        </p>
+        <button
+          type="button"
+          onClick={() => void state.refresh()}
+          className="mt-2 min-h-11 text-xs underline"
+        >
+          Retry availability
+        </button>
+      </div>
+    );
+  const slots = state.data.slots.filter(
+    (slot) => new Date(slot.start).getTime() > loadedAt,
+  );
+  if (!slots.length)
+    return (
+      <p className="text-xs text-graphite">
+        No future slots are available on this date. Choose another date.
+      </p>
+    );
+  return (
+    <div
+      className="grid grid-cols-2 gap-3"
+      role="group"
+      aria-label="Available times"
+    >
+      {slots.map((slot) => (
+        <button
+          key={slot.start}
+          type="button"
+          aria-pressed={selected?.start === slot.start}
+          onClick={() => onSelect(slot)}
+          className={`min-h-11 rounded-2xl border px-3 text-xs ${selected?.start === slot.start ? "border-botanical bg-botanical text-surface" : "border-sage bg-surface text-ink"}`}
+        >
+          {visitTime(slot.start)}
+        </button>
+      ))}
+    </div>
+  );
+}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="date" className="font-sans text-xs font-semibold text-graphite">
-                    Date *
-                  </label>
-                  <input
-                    id="date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => {
-                      setDate(e.target.value);
-                      setSlots(null);
-                      setSlot(null);
-                    }}
-                    className="clinix-field mt-1 font-sans text-sm"
-                  />
-                </div>
-                <div className="flex items-end">
-                  <button
-                    type="button"
-                    onClick={loadSlots}
-                    disabled={!doctorId || !date || slotsLoading}
-                    className="min-h-[50px] w-full rounded-2xl bg-botanical px-4 font-sans text-xs font-semibold uppercase tracking-wider text-surface transition-transform active:translate-y-px disabled:opacity-60"
-                  >
-                    {slotsLoading ? "Checking…" : "Find slots"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
+/** Builds and reviews a real visit request; unavailable sharing/draft services never report success. */
+function BookingForm({
+  doctors,
+  initialDoctorId,
+  previous,
+  incomingPacket,
+}: {
+  doctors: DoctorOption[];
+  initialDoctorId: string;
+  previous?: PatientAppointmentView;
+  incomingPacket: boolean;
+}) {
+  const { getToken } = useAuth();
+  const router = useRouter();
+  const [doctorId, setDoctorId] = useState(initialDoctorId);
+  const [mode, setMode] = useState<AppointmentType>(
+    previous?.appointment_type ?? "IN_PERSON",
+  );
+  const [date, setDate] = useState(visitDay);
+  const [calendarStart, setCalendarStart] = useState(visitDay);
+  const [slot, setSlot] = useState<AvailabilitySlot | null>(null);
+  const [reason, setReason] = useState(previous?.reason ?? "");
+  const [reviewing, setReviewing] = useState(false);
+  const [dialog, setDialog] = useState<"doctor" | "reason" | "scope" | null>(
+    null,
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+  const actionRef = useRef<HTMLButtonElement>(null);
+  const saving = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const doctor = doctors.find((item) => item.doctor_id === doctorId);
+  const days = daysFrom(calendarStart);
 
-          {slots && (
-            <section className="clinix-card p-5">
-              <p className="clinix-label text-botanical">Available slots</p>
-              {slots.length === 0 ? (
-                <p className="mt-2 font-sans text-xs text-graphite">No available slots for this day. Try another date.</p>
-              ) : (
-                <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {slots.map((s) => (
-                    <button
-                      key={s.start}
-                      type="button"
-                      onClick={() => setSlot(s)}
-                      className={`min-h-11 rounded-xl border px-2 py-2 font-mono text-xs font-semibold transition-transform active:translate-y-px ${
-                        slot?.start === s.start
-                          ? "border-botanical bg-botanical text-surface shadow-sm"
-                          : "border-sage bg-surface text-ink hover:border-botanical"
-                      }`}
-                    >
-                      {slotTime(s.start)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </section>
-          )}
+  /** Associates native-dialog focus return with the exact invoking control. */
+  function openDialog(
+    kind: "doctor" | "reason" | "scope",
+    button: HTMLButtonElement,
+  ) {
+    actionRef.current = button;
+    setDialog(kind);
+  }
+  /** Invalidates a selected slot whenever its doctor, date or visit mode changes. */
+  function clearSelection() {
+    setSlot(null);
+    setError(null);
+  }
+  /** Sends exactly the reviewed mode/time/reason, omitting an empty optional reason. */
+  async function book() {
+    if (!doctor || !slot || saving.current) return;
+    saving.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Authentication required");
+      const response = await fetchApi<{ appointment: { id: string } }>(
+        token,
+        "/patients/self/appointments",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            doctor_id: doctor.doctor_id,
+            appointment_type: mode,
+            scheduled_start: slot.start,
+            ...(reason.trim() ? { reason: reason.trim() } : {}),
+          }),
+        },
+      );
+      if (mounted.current)
+        router.replace(
+          `/app/patient/appointments?booked=${encodeURIComponent(response.appointment.id)}`,
+        );
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Booking failed. Your selection is retained.",
+      );
+    } finally {
+      saving.current = false;
+      setBusy(false);
+    }
+  }
+  /** Returns to editable visit details and refreshes availability after a failed confirmation. */
+  function editBooking() {
+    if (busy) return;
+    setReviewing(false);
+    if (error) {
+      setSlot(null);
+      setReload((n) => n + 1);
+    }
+    setError(null);
+  }
 
-          {slot && (
-            <>
-              <section className="clinix-card p-5">
-                <label htmlFor="reason" className="clinix-label text-botanical">
-                  Reason for visit <span className="text-graphite font-normal">(optional)</span>
-                </label>
-                <textarea
-                  id="reason"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Describe your symptoms or follow-up reason..."
-                  rows={3}
-                  className="clinix-field mt-2 font-sans text-sm"
-                />
-              </section>
-
-              {/* Node 40:2 Scoped consultation packet */}
-              <section className="clinix-card p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="clinix-label text-botanical">Consultation packet</p>
-                    <h3 className="mt-1 font-sans text-base font-bold text-ink">Included health context</h3>
-                  </div>
-                  <span className="rounded-full border border-sage px-2 py-0.5 font-sans text-[10px] font-bold uppercase text-botanical">
-                    Scoped preview
-                  </span>
-                </div>
-                <p className="mt-1 font-sans text-xs leading-5 text-graphite">
-                  Select what record excerpts are shared for this visit.
-                </p>
-                <ul className="mt-4 space-y-2.5">
-                  {PACKET_OPTIONS.map((opt) => (
-                    <li key={opt}>
-                      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-hairline bg-canvas p-3 font-sans text-xs font-semibold text-ink">
-                        <input
-                          type="checkbox"
-                          checked={packet.includes(opt)}
-                          onChange={(e) =>
-                            setPacket((prev) =>
-                              e.target.checked
-                                ? [...prev, opt]
-                                : prev.filter((p) => p !== opt),
-                            )
-                          }
-                          className="size-4 accent-[#12352c]"
-                        />
-                        {opt}
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
+  const scope = (
+    <section className={`${card} ring-[5px] ring-sage/25`}>
+      <p className={label}>Scoped consultation packet</p>
+      <h2 className="mt-3 text-lg">No records attached</h2>
+      <p className="mt-2 text-xs leading-relaxed text-graphite">
+        Packet sharing is unavailable. Booking this visit does not grant access
+        to your check-ins, reports, medicines or timeline.
+      </p>
+      {!reviewing && (
+        <div className="mt-4 space-y-2">
+          {[
+            "Recent AI check-in",
+            "Selected reports",
+            "Medication list",
+            "Full health timeline",
+          ].map((item) => (
+            <label
+              key={item}
+              className="flex min-h-14 items-center gap-3 rounded-xl border border-sage p-3 text-xs text-graphite"
+            >
+              <input
+                type="checkbox"
+                disabled
+                checked={false}
+                readOnly
+                className="size-5"
+              />
+              {item}
+            </label>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={(e) => openDialog("scope", e.currentTarget)}
+        className="mt-3 min-h-11 w-full text-right text-[10px] text-evidence"
+      >
+        {reviewing ? "Review scope →" : "Review exact packet contents →"}
+      </button>
+    </section>
+  );
+  const receipt = (
+    <section className={card}>
+      <p className={label}>Sharing status</p>
+      <h2 className="mt-3 text-base">No consent or sharing receipt created</h2>
+      <dl className="mt-3 space-y-3 border-t border-sage pt-3 text-xs">
+        <div className="flex justify-between gap-4">
+          <dt className="text-graphite">Recipient</dt>
+          <dd>{doctor ? `Dr. ${doctor.name}` : "Not selected"}</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-graphite">Record scope</dt>
+          <dd>None shared by this booking</dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-graphite">Expiry</dt>
+          <dd>Not applicable</dd>
+        </div>
+      </dl>
+      <button
+        type="button"
+        disabled
+        className="mt-4 min-h-11 w-full text-right text-[10px] text-graphite/60"
+      >
+        Change sharing scope unavailable
+      </button>
+    </section>
+  );
+  return (
+    <WorkspaceShell
+      workspace="Patient"
+      title="Book appointment"
+      nav={patientVisitNav}
+      focused
+      flowNavigation
+      hideHeading
+      headerContent={
+        <PatientVisitHeader
+          onBack={reviewing ? editBooking : undefined}
+          busy={busy}
+          action={
+            reviewing ? (
               <button
                 type="button"
-                onClick={() => setReviewing(true)}
-                className="min-h-[54px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-bold uppercase tracking-wider text-ink transition-transform active:translate-y-px"
+                onClick={editBooking}
+                disabled={busy}
+                className="min-h-11 disabled:opacity-50"
               >
-                Review booking details →
+                Edit
+              </button>
+            ) : (
+              <Link
+                href="/app/patient/appointments"
+                className="inline-flex min-h-11 items-center"
+              >
+                Cancel
+              </Link>
+            )
+          }
+        />
+      }
+    >
+      <div>
+        <p className="w-fit rounded-full border border-sage bg-surface px-5 py-2 text-[9px] uppercase">
+          {reviewing
+            ? "Review before booking"
+            : "Consultation booking · packet"}
+        </p>
+        <h1 className="mt-4 text-[30px] leading-tight">
+          {reviewing ? "Review consultation" : "Consultation booking"}
+        </h1>
+        <p className="mt-2 text-xs leading-relaxed text-graphite">
+          {reviewing
+            ? "Confirm the visit details below. No record sharing is included."
+            : "Choose the doctor, visit mode and an available time."}
+        </p>
+      </div>
+      {previous && (
+        <p
+          role="status"
+          className="rounded-2xl bg-surface p-4 text-xs text-graphite"
+        >
+          The previous visit was cancelled. Choose and confirm a new time to
+          create a new request.
+        </p>
+      )}
+      {incomingPacket && (
+        <p
+          role="status"
+          className="rounded-2xl border border-review p-4 text-xs text-review"
+        >
+          Incoming packet context cannot be attached. This booking will not
+          share it.
+        </p>
+      )}
+      {!reviewing ? (
+        <>
+          <section className={`${card} ring-[5px] ring-sage/25`}>
+            <p className={label}>Selected doctor</p>
+            <div className="mt-3 flex items-start justify-between gap-2">
+              <div>
+                <h2 className="text-base">
+                  {doctor ? `Dr. ${doctor.name}` : "Choose a doctor"}
+                </h2>
+                <p className="mt-1 text-[10px] text-graphite">
+                  {doctor?.speciality ?? "Speciality unavailable"}
+                </p>
+              </div>
+              {doctor && (
+                <span className="rounded-full border border-evidence px-2 py-1 text-[9px] text-graphite">
+                  {doctor.verification_status?.replaceAll("_", " ") ??
+                    "VERIFICATION UNKNOWN"}
+                </span>
+              )}
+            </div>
+            {doctor && doctor.verification_status !== "VERIFIED" && (
+              <p className="mt-3 text-[10px] text-graphite">
+                Booking is permitted under the demo policy; verification is not
+                confirmed.
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={(e) => openDialog("doctor", e.currentTarget)}
+              className="mt-2 min-h-11 w-full text-right text-[10px] text-evidence"
+            >
+              {doctor ? "Change doctor →" : "Select doctor →"}
+            </button>
+            {initialDoctorId && !doctor && (
+              <p role="alert" className="text-xs text-critical">
+                The requested doctor is unavailable. Select a doctor explicitly.
+              </p>
+            )}
+          </section>
+          <section>
+            <h2 className={label}>1 · Visit mode</h2>
+            <div
+              className="mt-3 grid grid-cols-2 gap-3"
+              role="group"
+              aria-label="Visit mode"
+            >
+              {(["ONLINE", "IN_PERSON"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={mode === value}
+                  onClick={() => {
+                    setMode(value);
+                    clearSelection();
+                  }}
+                  className={`min-h-[100px] rounded-[20px] border p-4 text-left ${mode === value ? "border-botanical bg-botanical text-surface" : "border-sage bg-surface text-ink"}`}
+                >
+                  <span aria-hidden="true">{mode === value ? "●" : "○"}</span>
+                  <span className="mt-2 block text-sm">
+                    {value === "ONLINE" ? "Online video" : "In-person"}
+                  </span>
+                  <span className="mt-1 block text-[10px]">
+                    {value === "ONLINE"
+                      ? "Video provider unavailable"
+                      : "Clinic address unavailable"}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 rounded-2xl bg-surface p-3 text-[11px] leading-relaxed text-graphite">
+              {mode === "ONLINE"
+                ? "Online appointments can be requested. This app cannot create a video join link."
+                : "Clinic location has not been provided. Directions cannot be generated."}
+            </p>
+          </section>
+          <section>
+            <h2 className={label}>2 · Date &amp; slot</h2>
+            <label
+              className="mt-3 block text-xs text-graphite"
+              htmlFor="booking-date"
+            >
+              Choose date (India time)
+            </label>
+            <input
+              id="booking-date"
+              type="date"
+              min={visitDay()}
+              value={date}
+              onChange={(e) => {
+                if (!e.target.value) return;
+                setDate(e.target.value);
+                setCalendarStart(e.target.value);
+                clearSelection();
+              }}
+              className="clinix-field mt-2 text-sm"
+            />
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {days.map((day) => (
+                <button
+                  key={day.date}
+                  type="button"
+                  aria-label={day.date}
+                  aria-pressed={date === day.date}
+                  onClick={() => {
+                    setDate(day.date);
+                    clearSelection();
+                  }}
+                  className={`min-h-[70px] rounded-[18px] border p-2 ${date === day.date ? "border-botanical bg-botanical text-surface" : "border-sage bg-surface"}`}
+                >
+                  <span className="block text-[9px] uppercase">
+                    {day.weekday}
+                  </span>
+                  <span className="mt-1 block text-xl">{day.number}</span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-4">
+              {doctor && date ? (
+                <AvailableSlots
+                  key={`${doctorId}-${date}-${mode}-${reload}`}
+                  doctorId={doctorId}
+                  date={date}
+                  mode={mode}
+                  selected={slot}
+                  onSelect={setSlot}
+                />
+              ) : (
+                <p className="text-xs text-graphite">
+                  Select a doctor to see available times.
+                </p>
+              )}
+            </div>
+          </section>
+          <section>
+            <h2 className={label}>3 · Reason for visit</h2>
+            <div className={`${card} mt-3`}>
+              <p className="text-[9px] text-graphite uppercase">
+                Chief complaint · optional
+              </p>
+              <p className="mt-3 break-words text-base">
+                {reason || "No reason provided"}
+              </p>
+              <button
+                type="button"
+                onClick={(e) => openDialog("reason", e.currentTarget)}
+                className="mt-2 min-h-11 w-full text-right text-[10px] text-evidence"
+              >
+                Edit reason →
+              </button>
+            </div>
+          </section>
+          <section>
+            <h2 className={`${label} mb-4`}>4 · Scoped consultation packet</h2>
+            {scope}
+          </section>
+          {receipt}
+          <p className="rounded-2xl bg-surface p-4 text-xs leading-relaxed text-graphite">
+            Nothing is booked until you review and confirm. No payment is taken
+            here; the doctor or clinic sets payment status.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setReviewing(true);
+              setError(null);
+              window.scrollTo(0, 0);
+            }}
+            disabled={!doctor || !slot}
+            className="min-h-[54px] w-full rounded-[20px] bg-botanical px-4 text-sm text-surface disabled:opacity-50"
+          >
+            REVIEW BOOKING
+          </button>
+          <div className="text-center">
+            <button
+              type="button"
+              disabled
+              className="min-h-11 text-xs text-graphite/60"
+            >
+              Save as draft unavailable
+            </button>
+            <p className="text-[10px] text-graphite">
+              Draft storage is not supported. Leaving this page discards
+              unsubmitted details.
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <section className={card}>
+            <p className={label}>Visit details</p>
+            <h2 className="mt-4 text-lg">Dr. {doctor?.name}</h2>
+            <p className="mt-1 text-[10px] text-graphite">
+              {doctor?.speciality ?? "Speciality unavailable"} ·{" "}
+              {doctor?.verification_status ?? "Verification unknown"}
+            </p>
+            <dl className="mt-4 space-y-4 border-t border-sage pt-4 text-xs">
+              <div className="flex justify-between gap-4">
+                <dt className="text-graphite">Mode</dt>
+                <dd>
+                  {mode === "ONLINE"
+                    ? "Online video · provider unavailable"
+                    : "In-person"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-graphite">Date &amp; time</dt>
+                <dd className="text-right">
+                  {date} · {slot ? visitTime(slot.start) : "Not selected"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-graphite">Reason</dt>
+                <dd className="max-w-[210px] break-words text-right">
+                  {reason.trim() || "Not provided"}
+                </dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              onClick={editBooking}
+              disabled={busy}
+              className="mt-3 min-h-11 w-full text-right text-[10px] text-evidence disabled:opacity-50"
+            >
+              Edit visit details →
+            </button>
+          </section>
+          {scope}
+          {receipt}
+          <p className="rounded-2xl bg-surface p-4 text-xs leading-relaxed text-graphite">
+            Confirming creates a request for the doctor&apos;s approval. No records
+            or payment are transferred.
+          </p>
+          {error && (
+            <div
+              role="alert"
+              className="rounded-2xl border border-critical p-4 text-sm text-critical"
+            >
+              {error}
+              <button
+                type="button"
+                onClick={editBooking}
+                className="mt-3 block min-h-11 underline"
+              >
+                Choose another time
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => void book()}
+            disabled={busy}
+            className="min-h-[58px] w-full rounded-[20px] bg-botanical px-4 text-sm text-surface disabled:opacity-50"
+          >
+            {busy ? "REQUESTING…" : "CONFIRM BOOKING"}
+          </button>
+          <button
+            type="button"
+            onClick={editBooking}
+            disabled={busy}
+            className="min-h-11 w-full text-xs text-evidence disabled:opacity-50"
+          >
+            Back to edit
+          </button>
+        </>
+      )}
+      {dialog && (
+        <ClinicalReviewDialog
+          titleId="booking-dialog-title"
+          busy={false}
+          returnFocusRef={actionRef}
+          onClose={() => setDialog(null)}
+        >
+          <h2 id="booking-dialog-title" className="text-xl">
+            {dialog === "doctor"
+              ? "Select doctor"
+              : dialog === "reason"
+                ? "Reason for visit"
+                : "Record sharing unavailable"}
+          </h2>
+          {dialog === "doctor" && (
+            <div className="mt-4 space-y-3">
+              {doctors.length ? (
+                doctors.map((item) => (
+                  <button
+                    key={item.doctor_id}
+                    type="button"
+                    aria-pressed={doctorId === item.doctor_id}
+                    onClick={() => {
+                      setDoctorId(item.doctor_id);
+                      clearSelection();
+                      setDialog(null);
+                    }}
+                    className="min-h-16 w-full rounded-xl border border-sage p-3 text-left"
+                  >
+                    <span className="block text-sm">Dr. {item.name}</span>
+                    <span className="mt-1 block text-xs">
+                      {item.speciality ?? "Speciality unavailable"} ·{" "}
+                      {item.verification_status ?? "Verification unknown"}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p>No doctors are available for booking.</p>
+              )}
+            </div>
+          )}
+          {dialog === "reason" && (
+            <>
+              <label htmlFor="booking-reason" className="mt-4 block text-xs">
+                Reason (optional)
+              </label>
+              <textarea
+                id="booking-reason"
+                maxLength={1000}
+                rows={5}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="clinix-field mt-2 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setDialog(null)}
+                className="mt-4 min-h-11 rounded-xl bg-copper px-4 text-sm text-ink"
+              >
+                Use this reason
               </button>
             </>
           )}
-        </div>
-      )}
-
-      {/* Node 42:113 — Review Consultation Booking */}
-      {reviewing && selectedDoctor && slot && (
-        <div className="space-y-6">
-          <section className="clinix-card p-5">
-            <span className="rounded-full border border-sage px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-botanical">
-              Review before sharing
-            </span>
-            <h2 className="mt-2 font-sans text-2xl font-bold text-ink">Visit summary</h2>
-
-            <dl className="mt-4 space-y-3 font-sans text-sm">
-              <div className="flex justify-between border-b border-hairline pb-2">
-                <dt className="text-graphite">Doctor</dt>
-                <dd className="font-semibold text-ink">Dr. {selectedDoctor.name}</dd>
-              </div>
-              <div className="flex justify-between border-b border-hairline pb-2">
-                <dt className="text-graphite">Speciality</dt>
-                <dd className="text-ink">{selectedDoctor.speciality || "General Physician"}</dd>
-              </div>
-              <div className="flex justify-between border-b border-hairline pb-2">
-                <dt className="text-graphite">Date & time</dt>
-                <dd className="font-mono text-ink">
-                  {new Date(slot.start).toLocaleDateString("en-IN", {
-                    timeZone: "Asia/Kolkata",
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  })} · {slotTime(slot.start)}
-                </dd>
-              </div>
-              <div className="flex justify-between border-b border-hairline pb-2">
-                <dt className="text-graphite">Type</dt>
-                <dd className="text-ink">In person consultation</dd>
-              </div>
-              {reason && (
-                <div className="flex justify-between">
-                  <dt className="text-graphite">Reason</dt>
-                  <dd className="text-ink">{reason}</dd>
-                </div>
-              )}
-            </dl>
-          </section>
-
-          <section className="clinix-card p-5">
-            <p className="clinix-label text-botanical">Sharing receipt (preview)</p>
-            <dl className="mt-3 space-y-2 font-sans text-xs text-graphite">
-              <div className="flex justify-between"><dt>Recipient:</dt><dd className="font-semibold text-ink">Dr. {selectedDoctor.name}</dd></div>
-              <div className="flex justify-between"><dt>Purpose:</dt><dd className="text-ink">Clinical consultation</dd></div>
-              <div className="flex justify-between"><dt>Scope:</dt><dd className="text-ink">{packet.length ? `${packet.length} modules selected` : "Basic details only"}</dd></div>
-              <div className="flex justify-between"><dt>Expiry:</dt><dd className="text-ink">End of encounter</dd></div>
-            </dl>
-            <p className="mt-3 text-[11px] text-graphite">
-              Payment is collected at the clinic.
+          {dialog === "scope" && (
+            <p className="mt-4 text-sm leading-relaxed">
+              No health records are attached and no consent grant will be
+              created by this booking. Scoped sharing, recipient access and
+              expiry controls require the pending privacy service.
             </p>
-          </section>
-
-          {error && <p role="alert" className="font-sans text-sm font-medium text-critical">{error}</p>}
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setReviewing(false)}
-              disabled={submitting}
-              className="min-h-[52px] flex-1 rounded-[1.25rem] border border-sage bg-surface font-sans text-sm font-semibold text-graphite"
-            >
-              Back to edit
-            </button>
-            <button
-              type="button"
-              onClick={book}
-              disabled={submitting}
-              className="min-h-[52px] flex-1 rounded-[1.25rem] bg-copper font-sans text-sm font-bold uppercase tracking-wider text-ink transition-transform active:translate-y-px disabled:opacity-60"
-            >
-              {submitting ? "Booking…" : "Confirm booking"}
-            </button>
-          </div>
-        </div>
+          )}
+        </ClinicalReviewDialog>
       )}
     </WorkspaceShell>
   );

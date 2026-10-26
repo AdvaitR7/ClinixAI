@@ -57,6 +57,13 @@
       "when": 1792932640382,
       "tag": "0007_browser_access_lockdown",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792951570151,
+      "tag": "0008_freezing_slyde",
+      "breakpoints": true
     }
   ]
 }

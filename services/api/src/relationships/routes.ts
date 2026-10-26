@@ -30,6 +30,7 @@ async function listDoctors(database: NonNullable<ReturnType<typeof requireDb>>) 
       doctorId: doctors.id,
       name: profiles.displayName,
       speciality: doctors.speciality,
+      verificationStatus: doctors.verificationStatus,
     })
     .from(doctors)
     .innerJoin(profiles, eq(profiles.id, doctors.profileId));
@@ -37,6 +38,7 @@ async function listDoctors(database: NonNullable<ReturnType<typeof requireDb>>) 
     doctor_id: r.doctorId,
     name: r.name,
     speciality: r.speciality,
+    verification_status: r.verificationStatus,
   }));
 }
 
