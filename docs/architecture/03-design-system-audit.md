@@ -1,10 +1,24 @@
 # Design system and UI consistency audit
 
+**Batch 6 (2026-10-26):** [Phase 3 medication provenance](12-medication-implementation.md) supersedes SCR-015/016 findings. Registry groups/filters, source-aligned detail, exact-version patient prescription view and selected encounter chapter are implemented and tested. Prescribed items remain UNKNOWN_STATUS; exposure/reaction authorship is not invented. Live database acceptance and unresolved You navigation remain open; neither screen is COMPLETE.
+
+
+**Batch 5 (2026-10-26):** [Phase 4 Health Vault and source lifecycle](11-vault-implementation.md) supersedes SCR-013/014 source findings. Source shelf, upload recovery, refreshed OCR reports, confirmed corrections, actual trends and a paginated original-file drawer are implemented and tested. Live storage/worker/database acceptance, exact observation-page provenance and the unresolved You destination remain open. Neither screen is certified COMPLETE.
+
+
+**Batch 4 (2026-10-26):** [Phase 3 booking and appointment management](10-appointment-implementation.md) supersedes the original SCR-017/022/023 findings. Visit selection/review, cancellation and approved cancel-and-rebook are implemented and tested; scoped packets, draft storage, clinic directions and video joining remain explicit limits.
+
+
+**Batch 3 (2026-10-25):** [Phase 5 check-in, safety, result and timeline detail](09-checkin-implementation.md) records current implementation and synthetic verification. SCR-012 now exists; SCR-008/009/010 and AI timeline links are corrected. Packet consent, optional measurements, richer adaptive blocks and live database/worker acceptance remain open.
+
+
+**Batch 2 (2026-10-25):** [Phase 2 patient-record implementation](08-patient-record-implementation.md) supersedes the original SCR-027/028/029 findings. Supported own-record workflows are implemented/tested; consent, safety-data and follow-up dependencies remain explicit.
+
 **Implementation update (2026-10-25):** [Clinical record and navigation batch](07-implementation-progress.md) records the current code, test results and remaining blockers. Audit evidence below is the original snapshot except where explicitly updated. No whole screen is COMPLETE.
 
 [Index](README.md) · [Screen architecture](01-information-architecture.md) · [Interactions](02-interaction-map.md) · [Prioritized gaps](05-implementation-gap-analysis.md)
 
-## Verification boundary
+## Original audit verification boundary
 
 All 52 design frames were rendered and their full nested trees inspected. Their captures are linked from 01 and the coverage matrix. **No running CliniX application screenshot was obtained.** The collaborative preview opened `http://localhost:3000` and returned `chrome-error://chromewebdata/`; a local listener check found no CliniX web/API process on the expected ports. The separate Next process on port 20128 belonged to another application, not CliniX. No application server, cloud gate, migration, or clinical-record request was started for this documentation audit.
 
@@ -123,3 +137,31 @@ flowchart LR
 The original no-runtime verification boundary above applies to the audit snapshot. Subsequent FigCraft MCP reads/renders and synthetic Chromium captures cover SCR-031 and SCR-035; see [07](07-implementation-progress.md#verification-and-visual-evidence). Their shared native dialog now uses Ink/Graphite/Copper/Evidence surfaces, 24px gutters, 22px review-panel radii, source-derived summary/rule/action hierarchy and mobile full-screen presentation. Medicine labels now bind to their fields.
 
 Both remain visually PARTIAL. Unperformed source/safety/preview/follow-up reviews are not represented by reassuring checkmarks. Author/version/context values are not invented. Keyboard focus, Close/Escape/Return and horizontal fit were tested at 320/393/768/1440px. Full parent-screen, clinical typography, contrast, screen-reader and application-wide responsive acceptance remain open.
+
+## Batch 2 visual comparison
+
+FigCraft 2609/2722/2789 were read and rendered before changes; runtime directory/context/dossier captures at 393px are linked in [08](08-patient-record-implementation.md#visual-comparison). Focused source-width shells, text C mark, original palette, copper-bordered Graphite panels, compact panel ordering, white role-access card, native overlays and clinical action hierarchy were compared. Actual/unknown values replace fictional fixture copy. Heights depend on real contents. No pixel-perfect, complete clinical data, consent, screen-reader or desktop design equivalence is claimed.
+
+## Batch 3 measured visual delta
+
+Frames 766, 815, 843, 951 and 1060 were re-read as full trees and renders before edits. SCR-008/009/010/012 were captured at 393px and compared; focused Inter/Playfair fonts, 345px content columns, source question callout/radio structure, red blocking safety composition, result sections and omitted detail/provenance/source rows were implemented. Existing native dialogs preserve focus/Escape. Dynamic checked risk/unknown states replace reassuring sample text. Actual three-step progress and unavailable optional measurements/packet sharing remain deliberate requirement/service differences, not design-complete claims. Source OS status bars are not fabricated. 320/768/1440 fit/keyboard checks passed; full zoom/accessibility matrix and non-AI timeline visuals remain open. See [09](09-checkin-implementation.md) for the four runtime captures and boundaries.
+
+## Batch 4 visit workflow comparison
+
+Full frame trees/renders 1555 (appointments), 2143 (booking), 2255 (review), plus Page 0 frame 3 navigation prose, were inspected before edits. Three 393px runtime screens were captured and compared. Source-style C header, Plus Jakarta typography, 345px content columns, selected doctor tray, mode/date/slot controls, reason section, scoped-packet/sharing sections, review summary and appointment cards were corrected. Actual status/data replace example VERIFIED/clinic/receipt values. Native review focus handling is reused. Scoped flow navigation fixes the measured form occlusion while preserving existing Timeline and other working exits.
+
+Differences remain explicit: dynamic dates/record counts, absent address/provider/draft/consent services, truthful unavailable packet sections, larger keyboard/touch targets, an additional native date input and retained five-destination navigation instead of inventing the unresolved You destination. No fake map, video link, attached clinical sample, or seven-day receipt is shown. This is structural visual verification, not pixel-perfect certification. [Three runtime captures and verification](10-appointment-implementation.md).
+
+## Batch 5 — Vault/source visual and accessibility verification
+
+Actual FigCraft frames 1130/1249 were re-read and rendered before code edits. SCR-013 restores status → shelf → processing → observations → trends → integrity hierarchy using the existing patient tokens/Plus Jakarta Sans, focused 393px shell, sage borders and source-shaped cards. Upload moves behind the source header action. SCR-014 uses a light 350px native source drawer below the header, original-content canvas/image, actual page controls and source/provenance/file actions. [Runtime captures and detailed differences](11-vault-implementation.md).
+
+393px runtime screenshots were compared with both source renders; long actual synthetic filenames, review forms and real source contents change dynamic geometry. The source's sample clinic/page data and OCR percentage are not copied into real records. There is no pixel-perfect claim. 320/393/768/1440 overflow/dialog bounds, labelled corrections, Tab/Shift+Tab containment, Close/Escape, focus return and actual PDF source text are tested. The existing five-item dark module dock remains a documented difference from the four-item source dock; You has no established destination. Exact observation-page provenance and full scanned/complex-font/screen-reader acceptance remain unverified.
+
+The previous Vault effect-dependency lint warning is resolved by the new stable shared refresh and complete dependencies. No other screen's styling or layout defaults were changed in this batch.
+
+## Batch 6 — Medication registry and source detail
+
+FigCraft 1310/1495 were inspected with full nested trees and fresh renders before editing. SCR-015 restores the 393px source hierarchy, recorded-status summary, explicit active/past groups, three-column treatment metadata, reaction/source footer, and original blank sage tray (node 1324 is a decorative shape with no children, not a fabricated loading panel). The registry uses frame 1310's #F4F1EA background; detail retains the patient canvas and source card geometry. SCR-016 uses a full-screen light native record view with dose/context, reactions, provenance and working source cards/action. Existing brand, shell and dialog behavior are reused. [Exact comparisons](12-medication-implementation.md).
+
+Runtime synthetic data differs from the design fixture: one current record rather than two, explicit unknown-use group/filter, honest unknown reaction/author labels, and stored exposure dates. Long names and additional actual fields can extend the detail beyond 1280px; the native record scrolls. Counts say medication records rather than claiming every exposure is a prescription. No patient assertion or negative reaction history is invented to match sample copy. No pixel-perfect claim. Keyboard/overflow checks run at 320/393/768/1440; shared source drawer regressions remain included. The unresolved You destination/four-versus-five dock discrepancy stays open.

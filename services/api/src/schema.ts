@@ -858,6 +858,7 @@ export const aiRunStatus = pgEnum("ai_run_status", [
  * §12.1 — interactive questioning session linked to an encounter.
  */
 export const interactionSessions = pgTable("interaction_sessions", {
+  safetyAlert: jsonb("safety_alert"),
   id: uuid("id").primaryKey().defaultRandom(),
   encounterId: uuid("encounter_id")
     .notNull()
@@ -928,6 +929,7 @@ export const aiSessions = pgTable(
       .notNull()
       .references(() => encounters.id),
     purpose: text("purpose").notNull(),
+    patientOutcome: jsonb("patient_outcome"),
     status: aiRunStatus("status").notNull().default("QUEUED"),
     startedAt: timestamp("started_at", { withTimezone: true })
       .notNull()

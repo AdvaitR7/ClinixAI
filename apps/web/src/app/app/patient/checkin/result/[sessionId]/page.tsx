@@ -1,349 +1,597 @@
 "use client";
 
+import { checkinTypography } from "@/components/checkin-typography";
 import { useAuth } from "@/lib/auth";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import type { AiSessionView } from "@clinix/schemas";
-import { fetchApi } from "@/lib/api";
+import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import {
+  aiSessionViewSchema,
+  type AiEvidenceResponse,
+  type AiSessionView,
+} from "@clinix/schemas";
+import { fetchApi, useApiData } from "@/lib/api";
+import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
+import { CheckinSafety } from "@/components/checkin-safety";
 
+/** Resets all result state when navigating between patient check-in sessions. */
 export default function CheckinResultPage() {
-  const { getToken } = useAuth();
-  const params = useParams();
-  const router = useRouter();
-  const sessionId = params.sessionId as string;
+  const { sessionId } = useParams<{ sessionId: string }>();
+  return <CheckinResult key={sessionId} sessionId={sessionId} />;
+}
 
-  const [sessionData, setSessionData] = useState<AiSessionView | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [pollCount, setPollCount] = useState(0);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [savedToVault, setSavedToVault] = useState(false);
+/** Renders checked outcomes and actual evidence; never reconstructs a clinical conclusion locally. */
+function CheckinResult({ sessionId }: { sessionId: string }) {
+  const { getToken } = useAuth();
+  const [session, setSession] = useState<AiSessionView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [waiting, setWaiting] = useState(false);
+  const [evidence, setEvidence] = useState<AiEvidenceResponse | null>(null);
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [dialog, setDialog] = useState<"basis" | "scope" | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const actionRef = useRef<HTMLButtonElement>(null);
+  const evidenceRequest = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-
-    async function checkStatus() {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    let polls = 0;
+    /** Stops polling on terminal states, errors, unmount or a bounded two-minute wait. */
+    async function poll() {
       try {
         const token = await getToken();
-        if (!token) return;
-
-        const data = await fetchApi<AiSessionView>(token, `/ai-sessions/${sessionId}`);
-        setSessionData(data);
-
-        if (data.status === "SUCCEEDED" || data.status === "FAILED") {
-          setLoading(false);
-        } else {
-          // Still running -> Poll again in 2s
-          setPollCount((c) => c + 1);
-          timer = setTimeout(checkStatus, 2000);
+        if (!token) throw new Error("Authentication required");
+        const data = aiSessionViewSchema.parse(
+          await fetchApi<AiSessionView>(token, `/ai-sessions/${sessionId}`, {
+            signal: controller.signal,
+          }),
+        );
+        if (controller.signal.aborted) return;
+        setSession(data);
+        if (data.status === "SUCCEEDED" || data.status === "FAILED") return;
+        if (++polls >= 60) {
+          setWaiting(true);
+          return;
         }
-      } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : "Failed to load check-in result");
-        setLoading(false);
+        timer = setTimeout(poll, 2000);
+      } catch (cause) {
+        if (!controller.signal.aborted)
+          setError(
+            cause instanceof Error ? cause.message : "Could not load result",
+          );
       }
     }
+    void poll();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+      evidenceRequest.current?.abort();
+    };
+  }, [getToken, sessionId, attempt]);
 
-    checkStatus();
-    return () => clearTimeout(timer);
-  }, [sessionId, getToken]);
+  /** Reads the frozen evidence snapshot, with retry and cancellation on session exit. */
+  async function loadEvidence() {
+    evidenceRequest.current?.abort();
+    const controller = new AbortController();
+    evidenceRequest.current = controller;
+    setEvidenceLoading(true);
+    setEvidenceError(null);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Authentication required");
+      const data = await fetchApi<AiEvidenceResponse>(
+        token,
+        `/ai-sessions/${sessionId}/evidence`,
+        { signal: controller.signal },
+      );
+      if (!controller.signal.aborted) setEvidence(data);
+      return data;
+    } catch (cause) {
+      if (!controller.signal.aborted)
+        setEvidenceError(
+          cause instanceof Error ? cause.message : "Could not load evidence",
+        );
+      return null;
+    } finally {
+      if (!controller.signal.aborted) setEvidenceLoading(false);
+    }
+  }
 
-  if (loading) {
+  /** Opens a source or scope review and returns keyboard focus to that exact action. */
+  function openDialog(kind: "basis" | "scope", button: HTMLButtonElement) {
+    actionRef.current = button;
+    setDialog(kind);
+    if (!evidence && !evidenceLoading) void loadEvidence();
+  }
+
+  /** Exports only this checked result and its actual evidence; it grants no doctor access. */
+  async function downloadResult() {
+    setExportError(null);
+    const sources = evidence ?? (await loadEvidence());
+    if (!sources) {
+      setExportError(
+        "Download requires the result evidence. Retry when it is available.",
+      );
+      return;
+    }
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          {
+            ai_assisted: true,
+            not_a_diagnosis: true,
+            session_id: sessionId,
+            outcome: session?.outcome,
+            evidence: sources.sources,
+          },
+          null,
+          2,
+        ),
+      ],
+      { type: "application/json" },
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `clinix-checkin-${sessionId}.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /** Rechecks persisted status without discarding the completed check-in or creating a new analysis. */
+  function retry() {
+    setError(null);
+    setWaiting(false);
+    setAttempt((value) => value + 1);
+  }
+
+  const outcome = session?.outcome;
+  const terminal =
+    session?.status === "SUCCEEDED" || session?.status === "FAILED";
+  if (
+    error ||
+    session?.status === "FAILED" ||
+    (session?.status === "SUCCEEDED" &&
+      (!outcome?.disposition || session.error))
+  ) {
     return (
-      <main className="min-h-dvh bg-canvas px-6 py-12">
-        <div className="mx-auto max-w-[393px] text-center">
-          <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-botanical text-xl font-bold text-surface">
-            C
-          </div>
-          <h1 className="mt-6 font-sans text-2xl font-bold text-ink">
-            Synthesizing clinical assessment...
-          </h1>
-          <p className="mt-2 font-sans text-xs text-graphite">
-            Analyst 1 and Analyst 2 are reviewing your answers independently.
+      <main className={`${checkinTypography} min-h-dvh bg-canvas px-6 py-12`}>
+        <div className="mx-auto max-w-[345px]">
+          <h1 className="text-2xl text-ink">Check-in result unavailable</h1>
+          <p role="alert" className="mt-4 text-sm text-critical">
+            {error ??
+              session?.error ??
+              "Analysis could not complete. Your submitted answers remain in your record."}
           </p>
-          <div className="mt-6 flex justify-center">
-            <div className="size-8 animate-spin rounded-full border-2 border-botanical border-t-transparent" />
+          <button
+            type="button"
+            onClick={retry}
+            className="mt-5 min-h-11 rounded-xl bg-ink px-5 text-sm text-surface"
+          >
+            Retry status
+          </button>
+          <div className="mt-5 flex gap-5 text-sm underline">
+            <Link href="/app/patient/checkin">New check-in</Link>
+            <Link href="/app/patient">Return to Dashboard</Link>
           </div>
-          <p className="mt-4 font-mono text-[10px] text-graphite/70">
-            Poll cycle {pollCount + 1}
-          </p>
         </div>
       </main>
     );
   }
-
-  if (errorMsg || sessionData?.status === "FAILED") {
+  if (!terminal || !outcome)
     return (
-      <main className="min-h-dvh bg-canvas px-6 py-12">
-        <div className="mx-auto max-w-[393px] text-center">
-          <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-critical text-xl font-bold text-surface">
-            !
+      <main className={`${checkinTypography} min-h-dvh bg-canvas px-6 py-12`}>
+        <div className="mx-auto max-w-[345px] text-center">
+          <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-ink text-xl text-surface">
+            C
           </div>
-          <h1 className="mt-6 font-sans text-xl font-bold text-ink">
-            Check-in analysis encountered an issue
+          <h1 className="mt-6 text-2xl text-ink">
+            {waiting
+              ? "Analysis is taking longer than expected"
+              : "Preparing your check-in result…"}
           </h1>
-          <p className="mt-2 font-sans text-xs text-critical">
-            {errorMsg ?? sessionData?.error ?? "Analysis could not complete."}
+          <p role="status" className="mt-3 text-sm text-graphite">
+            {waiting
+              ? "Your answers are saved. Check the status again shortly."
+              : "We will show the checked result when analysis finishes."}
           </p>
+          {waiting && (
+            <button
+              type="button"
+              onClick={retry}
+              className="mt-5 min-h-11 rounded-xl bg-ink px-5 text-sm text-surface"
+            >
+              Check status again
+            </button>
+          )}
           <Link
             href="/app/patient"
-            className="mt-6 inline-block rounded-xl bg-botanical px-6 py-3 font-sans text-xs font-semibold text-surface"
+            className="mt-6 inline-block min-h-11 text-sm underline"
           >
             Return to Dashboard
           </Link>
         </div>
       </main>
     );
-  }
+  if (outcome.disposition === "URGENT" || outcome.requires_urgent_escalation)
+    return <UrgentResult sessionId={sessionId} summary={outcome.summary} />;
 
-  const outcome = sessionData?.outcome;
-
+  const review = outcome.disposition === "DOCTOR_REVIEW";
+  const labs =
+    evidence?.sources.filter(
+      (source) => source.resource_type === "LAB_REPORT",
+    ) ?? [];
   return (
-    <main className="min-h-dvh bg-[#f7f1e7] px-6 pb-12 pt-6">
-      <div className="mx-auto max-w-[393px]">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <Link href="/app/patient" className="font-sans text-2xl text-ink hover:opacity-80">
-            ←
-          </Link>
-          <div className="flex items-center gap-2">
-            <div className="grid size-[38px] place-items-center rounded-[12px] bg-ink font-sans text-lg font-bold text-surface">
-              C
-            </div>
-            <span className="font-sans text-2xl font-semibold text-ink">ClinixAI</span>
-          </div>
+    <main
+      className={`${checkinTypography} min-h-dvh bg-[#f6f0e6] px-6 pb-12 pt-6 text-[#1f1f1f]`}
+    >
+      <div className="mx-auto max-w-[345px]">
+        <header className="flex items-center gap-3">
           <Link
             href="/app/patient"
-            className="font-sans text-xs font-semibold text-copper hover:underline"
+            aria-label="Back to home"
+            className="grid size-8 place-items-center text-2xl"
+          >
+            ←
+          </Link>
+          <span className="grid size-[38px] place-items-center rounded-xl bg-[#1f1f1f] text-lg text-[#fbf8f1]">
+            C
+          </span>
+          <span className="text-2xl">ClinixAI</span>
+          <Link
+            href="/app/patient"
+            className="ml-auto py-3 text-xs text-[#b8a06b]"
           >
             Done
           </Link>
-        </div>
-
-        {/* Result Chip */}
-        <div className="mt-6">
-          <span className="inline-block rounded-full border border-[#e7dccb] bg-surface px-3 py-1 font-sans text-[9px] font-semibold tracking-wider text-graphite uppercase">
-            ◆ AI-assisted result
-          </span>
-        </div>
-
-        {/* Intro */}
-        <h1 className="mt-3 font-sans text-[32px] font-medium leading-tight text-ink">
-          Check-in complete
-        </h1>
-        <p className="mt-1 font-sans text-xs leading-relaxed text-graphite">
-          Review the result separately from your answers, then choose what happens next.
+        </header>
+        <p className="mt-6 w-fit rounded-full border border-[#e7dccb] bg-[#fbf8f1] px-3 py-1.5 text-[9px] text-[#5f5a52]">
+          ◆ AI-ASSISTED RESULT
         </p>
-
-        {/* Section: Outcome Card */}
-        <div className="mt-6">
-          <p className="font-sans text-[9px] font-semibold tracking-wider text-ink uppercase">
-            AI ASSISTANCE · LOW-RISK PATTERN
+        <h1 className="mt-6 text-[32px] leading-tight">Check-in complete</h1>
+        <p className="mt-3 text-xs leading-relaxed text-[#5f5a52]">
+          Review the result separately from your answers, then choose what
+          happens next.
+        </p>
+        <section className="mt-6">
+          <p className="text-[9px] tracking-wider uppercase">
+            AI ASSISTANCE · {review ? "DOCTOR REVIEW" : "CHECKED GUIDANCE"}
           </p>
-          <div className="mt-2 rounded-[24px] bg-surface p-5 shadow-sm">
-            <span className="inline-block rounded-full bg-ink px-3 py-1 font-sans text-[10px] font-semibold tracking-wide text-surface uppercase">
-              LOW RISK
+          <div className="mt-3 rounded-[24px] bg-[#fbf8f1] p-5 shadow-sm">
+            <span
+              className={`inline-block rounded-full px-3 py-1.5 text-[10px] text-surface ${review ? "bg-review" : "bg-[#1f1f1f]"}`}
+            >
+              {review ? "DOCTOR REVIEW" : "SELF-CARE GUIDANCE"}
             </span>
-            <h2 className="mt-3 font-sans text-xl font-medium text-ink">
-              {outcome?.summary ?? "Self-care is appropriate"}
-            </h2>
-            <p className="mt-1.5 font-sans text-xs leading-relaxed text-graphite">
-              For now, no red-flag answers were identified in this check-in. This is not
-              a diagnosis; seek care if symptoms worsen or change.
+            <h2 className="mt-4 text-xl">{outcome.summary}</h2>
+            <p className="mt-3 text-xs leading-relaxed text-[#5f5a52]">
+              Uncertainty: {outcome.uncertainty_level.toLowerCase()}. This is
+              not a diagnosis; seek care if symptoms worsen or change.
             </p>
-            <p className="mt-3 text-right font-sans text-[10px] font-semibold text-copper">
+            <button
+              type="button"
+              onClick={(event) => openDialog("basis", event.currentTarget)}
+              className="mt-4 min-h-11 w-full text-right text-[10px] text-[#b8a06b]"
+            >
               View result basis
-            </p>
+            </button>
           </div>
-        </div>
-
-        {/* Section: Next 24-48 Hours Self-Care Guidance */}
-        <div className="mt-6">
-          <p className="font-sans text-[10px] font-semibold tracking-wider text-graphite uppercase">
-            NEXT 24–48 HOURS
+        </section>
+        <section className="mt-6">
+          <p className="text-[10px] tracking-wider text-[#5f5a52] uppercase">
+            {review ? "NEXT STEPS" : "NEXT 24–48 HOURS"}
           </p>
-          <h2 className="mt-1 font-sans text-xl font-medium text-ink">
-            Self-care guidance
+          <h2 className="mt-3 text-xl">
+            {review ? "Prepare for doctor review" : "Self-care guidance"}
           </h2>
-
-          <div className="mt-3 space-y-2.5">
-            {outcome?.low_risk_guidance.map((guide, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 rounded-[20px] bg-surface p-4 shadow-sm"
+          <div className="mt-4 space-y-3">
+            {outcome.low_risk_guidance.map((guide, index) => (
+              <p
+                key={index}
+                className="rounded-[20px] bg-[#fbf8f1] p-4 text-sm shadow-sm"
               >
-                <div className="mt-1 size-2.5 shrink-0 rounded-full bg-copper" />
-                <div>
-                  <p className="font-sans text-sm font-medium text-ink">{guide}</p>
-                </div>
-              </div>
+                {guide}
+              </p>
             ))}
-
-            {/* Mandatory Statutory Warning Box */}
-            <div className="rounded-[20px] border border-review bg-review/5 p-4 shadow-sm">
-              <p className="font-sans text-[10px] font-bold tracking-wider text-review uppercase">
+            {!outcome.low_risk_guidance.length && (
+              <p className="rounded-[20px] bg-[#fbf8f1] p-4 text-sm">
+                No self-care guidance was included in the checked result.
+              </p>
+            )}
+            <aside className="rounded-[20px] border border-review bg-review/5 p-4">
+              <h3 className="text-[10px] font-semibold text-review uppercase">
                 Important medication warning
+              </h3>
+              <p className="mt-2 text-xs leading-relaxed">
+                {outcome.statutory_warning}
               </p>
-              <p className="mt-1.5 font-sans text-xs leading-relaxed font-medium text-ink">
-                {outcome?.statutory_warning ??
-                  "Prior treatment is not authorization for reuse. Medicines prescribed for earlier episodes should never be restarted without consulting a doctor."}
-              </p>
-            </div>
+            </aside>
           </div>
-        </div>
-
-        {/* Section: Similar Past Episodes */}
-        <div className="mt-6">
-          <p className="font-sans text-[10px] font-semibold tracking-wider text-graphite uppercase">
+        </section>
+        <section className="mt-6">
+          <p className="text-[10px] tracking-wider text-[#5f5a52] uppercase">
             PATIENT RECORD
           </p>
-
-          <div className="mt-2 rounded-[24px] bg-surface p-5 shadow-sm">
-            <div className="flex items-center justify-between border-b border-hairline pb-3">
-              <h3 className="font-sans text-base font-medium text-ink">
-                Similar past episodes
-              </h3>
-              <span className="font-sans text-[10px] font-semibold text-graphite">
-                {outcome?.historical_matches.length ?? 0} found
+          <div className="mt-3 rounded-[24px] bg-[#fbf8f1] p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-hairline pb-3">
+              <h2 className="text-base">Similar past episodes</h2>
+              <span className="text-[10px]">
+                {outcome.historical_matches.length} found
               </span>
             </div>
-
-            <div className="mt-3 space-y-2">
-              {outcome?.historical_matches && outcome.historical_matches.length > 0 ? (
-                outcome.historical_matches.map((m, i) => (
-                  <div key={i} className="py-1">
-                    <div className="flex items-center justify-between">
-                      <p className="font-sans text-xs font-medium text-ink">
-                        {m.date ? new Date(m.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Past episode"} · {m.chief_concern ?? "Cough"}
-                      </p>
-                      <span className="rounded-full bg-evidence/20 px-2 py-0.5 font-mono text-[9px] font-semibold text-botanical uppercase">
-                        {m.similarity_label.replace("_", " ")}
-                      </span>
-                    </div>
-                    {m.supporting_features.length > 0 && (
-                      <p className="mt-1 font-sans text-[11px] text-graphite">
-                        Similarities: {m.supporting_features.join(", ")}
-                      </p>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="font-sans text-xs text-graphite">
-                  No previous matching episodes recorded.
-                </p>
-              )}
+            <div className="divide-y divide-hairline">
+              {outcome.historical_matches.map((match, index) => (
+                <div key={index} className="py-3 text-xs">
+                  <p>
+                    {match.date
+                      ? new Date(match.date).toLocaleDateString("en-IN")
+                      : "Date unavailable"}{" "}
+                    · {match.chief_concern ?? "Past episode"}
+                  </p>
+                  <p className="mt-2 text-[10px] text-[#5f5a52]">
+                    {match.similarity_label.replaceAll("_", " ")}
+                  </p>
+                  {match.supporting_features.length > 0 && (
+                    <p className="mt-2">
+                      Similarities: {match.supporting_features.join(", ")}
+                    </p>
+                  )}
+                  {match.differences.length > 0 && (
+                    <p className="mt-2">
+                      Differences: {match.differences.join(", ")}
+                    </p>
+                  )}
+                  {match.outcome && (
+                    <p className="mt-2">Recorded outcome: {match.outcome}</p>
+                  )}
+                </div>
+              ))}
             </div>
-
-            <div className="mt-3 border-t border-hairline pt-2 text-right">
-              <Link
-                href="/app/patient/timeline"
-                className="font-sans text-[10px] font-semibold text-copper hover:underline"
-              >
-                View timeline →
-              </Link>
-            </div>
+            {!outcome.historical_matches.length && (
+              <p className="mt-3 text-xs text-[#5f5a52]">
+                No previous matching episodes recorded.
+              </p>
+            )}
+            <Link
+              href="/app/patient/timeline"
+              className="mt-3 block min-h-11 pt-3 text-right text-[10px] text-[#b8a06b]"
+            >
+              View timeline →
+            </Link>
           </div>
-        </div>
-
-        {/* Section: Relevant Linked Labs */}
-        <div className="mt-6">
-          <p className="font-sans text-[10px] font-semibold tracking-wider text-graphite uppercase">
+        </section>
+        <section className="mt-6">
+          <p className="text-[10px] tracking-wider text-[#5f5a52] uppercase">
             RELEVANT LABS
           </p>
-
-          <div className="mt-2 rounded-[24px] bg-surface p-5 shadow-sm">
-            <div className="border-b border-hairline pb-2">
-              <h3 className="font-sans text-base font-medium text-ink">Linked records</h3>
-              <p className="font-sans text-[10px] text-graphite">
-                From your selected patient record
+          <div className="mt-3 rounded-[24px] bg-[#fbf8f1] p-5 shadow-sm">
+            <h2 className="text-base">Linked records</h2>
+            <p className="mt-1 text-[10px] text-[#5f5a52]">
+              From the frozen check-in evidence
+            </p>
+            <div className="mt-3 divide-y divide-hairline border-t border-hairline">
+              {labs.map((lab, i) => (
+                <p key={i} className="py-3 text-xs">
+                  {lab.description}
+                  {lab.date
+                    ? ` · ${new Date(lab.date).toLocaleDateString("en-IN")}`
+                    : ""}
+                </p>
+              ))}
+            </div>
+            {!labs.length && (
+              <p className="mt-3 text-xs text-[#5f5a52]">
+                {evidence
+                  ? "No lab observations linked."
+                  : "Open result basis to load linked evidence."}
               </p>
-            </div>
-
-            <div className="mt-3 divide-y divide-hairline">
-              <div className="flex items-center justify-between py-2">
-                <span className="font-sans text-xs font-semibold text-ink">Recent CBC</span>
-                <span className="font-sans text-[10px] text-graphite">Imported result</span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="font-sans text-xs font-semibold text-ink">Vitamin D</span>
-                <span className="font-sans text-[10px] text-graphite">Imported result</span>
-              </div>
-            </div>
-
-            <div className="mt-3 text-right">
-              <Link
-                href="/app/patient/vault"
-                className="font-sans text-[10px] font-semibold text-copper hover:underline"
-              >
-                Review reports →
-              </Link>
-            </div>
+            )}
+            <Link
+              href="/app/patient/vault"
+              className="mt-3 block min-h-11 pt-3 text-right text-[10px] text-[#b8a06b]"
+            >
+              Review reports →
+            </Link>
           </div>
-        </div>
-
-        {/* Section: Consultation Packet */}
-        <div className="mt-6 rounded-[24px] bg-[#efe5d5] p-1.5">
-          <div className="rounded-[20px] bg-surface p-5 shadow-sm">
-            <p className="font-sans text-[9px] font-semibold tracking-wider text-ink uppercase">
-              CONSULTATION PACKET
-            </p>
-            <h3 className="mt-1 font-sans text-lg font-medium text-ink">
-              Scoped for this concern
-            </h3>
-            <p className="mt-1 font-sans text-[10px] text-graphite">
-              Includes · this check-in · similar episodes · selected labs
-            </p>
-            <p className="font-sans text-[10px] text-graphite">
-              Does not include unrelated records.
-            </p>
-            <p className="mt-2 text-right font-sans text-[10px] font-semibold text-copper">
-              Review sharing scope
-            </p>
+        </section>
+        <section className="mt-6">
+          <h2 className="text-[10px] tracking-wider text-[#5f5a52] uppercase">
+            MISSING INFORMATION
+          </h2>
+          <p className="mt-3 text-xs text-[#5f5a52]">
+            Optional measurements cannot yet be added to this saved analysis.
+          </p>
+          <div className="mt-3 rounded-[24px] bg-[#fbf8f1] p-5 text-xs shadow-sm">
+            {outcome.questions_for_doctor.length ? (
+              <ul className="list-disc space-y-3 pl-4">
+                {outcome.questions_for_doctor.map((question, i) => (
+                  <li key={i}>{question}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>
+                No additional questions were included in the checked result.
+              </p>
+            )}
           </div>
-        </div>
-
-        {/* Actions */}
+        </section>
+        <section className="mt-6 rounded-[24px] border-[5px] border-[#ece2d1] bg-[#fbf8f1] p-5">
+          <p className="text-[9px] uppercase">CONSULTATION PACKET</p>
+          <h2 className="mt-3 text-xl">Sharing unavailable</h2>
+          <p className="mt-3 text-xs leading-relaxed text-[#5f5a52]">
+            This result is saved to your record. Booking a visit does not share
+            this result or grant access to other records. Scoped packet consent
+            is not yet supported.
+          </p>
+          <button
+            type="button"
+            onClick={(event) => openDialog("scope", event.currentTarget)}
+            className="mt-3 min-h-11 w-full text-right text-[10px] text-[#b8a06b]"
+          >
+            Review sharing scope
+          </button>
+        </section>
         <div className="mt-6 space-y-3">
           <Link
-            href={`/app/patient/book?packetId=${sessionId}${sessionData?.encounter_id ? `&encounterId=${sessionData.encounter_id}` : ""}`}
-            className="flex min-h-[64px] w-full items-center justify-between rounded-[20px] bg-ink px-5 py-4 font-sans text-sm font-semibold tracking-wide text-surface shadow transition-transform active:translate-y-px"
+            href="/app/patient/book"
+            className="flex min-h-[64px] items-center justify-between rounded-[20px] bg-[#1f1f1f] px-5 text-sm text-[#fbf8f1]"
           >
-            <span>BOOK DOCTOR + PACKET</span>
-            <span className="grid size-8 place-items-center rounded-full bg-surface text-base font-bold text-ink">
+            BOOK DOCTOR{" "}
+            <span
+              aria-hidden="true"
+              className="grid size-8 place-items-center rounded-full bg-[#fbf8f1] text-xl text-ink"
+            >
               →
             </span>
           </Link>
-
-          <button
-            type="button"
-            onClick={() => setSavedToVault(true)}
-            className="flex min-h-[54px] w-full items-center justify-between rounded-[18px] border border-hairline bg-surface px-5 py-3 font-sans text-xs font-semibold tracking-wide text-ink shadow-sm transition-transform active:translate-y-px"
+          <Link
+            href="/app/patient/timeline"
+            className="flex min-h-[54px] items-center justify-between rounded-[18px] border border-hairline bg-[#fbf8f1] px-5 text-xs"
           >
-            <span>{savedToVault ? "SAVED TO HEALTH VAULT ✓" : "SAVE TO VAULT"}</span>
-            <span className="grid size-7 place-items-center rounded-full bg-ink text-sm font-bold text-surface">
-              →
-            </span>
-          </button>
-
+            SAVED TO RECORD · VIEW TIMELINE <span>→</span>
+          </Link>
           <div className="flex gap-3">
             <button
               type="button"
-              className="flex min-h-[48px] flex-1 items-center justify-center rounded-[16px] bg-surface font-sans text-xs font-semibold text-ink shadow-sm hover:bg-white"
+              disabled
+              className="min-h-[48px] flex-1 rounded-2xl bg-[#fbf8f1] text-xs opacity-50"
             >
               SHARE PACKET
             </button>
             <button
               type="button"
-              className="flex min-h-[48px] flex-1 items-center justify-center rounded-[16px] bg-surface font-sans text-xs font-semibold text-ink shadow-sm hover:bg-white"
+              disabled={evidenceLoading}
+              onClick={() => void downloadResult()}
+              className="min-h-[48px] flex-1 rounded-2xl bg-[#fbf8f1] text-xs disabled:opacity-50"
             >
-              DOWNLOAD PACKAGE
+              DOWNLOAD RESULT
             </button>
           </div>
+          {exportError && (
+            <p role="alert" className="text-xs text-critical">
+              {exportError}
+            </p>
+          )}
         </div>
-
-        <p className="mt-6 text-center font-sans text-[9px] text-graphite/80">
-          AI-assisted result · not a diagnosis · based on your answers and selected records
+        <p className="mt-6 text-center text-[9px] text-[#5f5a52]">
+          AI-assisted result · not a diagnosis · based on your answers and
+          selected records
         </p>
+        {dialog && (
+          <ClinicalReviewDialog
+            titleId="result-review-title"
+            busy={false}
+            returnFocusRef={actionRef}
+            onClose={() => setDialog(null)}
+          >
+            <h2 id="result-review-title" className="text-xl text-ink">
+              {dialog === "basis" ? "Result basis" : "Sharing scope"}
+            </h2>
+            {dialog === "scope" && (
+              <p className="mt-4 text-sm text-graphite">
+                No packet or doctor-access grant has been created. Downloading
+                this result creates a local copy only. The evidence below
+                describes analysis inputs, not a sharing authorization.
+              </p>
+            )}
+            <p className="mt-4 text-sm text-graphite">
+              AI-derived · uncertainty {outcome.uncertainty_level.toLowerCase()}{" "}
+              · {outcome.statutory_warning}
+            </p>
+            {evidenceLoading && (
+              <p role="status" className="mt-4 text-sm">
+                Loading evidence…
+              </p>
+            )}
+            {evidenceError && (
+              <p role="alert" className="mt-4 text-sm text-critical">
+                {evidenceError}
+              </p>
+            )}
+            {evidenceError && (
+              <button
+                type="button"
+                onClick={() => void loadEvidence()}
+                className="mt-3 min-h-11 text-sm underline"
+              >
+                Retry evidence
+              </button>
+            )}
+            {evidence && (
+              <ul className="mt-4 space-y-4">
+                {evidence.sources.map((source, i) => (
+                  <li
+                    key={i}
+                    className="rounded-xl border border-hairline p-3 text-sm"
+                  >
+                    <p className="text-[10px] text-graphite">
+                      {source.resource_type.replaceAll("_", " ")}
+                    </p>
+                    <p className="mt-2 break-words">{source.description}</p>
+                    {source.date && (
+                      <p className="mt-2 text-xs">
+                        {new Date(source.date).toLocaleDateString("en-IN")}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {evidence && !evidence.sources.length && (
+              <p className="mt-4 text-sm">
+                No source references are available for this result.
+              </p>
+            )}
+          </ClinicalReviewDialog>
+        )}
       </div>
     </main>
+  );
+}
+
+/** Keeps emergency actions visible while loading the actual saved answers for read-only review. */
+function UrgentResult({
+  sessionId,
+  summary,
+}: {
+  sessionId: string;
+  summary: string;
+}) {
+  const evidence = useApiData<AiEvidenceResponse>(
+    `/ai-sessions/${sessionId}/evidence`,
+  );
+  const answers =
+    evidence.status === "ready"
+      ? evidence.data.sources
+          .filter(
+            (source) =>
+              source.resource_type === "PATIENT_ANSWER" ||
+              source.resource_type === "CURRENT_CONCERN",
+          )
+          .map((source) => source.description)
+      : [];
+  return (
+    <CheckinSafety
+      alert={{
+        severity: "CRITICAL",
+        action: "BLOCK_NORMAL_FLOW",
+        triggered_rule_ids: [],
+        message: summary,
+        emergency_number: "112 / 108",
+      }}
+      answers={
+        answers.length
+          ? answers
+          : [
+              evidence.status === "error"
+                ? "Saved answers could not be loaded. Urgent assessment is still required."
+                : "The checked analysis requires urgent assessment. Saved answers are not available yet.",
+            ]
+      }
+      reviewNote="These are the saved analysis inputs. Specific triggering-answer attribution is unavailable; reviewing them does not resume the check-in."
+    />
   );
 }

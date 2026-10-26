@@ -5,13 +5,14 @@ import { prescriptionRoutes } from "./prescriptions/routes.js";
 import { appointmentRoutes } from "./appointments/routes.js";
 import { consultationRoutes } from "./consultations/routes.js";
 import { prescriptions } from "./schema.js";
+import { medicationsForPatient } from "./medications/derive.js";
 
 const mocks = vi.hoisted(() => ({ database: { select: vi.fn(), transaction: vi.fn(), insert: vi.fn(), update: vi.fn() } }));
 vi.mock("./db.js", () => ({ db: mocks.database }));
 vi.mock("./auth/guards.js", () => ({ requireDoctor: () => "doctor-own", requirePatient: () => "patient-own", authorizePatientAccess: async () => true }));
 vi.mock("./audit/log.js", () => ({ logAccess: vi.fn() }));
 vi.mock("./appointments/map.js", () => ({ patientNames: async () => new Map(), appointmentView: (row: unknown) => row }));
-vi.mock("./medications/derive.js", () => ({ medicationsForPatient: async () => [] }));
+vi.mock("./medications/derive.js", () => ({ medicationsForPatient: vi.fn(async () => []) }));
 vi.mock("./prescriptions/pdf.js", () => ({ renderPrescriptionPdf: vi.fn() }));
 
 /** Exercises real Fastify handlers with synthetic database results and captured SQL. */
@@ -22,7 +23,7 @@ describe("clinical record persistence boundaries", () => {
   let writes: { table: unknown; values: Record<string, unknown> }[];
   let locks: number;
   const dialect = new PgDialect();
-  const appointment = { id: "appointment-own", doctorId: "doctor-own", encounterId: "encounter-own" };
+  const appointment = { status: "CONFIRMED", id: "appointment-own", doctorId: "doctor-own", encounterId: "encounter-own" };
   const note = { id: "note-own", content: JSON.stringify({ assessment: "Reviewed assessment" }), isFinal: false, finalizedAt: null };
   const rx = { id: "rx-own", doctorId: "doctor-own", patientId: "patient-own", createdAt: new Date("2026-10-25T09:00:00Z"), currentVersionId: "version-own", status: "ACTIVE" };
   const version = { id: "version-own", prescriptionId: "rx-own", versionNumber: 1, finalizedByDoctorId: "doctor-own", finalizedAt: new Date("2026-10-25T09:00:00Z"), amendmentReason: null };
@@ -114,7 +115,7 @@ describe("clinical record persistence boundaries", () => {
   });
 
   it("keeps encounter, appointment and note unchanged when the reviewed note is stale", async () => {
-    rows = [[appointment], [{ id: "encounter-own" }], [note]];
+    rows = [[appointment], [appointment], [{ id: "encounter-own" }], [note]];
     const response = await app.inject({ method: "POST", url: "/doctor/appointments/appointment-own/complete", payload: { reviewed_note: { assessment: "Different assessment" } } });
     expect(response.statusCode).toBe(409);
     expect(response.json().error.code).toBe("NOTE_CHANGED");
@@ -122,16 +123,16 @@ describe("clinical record persistence boundaries", () => {
   });
 
   it("locks the encounter and finalizes all three records in one transaction", async () => {
-    rows = [[appointment], [{ id: "encounter-own" }], [note]];
+    rows = [[appointment], [appointment], [{ id: "encounter-own" }], [note]];
     const response = await app.inject({ method: "POST", url: "/doctor/appointments/appointment-own/complete", payload: { reviewed_note: { assessment: "Reviewed assessment" } } });
     expect(response.statusCode).toBe(200);
     expect(mocks.database.transaction).toHaveBeenCalledTimes(1);
-    expect(locks).toBe(1);
+    expect(locks).toBe(2);
     expect(writes.map((write) => write.values.status ?? write.values.isFinal)).toEqual([true, "COMPLETED", "COMPLETED"]);
   });
 
   it("does not complete an appointment before a note exists", async () => {
-    rows = [[appointment], [{ id: "encounter-own" }], []];
+    rows = [[appointment], [appointment], [{ id: "encounter-own" }], []];
     const response = await app.inject({ method: "POST", url: "/doctor/appointments/appointment-own/complete", payload: {} });
     expect(response.statusCode).toBe(409);
     expect(response.json().error.code).toBe("NOTE_REQUIRED");
@@ -153,6 +154,7 @@ describe("clinical record persistence boundaries", () => {
     const response = await app.inject({ method: "GET", url: "/doctor/appointments/appointment-own/consultation" });
     expect(response.statusCode).toBe(200);
     expect(response.json().note.assessment).toBe("Reviewed assessment");
+    expect(medicationsForPatient).toHaveBeenCalledWith("patient-own", "doctor-own");
     expect(response.json().note_amendments[0]).toMatchObject({ reason: "Correction", doctor_id: "doctor-own", created_at: "2026-10-25T09:00:00.000Z", sections: { assessment: "Revised assessment" } });
   });
 

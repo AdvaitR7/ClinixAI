@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { and, desc, eq } from "drizzle-orm";
+import { patientCheckinOutcomeSchema } from "@clinix/schemas";
 import type {
   DetailedTimelineItem,
   PatientTimelineResponse,
@@ -35,6 +36,7 @@ function formatDateShort(date: Date): string {
   return `${day} ${monthNames[date.getUTCMonth()]}`;
 }
 
+/** Projects the patient's own records, using checked outcomes for AI-derived entries. */
 export async function timelineRoutes(app: FastifyInstance) {
   /**
    * GET /patients/self/timeline (API spec §13, Screen 8)
@@ -97,6 +99,7 @@ export async function timelineRoutes(app: FastifyInstance) {
           encounterId: aiSessions.encounterId,
           startedAt: aiSessions.startedAt,
           purpose: aiSessions.purpose,
+          patientOutcome: aiSessions.patientOutcome,
           chiefConcern: encounters.chiefConcern,
         })
         .from(aiSessions)
@@ -106,11 +109,12 @@ export async function timelineRoutes(app: FastifyInstance) {
 
       for (const a of aiRows) {
         const date = a.startedAt;
+        const checked = patientCheckinOutcomeSchema.safeParse(a.patientOutcome);
         items.push({
           id: `ai-${a.id}`,
           type: "AI_CHECKIN",
           title: a.chiefConcern ? `${a.chiefConcern} check-in` : "AI Health check-in",
-          summary: "Low-risk pattern · self-care guidance saved to record.",
+          summary: checked.success && checked.data.disposition ? checked.data.summary : "Checked outcome unavailable for this older result.",
           timestamp: date.toISOString(),
           date_formatted: formatDateShort(date),
           chapter: getChapter(date),

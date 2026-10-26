@@ -233,6 +233,7 @@ export const relationshipViewSchema = z.object({
 export type RelationshipView = z.infer<typeof relationshipViewSchema>;
 
 export const doctorOptionSchema = z.object({
+  verification_status: z.enum(["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED", "SUSPENDED"]).optional(),
   doctor_id: z.string().uuid(),
   name: z.string(),
   speciality: z.string().nullable(),
@@ -248,6 +249,7 @@ export const doctorDirectoryEntrySchema = z.object({
   status: z.string(),
   relationship_status: z.string().nullable(),
   last_encounter_at: z.string().nullable(),
+  next_appointment_at: z.string().nullable().optional(),
 });
 export type DoctorDirectoryEntry = z.infer<typeof doctorDirectoryEntrySchema>;
 
@@ -261,7 +263,9 @@ export const encounterViewSchema = z.object({
 export type EncounterView = z.infer<typeof encounterViewSchema>;
 
 export const timelineEntrySchema = z.object({
-  kind: z.enum(["appointment", "encounter"]),
+  kind: z.enum(["appointment", "encounter", "document", "prescription"]),
+  id: z.string().optional(),
+  provenance: z.enum(["DOCTOR_AUTHORED", "PATIENT_REPORTED", "SOURCE_DOCUMENT"]).optional(),
   at: z.string(),
   label: z.string(),
 });
@@ -282,6 +286,13 @@ export const doctorWorkspaceSchema = z.object({
   relationships: z.array(relationshipViewSchema),
   appointments: z.array(appointmentViewSchema),
   timeline: z.array(timelineEntrySchema),
+  access_scope: z.literal("DOCTOR_OWN_RECORDS").optional(),
+  current_concern_at: z.string().nullable().optional(),
+  last_updated_at: z.string().nullable().optional(),
+  medications: z.array(z.lazy(() => medicationViewSchema)).optional(),
+  documents: z.array(z.lazy(() => documentViewSchema)).optional(),
+  reports: z.array(z.lazy(() => labReportViewSchema)).optional(),
+  prescriptions: z.array(z.object({ id: z.string(), encounter_id: z.string().nullable(), finalized_at: z.string() })).optional(),
 });
 export type DoctorWorkspace = z.infer<typeof doctorWorkspaceSchema>;
 
@@ -468,9 +479,20 @@ export const prescriptionViewSchema = z.object({
 });
 export type PrescriptionView = z.infer<typeof prescriptionViewSchema>;
 
-export const medicationStatusSchema = z.enum(["CURRENT", "PAST", "UNKNOWN_STATUS"]);
+export const medicationStatusSchema = z.enum(["CURRENT", "PAST", "DISCONTINUED", "UNKNOWN_STATUS"]);
 
 export const medicationViewSchema = z.object({
+  entry_id: z.string().optional(),
+  source_kind: z.enum(["RECORDED_EXPOSURE", "PRESCRIPTION"]).optional(),
+  strength: z.string().nullable().optional(),
+  duration: z.string().nullable().optional(),
+  timing: z.string().nullable().optional(),
+  instructions: z.string().nullable().optional(),
+  started_on: z.string().nullable().optional(),
+  ended_on: z.string().nullable().optional(),
+  reason_for_use: z.string().nullable().optional(),
+  recorded_at: z.string().nullable().optional(),
+  prescription_version_number: z.number().int().positive().nullable().optional(),
   medicine_name: z.string(),
   dose: z.string().nullable(),
   route: z.string().nullable(),
@@ -752,7 +774,7 @@ export const interactionBlockViewSchema = z.object({
 export type InteractionBlockView = z.infer<typeof interactionBlockViewSchema>;
 
 export const interactionStartSchema = z.object({
-  chief_concern: z.string().min(1),
+  chief_concern: z.string().trim().min(1),
 });
 export type InteractionStart = z.infer<typeof interactionStartSchema>;
 
@@ -828,6 +850,9 @@ export const STATUTORY_NON_REUSE_WARNING =
   "Prior treatment is not authorization for reuse. Medicines prescribed for earlier episodes should never be restarted without consulting a doctor.";
 
 export const patientCheckinOutcomeSchema = z.object({
+  disposition: z.enum(["SELF_CARE", "DOCTOR_REVIEW", "URGENT"]).optional(),
+  requires_urgent_escalation: z.boolean().optional(),
+  requires_doctor_review: z.boolean().optional(),
   summary: z.string(),
   low_risk_guidance: z.array(z.string()).default([]),
   uncertainty_level: z.enum(["LOW", "MEDIUM", "HIGH"]).default("LOW"),
@@ -838,6 +863,8 @@ export const patientCheckinOutcomeSchema = z.object({
 export type PatientCheckinOutcome = z.infer<typeof patientCheckinOutcomeSchema>;
 
 export const aiSessionViewSchema = z.object({
+  started_at: z.string().optional(),
+  completed_at: z.string().nullable().optional(),
   ai_session_id: z.string().uuid(),
   encounter_id: z.string().uuid(),
   status: aiRunStatusSchema,

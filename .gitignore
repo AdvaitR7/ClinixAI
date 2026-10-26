@@ -9,6 +9,8 @@ apps/web/.env.local
 # Dependencies / builds
 node_modules/
 .next/
+.next-browser-tests/
+.next-verification/
 dist/
 .turbo/
 *.tsbuildinfo
@@ -18,3 +20,6 @@ playwright-report/
 # Misc
 .DS_Store
 *.log
+
+# Generated copyright deposits and complete source listings
+/copyright-submission/

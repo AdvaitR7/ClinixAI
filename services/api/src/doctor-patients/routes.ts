@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { and, desc, eq, inArray, max } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, max } from "drizzle-orm";
 import { doctorCreatePatientSchema } from "@clinix/schemas";
 import { authorizePatientAccess, requireDoctor } from "../auth/guards.js";
 import { hashIdentity } from "../crypto.js";
@@ -9,11 +9,17 @@ import { decryptMinimal, encryptPatientIdentity, isAdult } from "../patients/ide
 import {
   appointments,
   encounters,
+  documents,
+  labReports,
+  prescriptions,
+  prescriptionVersions,
   patientDoctorRelationships,
   patientIdentity,
   patients,
 } from "../schema.js";
 import { appointmentView } from "../appointments/map.js";
+import { medicationsForPatient } from "../medications/derive.js";
+import { loadReportView } from "../documents/routes.js";
 
 const PHONE_RE = /^\+?\d[\d\s()-]*$/;
 
@@ -118,7 +124,7 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
         const lower = needle.toLowerCase();
         matched = scoped.filter((r) => {
           if (!r.identity) return false;
-          return decryptMinimal(r.identity).full_name.toLowerCase().includes(lower);
+          return decryptMinimal(r.identity).full_name.toLowerCase().includes(lower) || r.patientId.toLowerCase().includes(lower);
         });
       }
     }
@@ -133,7 +139,7 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
               lastAt: max(encounters.startedAt),
             })
             .from(encounters)
-            .where(inArray(encounters.patientId, ids))
+            .where(and(inArray(encounters.patientId, ids), eq(encounters.relatedDoctorId, doctorId)))
             .groupBy(encounters.patientId);
     const lastByPatient = new Map(
       lastEncounters.map((e) => [
@@ -142,6 +148,14 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
       ]),
     );
 
+    const upcoming = ids.length ? await database.select({ patientId: appointments.patientId, at: appointments.scheduledStart })
+      .from(appointments).where(and(inArray(appointments.patientId, ids), eq(appointments.doctorId, doctorId),
+        inArray(appointments.status, ["REQUESTED", "CONFIRMED"]), gte(appointments.scheduledStart, new Date())))
+      .orderBy(asc(appointments.scheduledStart)) : [];
+    const nextByPatient = new Map<string, string>();
+    for (const appointment of upcoming) {
+      if (!nextByPatient.has(appointment.patientId)) nextByPatient.set(appointment.patientId, appointment.at.toISOString());
+    }
     return matched
       .map((r) => {
         const identity = r.identity ? decryptMinimal(r.identity) : null;
@@ -154,11 +168,13 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
           status: r.patientStatus,
           relationship_status: r.relationshipStatus,
           last_encounter_at: lastByPatient.get(r.patientId) ?? null,
+          next_appointment_at: nextByPatient.get(r.patientId) ?? null,
         };
       })
-      .sort((a, b) =>
-        (b.last_encounter_at ?? "").localeCompare(a.last_encounter_at ?? ""),
-      );
+      .filter((patient) => filter !== "upcoming" || patient.next_appointment_at !== null)
+      .sort((a, b) => filter === "upcoming"
+        ? (a.next_appointment_at ?? "").localeCompare(b.next_appointment_at ?? "")
+        : (b.last_encounter_at ?? "").localeCompare(a.last_encounter_at ?? ""));
   });
 
   app.get<{ Params: { patient_id: string } }>(
@@ -199,43 +215,47 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
       }
       const decrypted = decryptMinimal(identity);
 
-      const [latestEncounter, apptRows, encRows] = await Promise.all([
-        database
-          .select({ chiefConcern: encounters.chiefConcern })
-          .from(encounters)
-          .where(eq(encounters.patientId, patientId))
-          .orderBy(desc(encounters.startedAt))
-          .limit(1),
-        database
-          .select()
-          .from(appointments)
-          .where(eq(appointments.patientId, patientId))
-          .orderBy(desc(appointments.scheduledStart))
-          .limit(20),
-        database
-          .select()
-          .from(encounters)
-          .where(eq(encounters.patientId, patientId))
-          .orderBy(desc(encounters.startedAt))
-          .limit(20),
+      // Until scoped sharing exists, only this clinician's authored records are composed.
+      const [apptRows, encRows, documentRows, rxRows, medications] = await Promise.all([
+        database.select().from(appointments)
+          .where(and(eq(appointments.patientId, patientId), eq(appointments.doctorId, doctorId)))
+          .orderBy(desc(appointments.scheduledStart)),
+        database.select().from(encounters)
+          .where(and(eq(encounters.patientId, patientId), eq(encounters.relatedDoctorId, doctorId)))
+          .orderBy(desc(encounters.startedAt)),
+        database.select().from(documents)
+          .where(and(eq(documents.patientId, patientId), eq(documents.uploadedByActorType, "DOCTOR"), eq(documents.uploadedByActorId, doctorId), isNull(documents.deletedAt)))
+          .orderBy(desc(documents.createdAt)),
+        database.select({ id: prescriptions.id, encounterId: prescriptions.encounterId, finalizedAt: prescriptionVersions.finalizedAt })
+          .from(prescriptions).innerJoin(prescriptionVersions, eq(prescriptionVersions.id, prescriptions.currentVersionId))
+          .where(and(eq(prescriptions.patientId, patientId), eq(prescriptions.doctorId, doctorId)))
+          .orderBy(desc(prescriptionVersions.finalizedAt)),
+        medicationsForPatient(patientId, doctorId),
       ]);
+      const reportRows = documentRows.length ? await database.select({ id: labReports.id }).from(labReports)
+        .where(and(eq(labReports.patientId, patientId), inArray(labReports.documentId, documentRows.map((doc) => doc.id)))) : [];
+      const reports = (await Promise.all(reportRows.map((report) => loadReportView(report.id)))).filter((report) => report !== null);
 
       const appointmentsView = apptRows.map((a) => appointmentView(a, decrypted.full_name));
 
       const timeline = [
         ...encRows.map((e) => ({
           kind: "encounter" as const,
+          id: e.id,
+          provenance: e.initiatedByActorType === "DOCTOR" ? "DOCTOR_AUTHORED" as const : "PATIENT_REPORTED" as const,
           at: e.startedAt.toISOString(),
           label: `Encounter · ${e.encounterType}${e.chiefConcern ? ` — ${e.chiefConcern}` : ""}`,
         })),
         ...apptRows.map((a) => ({
           kind: "appointment" as const,
+          id: a.id,
+          provenance: undefined,
           at: a.scheduledStart.toISOString(),
           label: `Appointment · ${a.status}`,
         })),
-      ]
-        .sort((a, b) => b.at.localeCompare(a.at))
-        .slice(0, 20);
+        ...documentRows.map((doc) => ({ kind: "document" as const, id: doc.id, provenance: "SOURCE_DOCUMENT" as const, at: doc.createdAt.toISOString(), label: doc.originalFilename })),
+        ...rxRows.map((rx) => ({ kind: "prescription" as const, id: rx.id, provenance: "DOCTOR_AUTHORED" as const, at: rx.finalizedAt.toISOString(), label: "Prescription finalized" })),
+      ].sort((a, b) => b.at.localeCompare(a.at));
 
       return {
         patient_id: patientId,
@@ -248,7 +268,15 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
         },
         allergies: [],
         consent_active: null,
-        current_concern: latestEncounter[0]?.chiefConcern ?? null,
+        access_scope: "DOCTOR_OWN_RECORDS",
+        current_concern: encRows[0]?.chiefConcern ?? null,
+        current_concern_at: encRows[0]?.startedAt.toISOString() ?? null,
+        last_updated_at: [identity.updatedAt, ...encRows.map((row) => row.updatedAt), ...apptRows.map((row) => row.updatedAt), ...documentRows.map((row) => row.createdAt), ...rxRows.map((row) => row.finalizedAt)]
+          .filter((value): value is Date => value instanceof Date).sort((a, b) => b.getTime() - a.getTime())[0]?.toISOString() ?? null,
+        medications,
+        reports,
+        documents: documentRows.map((doc) => ({ document_id: doc.id, document_type: doc.documentType, original_filename: doc.originalFilename, mime_type: doc.mimeType, file_size_bytes: doc.fileSizeBytes, processing_status: doc.processingStatus, created_at: doc.createdAt.toISOString(), view_url: null })),
+        prescriptions: rxRows.map((rx) => ({ id: rx.id, encounter_id: rx.encounterId, finalized_at: rx.finalizedAt.toISOString() })),
         relationships: [],
         appointments: appointmentsView,
         timeline,

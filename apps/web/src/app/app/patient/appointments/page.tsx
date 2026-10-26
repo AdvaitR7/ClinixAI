@@ -1,193 +1,451 @@
 "use client";
 
-import { useAuth } from "@/lib/auth";
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { PatientAppointmentView } from "@clinix/schemas";
-import { WorkspaceShell } from "@/components/workspace-shell";
-import { Skeleton } from "@/components/skeleton";
-import { StatusBadge } from "@/components/status-badge";
+import { useAuth } from "@/lib/auth";
 import { fetchApi, useApiData } from "@/lib/api";
+import { WorkspaceShell } from "@/components/workspace-shell";
+import { StatusBadge } from "@/components/status-badge";
+import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
+import {
+  PatientVisitHeader,
+  patientVisitNav,
+} from "@/components/patient-visit-header";
 
-const nav = [
-  { label: "Home", href: "/app/patient" },
-  { label: "Timeline", href: "/app/patient/timeline" },
-  { label: "Vault", href: "/app/patient/vault" },
-  { label: "Visits", href: "/app/patient/appointments", active: true },
-  { label: "Care", href: "/app/patient/medications" },
-];
+const tabs = ["Upcoming", "Past", "Cancelled"] as const;
+type VisitTab = (typeof tabs)[number];
 
-const TABS = ["Upcoming", "Past", "Cancelled"] as const;
-
-function fmtAt(iso: string) {
-  return new Date(iso).toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function bucket(a: PatientAppointmentView): (typeof TABS)[number] | null {
-  if (a.status === "CANCELLED") return "Cancelled";
-  const past = new Date(a.scheduled_start).getTime() < Date.now();
-  if (a.status === "COMPLETED" || a.status === "NO_SHOW") return "Past";
-  if (past && a.status !== "REQUESTED" && a.status !== "CONFIRMED") return "Past";
+/** Buckets overdue active requests into history instead of implying a future visit. */
+function bucket(appointment: PatientAppointmentView): VisitTab {
+  if (appointment.status === "CANCELLED") return "Cancelled";
+  if (
+    appointment.status === "COMPLETED" ||
+    appointment.status === "NO_SHOW" ||
+    new Date(appointment.scheduled_start).getTime() < Date.now()
+  )
+    return "Past";
   return "Upcoming";
 }
+/** Presents the doctor's manual payment state separately from consultation status. */
+function PaymentBadge({ value }: { value: string }) {
+  const style =
+    value === "PAID"
+      ? "border-botanical bg-botanical text-surface"
+      : value === "REQUESTED"
+        ? "border-evidence text-graphite"
+        : value === "WAIVED"
+          ? "border-sage text-graphite"
+          : "border-copper text-ink";
+  return (
+    <span className={`rounded-full border px-3 py-1 text-[9px] ${style}`}>
+      {value.replaceAll("_", " ")}
+    </span>
+  );
+}
 
-/** Page 11 — Patient appointments (SCREEN_CATALOG §7, Figma 32:27). */
+/** Wraps query-driven booking confirmation in a production-safe suspense boundary. */
 export default function PatientAppointmentsPage() {
-  const { getToken } = useAuth();
-  const state = useApiData<PatientAppointmentView[]>("/patients/self/appointments");
-  const [tab, setTab] = useState<(typeof TABS)[number]>("Upcoming");
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  return (
+    <Suspense
+      fallback={
+        <p role="status" className="p-6">
+          Loading appointments…
+        </p>
+      }
+    >
+      <Appointments />
+    </Suspense>
+  );
+}
 
-  async function cancel(id: string) {
+/** Lists actual visits and confirms cancellation before the approved cancel-and-rebook transition. */
+function Appointments() {
+  const { getToken } = useAuth();
+  const router = useRouter();
+  const query = useSearchParams();
+  const state = useApiData<PatientAppointmentView[]>(
+    "/patients/self/appointments",
+  );
+  const [tab, setTab] = useState<VisitTab>("Upcoming");
+  const [action, setAction] = useState<{
+    appointment: PatientAppointmentView;
+    reschedule: boolean;
+  } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const actionRef = useRef<HTMLButtonElement>(null);
+  const saving = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const rows = state.status === "ready" ? state.data : [];
+  const filtered = rows.filter((row) => bucket(row) === tab);
+  const booked = rows.find((row) => row.id === query.get("booked"));
+
+  /** Opens the selected visit's confirmation and retains its keyboard return target. */
+  function openAction(
+    appointment: PatientAppointmentView,
+    reschedule: boolean,
+    trigger: HTMLButtonElement,
+  ) {
+    actionRef.current = trigger;
+    setError(null);
+    setAction({ appointment, reschedule });
+  }
+  /** Cancels only after explicit review, preserving failures and never creating a replacement implicitly. */
+  async function confirmAction() {
+    if (!action || saving.current) return;
+    saving.current = true;
     setBusy(true);
+    setError(null);
     try {
       const token = await getToken();
-      if (!token) return;
-      await fetchApi(token, `/appointments/${id}/cancel`, { method: "POST", body: "{}" });
-      await state.refresh();
-      setCancellingId(null);
+      if (!token) throw new Error("Authentication required");
+      await fetchApi(token, `/appointments/${action.appointment.id}/cancel`, {
+        method: "POST",
+        body: "{}",
+      });
+      if (!mounted.current) return;
+      if (action.reschedule) {
+        router.push(
+          `/app/patient/book?rebook=${encodeURIComponent(action.appointment.id)}`,
+        );
+      } else {
+        setNotice(
+          `Appointment with Dr. ${action.appointment.doctor_name || "your doctor"} was cancelled.`,
+        );
+        setAction(null);
+        setTab("Cancelled");
+        await state.refresh();
+      }
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Cancellation could not be confirmed. Retry or reload your appointments.",
+      );
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   }
 
-  const filtered = state.status === "ready"
-    ? state.data.filter((a) => bucket(a) === tab)
-    : [];
-
   return (
-    <WorkspaceShell workspace="Patient" title="Appointments" nav={nav}>
-      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-sage/20 p-1" role="tablist">
-        {TABS.map((t) => (
+    <WorkspaceShell
+      workspace="Patient"
+      title="Appointments"
+      nav={patientVisitNav.map((item) => ({
+        ...item,
+        active: item.label === "Visits",
+      }))}
+      focused
+      flowNavigation
+      hideHeading
+      headerContent={
+        <PatientVisitHeader
+          backHref="/app/patient"
+          action={
+            <Link
+              href="/app/patient/book"
+              className="inline-flex min-h-9 items-center rounded-full border border-botanical px-3 text-[10px] text-botanical"
+            >
+              + Book
+            </Link>
+          }
+        />
+      }
+    >
+      <div>
+        <p className="text-[9px] text-graphite uppercase">
+          Patient record · appointments
+        </p>
+        <h1 className="mt-4 text-[30px] leading-tight">Appointments</h1>
+        <p className="mt-2 text-xs leading-relaxed text-graphite">
+          Upcoming consultations, visit history and manual payment status.
+        </p>
+      </div>
+      {booked && (
+        <p
+          role="status"
+          className="rounded-2xl border border-sage bg-surface p-4 text-xs"
+        >
+          Your booking is recorded as {booked.status.toLowerCase()}. No health
+          records were shared by the booking.
+        </p>
+      )}
+      {notice && (
+        <p
+          role="status"
+          className="rounded-2xl border border-sage bg-surface p-4 text-xs"
+        >
+          {notice}
+        </p>
+      )}
+      <div
+        className="grid grid-cols-3 gap-1 rounded-2xl bg-surface p-1 shadow-sm"
+        role="tablist"
+        aria-label="Appointment lists"
+      >
+        {tabs.map((item) => (
           <button
-            key={t}
+            key={item}
+            id={`visits-${item}`}
             type="button"
             role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={`min-h-10 rounded-xl font-sans text-xs font-semibold transition-colors ${
-              tab === t ? "bg-surface text-botanical shadow-sm" : "text-graphite hover:text-ink"
-            }`}
+            aria-controls="visits-panel"
+            aria-selected={tab === item}
+            onClick={() => setTab(item)}
+            className={`min-h-10 rounded-full text-[10px] ${tab === item ? "bg-botanical text-surface" : "text-graphite"}`}
           >
-            {t}
+            {item} · {rows.filter((row) => bucket(row) === item).length}
           </button>
         ))}
       </div>
-
+      <p className="rounded-2xl border border-hairline bg-surface p-4 text-[11px] leading-relaxed text-graphite">
+        Payment status is set manually by the doctor or clinic; it is never
+        inferred by AI.
+      </p>
       {state.status === "loading" && (
-        <div className="space-y-3" aria-hidden="true">
-          <Skeleton className="h-28 rounded-3xl" />
-          <Skeleton className="h-28 rounded-3xl" />
-        </div>
+        <p role="status" className="text-sm">
+          Loading appointments…
+        </p>
       )}
-
       {state.status === "error" && (
-        <section className="clinix-card p-5">
-          <p className="font-sans text-sm text-critical">{state.error}</p>
+        <section className="rounded-2xl border border-critical bg-surface p-4">
+          <p role="alert" className="text-sm text-critical">
+            {state.error}
+          </p>
+          <button
+            type="button"
+            onClick={() => void state.refresh()}
+            className="mt-3 min-h-11 text-sm underline"
+          >
+            Retry appointments
+          </button>
         </section>
       )}
-
       {state.status === "ready" && (
-        <section className="space-y-4">
-          {filtered.length === 0 ? (
-            <div className="clinix-card p-6 text-center">
-              <p className="font-sans text-sm font-semibold text-ink">No {tab.toLowerCase()} appointments</p>
-              <p className="mt-1 font-sans text-xs text-graphite">When you schedule visits with a doctor, they will appear here.</p>
+        <section
+          id="visits-panel"
+          role="tabpanel"
+          aria-labelledby={`visits-${tab}`}
+          className="space-y-5"
+        >
+          <h2 className="text-[10px] text-botanical uppercase">{tab}</h2>
+          {!filtered.length && (
+            <div className="rounded-[24px] border border-dashed border-sage bg-surface p-6 text-center">
+              <p className="text-sm">No {tab.toLowerCase()} appointments</p>
+              <Link
+                href="/app/patient/book"
+                className="mt-4 inline-flex min-h-11 items-center text-xs text-botanical underline"
+              >
+                Book new appointment
+              </Link>
             </div>
-          ) : (
-            filtered.map((a) => (
-              <div key={a.id} className="clinix-card p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-sans text-base font-bold text-ink">Dr. {a.doctor_name}</h3>
-                    <p className="mt-0.5 font-sans text-xs text-graphite">{a.speciality || "General Physician"}</p>
-                  </div>
-                  <StatusBadge status={a.status} />
-                </div>
-
-                <div className="mt-3 flex items-center gap-2 rounded-xl bg-canvas p-2.5 font-mono text-xs text-botanical">
-                  <span>📅</span>
-                  <span>{fmtAt(a.scheduled_start)} · {a.appointment_type.replace(/_/g, " ")}</span>
-                </div>
-
-                {a.reason && (
-                  <p className="mt-2.5 font-sans text-xs leading-5 text-graphite">
-                    <span className="font-semibold text-ink">Reason: </span>
-                    {a.reason}
+          )}
+          {filtered.map((appointment) => {
+            const active =
+              appointment.status === "REQUESTED" ||
+              appointment.status === "CONFIRMED";
+            const online = appointment.appointment_type === "ONLINE";
+            return (
+              <article
+                key={appointment.id}
+                className="rounded-[24px] border border-hairline bg-surface p-4 shadow-sm"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[9px] text-botanical uppercase">
+                    {online ? "Online consultation" : "In-clinic visit"}
                   </p>
-                )}
-
-                <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-sans text-[11px] text-graphite">Payment:</span>
-                    <StatusBadge status={a.payment_status} />
+                  <PaymentBadge value={appointment.payment_status} />
+                </div>
+                <h3 className="mt-4 break-words text-xl">
+                  {appointment.doctor_name
+                    ? `Dr. ${appointment.doctor_name}`
+                    : "Doctor name unavailable"}
+                </h3>
+                <p className="mt-1 text-[11px] text-graphite">
+                  {appointment.speciality ?? "Speciality unavailable"}
+                </p>
+                <div className="mt-4 flex justify-between gap-4 border-t border-hairline pt-3 text-xs">
+                  <div>
+                    <p className="text-[9px] text-graphite uppercase">
+                      Date &amp; time
+                    </p>
+                    <p className="mt-2">
+                      {new Date(appointment.scheduled_start).toLocaleDateString(
+                        "en-IN",
+                        {
+                          timeZone: "Asia/Kolkata",
+                          weekday: "long",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        },
+                      )}
+                    </p>
                   </div>
-                  {a.status === "REQUESTED" && (
+                  <p className="self-end whitespace-nowrap">
+                    {new Date(appointment.scheduled_start).toLocaleTimeString(
+                      "en-IN",
+                      {
+                        timeZone: "Asia/Kolkata",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}
+                  </p>
+                </div>
+                <p className="mt-4 text-[9px] text-graphite uppercase">
+                  Reason
+                </p>
+                <p className="mt-2 break-words text-xs">
+                  {appointment.reason || "Not provided"}
+                </p>
+                {!online && (
+                  <div className="mt-4">
+                    <p className="text-[9px] text-graphite uppercase">
+                      Clinic address
+                    </p>
+                    <div className="mt-2 rounded-2xl border border-hairline bg-canvas p-4 text-xs text-graphite">
+                      Clinic address unavailable
+                    </div>
+                  </div>
+                )}
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="mb-2 text-[9px] text-graphite uppercase">
+                      Consultation
+                    </p>
+                    <StatusBadge status={appointment.status} />
+                  </div>
+                  {!online && (
                     <button
                       type="button"
-                      onClick={() => setCancellingId(a.id)}
-                      className="rounded-full border border-critical/40 bg-critical/10 px-3.5 py-1 font-sans text-xs font-semibold text-critical hover:bg-critical/20"
+                      disabled
+                      className="min-h-11 text-[10px] text-graphite/60"
                     >
-                      Cancel request
+                      Open directions unavailable
                     </button>
                   )}
                 </div>
-              </div>
-            ))
-          )}
-
-          <Link
-            href="/app/patient/book"
-            className="block min-h-[54px] rounded-[1.25rem] bg-copper px-4 py-4 text-center font-sans text-sm font-bold uppercase tracking-wider text-ink transition-transform active:translate-y-px"
-          >
-            Book new appointment
-          </Link>
-
-          {/* Cancellation confirm modal */}
-          {cancellingId && (
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="cancel-dialog-title"
-              className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
-            >
-              <div className="w-full max-w-sm rounded-[1.75rem] border border-sage bg-surface p-6 shadow-2xl">
-                <h3 id="cancel-dialog-title" className="font-sans text-lg font-bold text-ink">
-                  Cancel appointment request?
-                </h3>
-                <p className="mt-2 font-sans text-xs leading-5 text-graphite">
-                  This appointment request will be marked cancelled and the reserved slot will be freed.
-                </p>
-                <div className="mt-5 flex gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setCancellingId(null)}
-                    disabled={busy}
-                    className="min-h-11 flex-1 rounded-xl border border-hairline bg-surface font-sans text-xs font-semibold text-graphite"
-                  >
-                    Keep visit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => cancel(cancellingId)}
-                    disabled={busy}
-                    className="min-h-11 flex-1 rounded-xl bg-critical font-sans text-xs font-semibold text-surface disabled:opacity-60"
-                  >
-                    {busy ? "Cancelling…" : "Yes, cancel"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+                {online && active && (
+                  <>
+                    <button
+                      type="button"
+                      disabled
+                      className="mt-4 min-h-[46px] w-full rounded-[16px] bg-botanical px-3 text-xs text-surface opacity-50"
+                    >
+                      JOIN ONLINE CONSULTATION
+                    </button>
+                    <p className="mt-2 text-[10px] text-graphite">
+                      Video provider unavailable; no join link is connected.
+                    </p>
+                  </>
+                )}
+                {active && tab === "Upcoming" && (
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={(e) =>
+                        openAction(appointment, true, e.currentTarget)
+                      }
+                      className="min-h-11 text-[10px] text-botanical"
+                    >
+                      Reschedule
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) =>
+                        openAction(appointment, false, e.currentTarget)
+                      }
+                      className="min-h-11 text-[10px] text-critical"
+                    >
+                      Cancel appointment
+                    </button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </section>
+      )}
+      <section>
+        <h2 className="text-[10px] text-graphite uppercase">Payment states</h2>
+        <div className="mt-3 rounded-2xl border border-sage bg-surface p-3">
+          <div className="flex flex-wrap gap-2">
+            {["PAID", "REQUESTED", "UNPAID", "WAIVED"].map(
+              (value) => (
+                <PaymentBadge key={value} value={value} />
+              ),
+            )}
+          </div>
+          <p className="mt-3 text-[10px] text-graphite">
+            Set manually by the doctor or clinic; never inferred by AI.
+          </p>
+        </div>
+      </section>
+      {action && (
+        <ClinicalReviewDialog
+          titleId="visit-action-title"
+          busy={busy}
+          returnFocusRef={actionRef}
+          onClose={() => {
+            if (!busy) setAction(null);
+          }}
+        >
+          <h2 id="visit-action-title" className="text-xl">
+            {action.reschedule
+              ? "Choose another appointment time?"
+              : "Cancel appointment?"}
+          </h2>
+          <p className="mt-4 text-sm">
+            Dr. {action.appointment.doctor_name} ·{" "}
+            {new Date(action.appointment.scheduled_start).toLocaleString(
+              "en-IN",
+              { timeZone: "Asia/Kolkata" },
+            )}
+          </p>
+          <p className="mt-4 text-sm leading-relaxed">
+            {action.reschedule
+              ? "Rescheduling uses cancel and re-book. This cancels the current visit first. A replacement is not reserved until you choose and confirm a new time."
+              : "This cancels the selected appointment and releases its slot. No payment refund is performed by this action."}
+          </p>
+          {error && (
+            <p role="alert" className="mt-4 text-sm text-copper">
+              {error}
+            </p>
+          )}
+          <div className="mt-6 space-y-3">
+            <button
+              type="button"
+              onClick={() => void confirmAction()}
+              disabled={busy}
+              className="min-h-12 w-full rounded-xl bg-critical px-3 text-sm text-surface disabled:opacity-50"
+            >
+              {busy
+                ? "CANCELLING…"
+                : action.reschedule
+                  ? "Cancel and choose new time"
+                  : "Yes, cancel"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAction(null)}
+              disabled={busy}
+              className="min-h-11 w-full rounded-xl border border-sage text-sm disabled:opacity-50"
+            >
+              Keep visit
+            </button>
+          </div>
+        </ClinicalReviewDialog>
       )}
     </WorkspaceShell>
   );

@@ -57,13 +57,13 @@ async function doctorName(doctorId: string): Promise<string> {
   return rows[0]?.name ?? "";
 }
 
-/** Loads a full prescription view (all versions + items + finalizer names). */
-async function loadPrescriptionView(id: string): Promise<PrescriptionView | null> {
+/** Loads immutable prescription versions, restricting the initial read to the patient when supplied. */
+async function loadPrescriptionView(id: string, patientId?: string): Promise<PrescriptionView | null> {
   const database = requireDb();
   const [rx] = await database
     .select()
     .from(prescriptions)
-    .where(eq(prescriptions.id, id))
+    .where(and(eq(prescriptions.id, id), patientId ? eq(prescriptions.patientId, patientId) : undefined))
     .limit(1);
   if (!rx) return null;
 
@@ -649,7 +649,7 @@ export async function prescriptionRoutes(app: FastifyInstance) {
       const patientId = requirePatient(request, reply);
       if (typeof patientId !== "string") return patientId;
 
-      const view = await loadPrescriptionView(request.params.prescription_id);
+      const view = await loadPrescriptionView(request.params.prescription_id, patientId);
       // 404 (not 403): avoid leaking the existence of other patients' records.
       if (!view || view.patient_id !== patientId) {
         return error(request, reply, 404, "NOT_FOUND", "Prescription not found");

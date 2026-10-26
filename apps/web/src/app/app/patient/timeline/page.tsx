@@ -208,9 +208,11 @@ export default function PatientTimelinePage() {
 
                         {/* Card Deep Link */}
                         <div className="mt-3 flex items-center justify-between border-t border-hairline/60 pt-2">
-                          <span className="font-sans text-[10px] font-semibold text-evidence">
-                            View details &amp; sources →
-                          </span>
+                          {item.type === "AI_CHECKIN" && typeof item.metadata?.ai_session_id === "string" ? (
+                            <Link href={`/app/patient/timeline/checkins/${encodeURIComponent(item.metadata.ai_session_id)}`} className="inline-flex min-h-11 items-center font-sans text-[10px] font-semibold text-evidence">View details &amp; sources →</Link>
+                          ) : (
+                            <span className="font-sans text-[10px] font-semibold text-evidence">View details &amp; sources →</span>
+                          )}
                           <span className="font-sans text-lg text-botanical/60">›</span>
                         </div>
                       </div>

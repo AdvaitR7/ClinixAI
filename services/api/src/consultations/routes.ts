@@ -221,7 +221,7 @@ export async function consultationRoutes(app: FastifyInstance) {
       )[0];
 
       const names = await patientNames([appt.patientId]);
-      const currentMedications = await medicationsForPatient(appt.patientId);
+      const currentMedications = await medicationsForPatient(appt.patientId, doctorId);
       const amendments = await database.select().from(consultationNotes).where(and(
         eq(consultationNotes.encounterId, encounterId),
         eq(consultationNotes.noteType, NOTE_AMENDMENT),

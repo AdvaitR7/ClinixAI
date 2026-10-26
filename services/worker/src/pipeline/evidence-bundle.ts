@@ -145,6 +145,7 @@ export async function buildEvidenceBundle(
       .select({
         blockTitle: interactionBlocks.title,
         selectedIds: interactionResponses.selectedOptionIds,
+        options: interactionBlocks.options,
         freeText: interactionResponses.freeText,
       })
       .from(interactionResponses)
@@ -158,7 +159,7 @@ export async function buildEvidenceBundle(
     for (const r of rawResponses) {
       responsesList.push({
         question_title: r.blockTitle,
-        selected_options: (r.selectedIds as string[]) ?? [],
+        selected_options: ((r.selectedIds as string[]) ?? []).map((id) => ((r.options as { id: string; label: string }[] | null) ?? []).find((option) => option.id === id)?.label ?? id),
         free_text: r.freeText ?? null,
       });
     }

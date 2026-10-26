@@ -103,23 +103,37 @@ export function WorkspaceShell({
   title,
   nav,
   children,
+  focused = false,
+  hideHeading = false,
+  hideNavigation = false,
+  headerAction,
+  headerContent,
+  flowNavigation = false,
 }: {
   workspace: string;
   title: string;
   nav: NavItem[];
   children: ReactNode;
+  focused?: boolean;
+  hideHeading?: boolean;
+  hideNavigation?: boolean;
+  headerAction?: ReactNode;
+  headerContent?: ReactNode;
+  flowNavigation?: boolean;
 }) {
   const doctor = workspace.toLowerCase().includes("doctor");
+  const width = focused ? "max-w-[393px]" : "max-w-[87.5rem]";
 
   return (
     <div className={`min-h-dvh ${doctor ? "bg-ink text-surface" : "bg-canvas text-ink"}`}>
       <header
-        className={`mx-auto flex w-full max-w-[87.5rem] items-center justify-between px-6 pb-3 pt-5 ${
+        className={`mx-auto flex w-full ${width} items-center justify-between px-6 pb-3 pt-5 ${
           doctor ? "bg-ink" : "bg-canvas"
         }`}
       >
-        <ClinixBrand inverted={doctor} />
-        <div className="flex items-center gap-2">
+        {headerContent ?? <>
+        <ClinixBrand inverted={doctor} monogram={focused} />
+        {headerAction ?? <div className="flex items-center gap-2">
           <span
             aria-hidden="true"
             className={`grid size-[38px] place-items-center rounded-full border ${
@@ -136,25 +150,26 @@ export function WorkspaceShell({
           <span className={`grid size-[38px] place-items-center rounded-full ${doctor ? "bg-copper" : "bg-botanical"}`}>
             <AccountMenu />
           </span>
-        </div>
+        </div>}
+        </>}
       </header>
 
-      <div className="mx-auto w-full max-w-[87.5rem] px-6 pt-2">
+      {!hideHeading && <div className={`mx-auto w-full ${width} px-6 pt-2`}>
         <p className={`clinix-label ${doctor ? "text-copper" : "text-graphite"}`}>
           {workspace} workspace
         </p>
         <h1 className={`mt-1 font-sans text-[1.75rem] font-bold leading-tight tracking-[-0.04em] ${doctor ? "text-surface" : "text-ink"}`}>
           {title}
         </h1>
-      </div>
+      </div>}
 
-      <main className="mx-auto w-full max-w-[87.5rem] space-y-6 px-6 pb-28 pt-6 md:pb-10">
+      <main className={`mx-auto w-full ${width} space-y-6 px-6 pt-6 ${flowNavigation ? "pb-6" : "pb-28 md:pb-10"}`}>
         {children}
       </main>
 
-      <nav
+      {!hideNavigation && <nav
         aria-label={`${workspace} workspace`}
-        className={`fixed inset-x-6 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 mx-auto max-w-[34rem] rounded-[1.5rem] border p-1 shadow-[0_12px_36px_rgba(0,0,0,0.18)] md:sticky md:inset-x-auto md:bottom-4 ${
+        className={`${flowNavigation ? "mx-auto mb-6 w-[calc(100%_-_3rem)] max-w-[345px]" : "fixed inset-x-6 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 mx-auto max-w-[34rem] md:sticky md:inset-x-auto md:bottom-4"} rounded-[1.5rem] border p-1 shadow-[0_12px_36px_rgba(0,0,0,0.18)] ${
           doctor
             ? "border-white/10 bg-doctor-panel"
             : "border-botanical/10 bg-botanical"
@@ -194,7 +209,7 @@ export function WorkspaceShell({
             </li>
           ))}
         </ul>
-      </nav>
+      </nav>}
     </div>
   );
 }

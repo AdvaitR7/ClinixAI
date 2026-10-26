@@ -19,14 +19,15 @@ const nav = [
 /** Page 16 — Patient Directory (SCREEN_CATALOG §7). */
 export default function DirectoryPage() {
   const [q, setQ] = useState("");
-  const [unclaimed, setUnclaimed] = useState(false);
+  const [filter, setFilter] = useState("recent");
   const params = new URLSearchParams();
   if (q.trim()) params.set("q", q.trim());
-  if (unclaimed) params.set("filter", "unclaimed");
+  if (filter !== "recent") params.set("filter", filter);
   const state = useApiData<DoctorDirectoryEntry[]>(`/doctor/patients${params.size ? `?${params.toString()}` : ""}`);
 
   return (
-    <WorkspaceShell workspace="Doctor" title="Find or begin a record" nav={nav}>
+    <WorkspaceShell workspace="Doctor" title="Patient directory" nav={nav} focused hideHeading>
+      <header><p className="clinix-label text-copper">Clinic record · Patient directory</p><h1 className="mt-2 font-sans text-[28px] font-semibold text-surface">Patient directory</h1></header>
       <section className="clinix-doctor-card border-copper p-4">
         <p className="clinix-label text-copper">Access boundary</p>
         <p className="mt-2 font-sans text-xs leading-5 text-doctor-muted/75">
@@ -49,14 +50,9 @@ export default function DirectoryPage() {
       </div>
 
       <div className="flex gap-2" aria-label="Directory filters">
-        <button type="button" className="min-h-11 rounded-full bg-copper px-4 font-sans text-xs font-semibold text-ink">Recent</button>
-        <button
-          type="button"
-          aria-pressed={unclaimed}
-          onClick={() => setUnclaimed((value) => !value)}
-          className={`min-h-11 rounded-full border px-4 font-sans text-xs font-semibold ${unclaimed ? "border-copper bg-copper text-ink" : "border-white/10 text-doctor-muted/75"}`}
-        >Unclaimed</button>
-        <button type="button" disabled className="min-h-11 rounded-full border border-white/10 px-4 font-sans text-xs text-doctor-muted/35">Follow-ups</button>
+        {["recent", "upcoming", "follow-ups", "unclaimed"].map((value) => (
+          <button key={value} type="button" disabled={value === "follow-ups"} title={value === "follow-ups" ? "Follow-up service is not available" : undefined} aria-pressed={filter === value} onClick={() => setFilter(value)} className={`min-h-11 rounded-full border px-3 font-sans text-xs font-semibold capitalize disabled:opacity-35 ${filter === value ? "border-copper bg-copper text-ink" : "border-white/10 text-doctor-muted/75"}`}>{value}</button>
+        ))}
       </div>
 
       {state.status === "loading" && (
@@ -65,7 +61,7 @@ export default function DirectoryPage() {
           <Skeleton className="h-52 rounded-[1.35rem]" />
         </div>
       )}
-      {state.status === "error" && <p role="alert" className="font-sans text-sm text-surface">{state.error}</p>}
+      {state.status === "error" && <div role="alert" className="font-sans text-sm text-surface"><p>{state.error}</p><button type="button" onClick={() => state.refresh()} className="mt-2 min-h-11 text-copper underline">Retry directory</button></div>}
       {state.status === "ready" && state.data.length === 0 && (
         <section className="clinix-doctor-card p-5">
           <p className="font-sans text-sm font-semibold text-surface">No patients found</p>
@@ -84,7 +80,7 @@ export default function DirectoryPage() {
           <ul className="space-y-3">
             {state.data.map((patient) => (
               <li key={patient.patient_id}>
-                <Link href={`/app/doctor/patients/${patient.patient_id}`} className="clinix-doctor-card block min-h-44 p-5">
+                <Link href={`/app/doctor/patients/${patient.patient_id}/context`} className="block min-h-44 rounded-[22px] border border-copper bg-graphite p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-copper font-sans text-sm font-bold text-ink">
@@ -92,11 +88,14 @@ export default function DirectoryPage() {
                       </span>
                       <div className="min-w-0">
                         <p className="truncate font-sans text-lg font-semibold text-surface">{patient.full_name}</p>
-                        <p className="mt-1 font-mono text-xs text-doctor-muted/65">{patient.phone}</p>
+                        <p className="mt-1 break-all font-mono text-xs text-doctor-muted/65">{patient.patient_id} · Mobile ending {patient.phone.slice(-4) || "not recorded"}</p>
                       </div>
                     </div>
                     <StatusBadge status={patient.status} />
                   </div>
+                  <p className="mt-3 font-sans text-xs text-surface">Next: {patient.next_appointment_at ? new Date(patient.next_appointment_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "No appointment scheduled"}</p>
+                  <p className="mt-2 font-sans text-xs text-doctor-muted">Allergy status not confirmed</p>
+                  <p className="mt-3 font-sans text-xs text-evidence">Open workspace →</p>
                   <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
                     <div>
                       <p className="clinix-label text-doctor-muted/45">Relationship</p>

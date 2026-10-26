@@ -1,5 +1,19 @@
 # Master navigation graph
 
+**Batch 6 (2026-10-26):** [Phase 3 medication provenance](12-medication-implementation.md) supersedes SCR-015/016 findings. Registry groups/filters, source-aligned detail, exact-version patient prescription view and selected encounter chapter are implemented and tested. Prescribed items remain UNKNOWN_STATUS; exposure/reaction authorship is not invented. Live database acceptance and unresolved You navigation remain open; neither screen is COMPLETE.
+
+
+**Batch 5 (2026-10-26):** [Phase 4 Health Vault and source lifecycle](11-vault-implementation.md) supersedes SCR-013/014 source findings. Source shelf, upload recovery, refreshed OCR reports, confirmed corrections, actual trends and a paginated original-file drawer are implemented and tested. Live storage/worker/database acceptance, exact observation-page provenance and the unresolved You destination remain open. Neither screen is certified COMPLETE.
+
+
+**Batch 4 (2026-10-26):** [Phase 3 booking and appointment management](10-appointment-implementation.md) supersedes the original SCR-017/022/023 findings. Visit selection/review, cancellation and approved cancel-and-rebook are implemented and tested; scoped packets, draft storage, clinic directions and video joining remain explicit limits.
+
+
+**Batch 3 (2026-10-25):** [Phase 5 check-in, safety, result and timeline detail](09-checkin-implementation.md) records current implementation and synthetic verification. SCR-012 now exists; SCR-008/009/010 and AI timeline links are corrected. Packet consent, optional measurements, richer adaptive blocks and live database/worker acceptance remain open.
+
+
+**Batch 2 (2026-10-25):** [Phase 2 patient-record implementation](08-patient-record-implementation.md) supersedes the original SCR-027/028/029 findings. Supported own-record workflows are implemented/tested; consent, safety-data and follow-up dependencies remain explicit.
+
 **Implementation update (2026-10-25):** [Clinical record and navigation batch](07-implementation-progress.md) records the current code, test results and remaining blockers. Audit evidence below is the original snapshot except where explicitly updated. No whole screen is COMPLETE.
 
 [Index](README.md) · [Screen hierarchy](01-information-architecture.md) · [Complete interaction inventory](02-interaction-map.md) · [Source/API traces](04-design-code-traceability.md)
@@ -105,12 +119,13 @@ flowchart LR
   SCR011 -.->|"INT-137: Home [Implemented]"| SCR006
   SCR011 -.->|"INT-142: Start check-in (empty list) [Implemented]"| SCR008
   SCR011 -.->|"INT-138: Timeline [Implemented]"| SCR011
-  SCR011 -.->|"INT-130, INT-131, INT-132, INT-133, INT-134, INT-135, INT-136: View details &amp; sources → [Missing]"| SCR012
+  SCR011 -->|"INT-130/134: selected AI entry [Implemented]"| SCR012
+  SCR011 -.->|"INT-131/132/133/135/136: non-AI details [Missing]"| SCR012
   SCR011 -.->|"INT-139: Reports [Implemented]"| SCR013
   SCR011 -.->|"INT-143: Care (actual dock label) [Broken]"| SCR015
   SCR011 -.->|"INT-143: Care (actual dock label) [Broken]"| SCR018
-  SCR012 -.->|"INT-146, INT-148: Open full result → / 1 other occurrences [Missing]"| SCR010
-  SCR012 -.->|"INT-144, INT-145: ← / 1 other occurrences [Missing]"| SCR011
+  SCR012 -.->|"INT-146, INT-148: selected full result [Implemented]"| SCR010
+  SCR012 -.->|"INT-144, INT-145: Back / Close [Implemented]"| SCR011
   SCR013 -.->|"INT-161: Home [Implemented]"| SCR006
   SCR013 -.->|"INT-162: Timeline [Partial]"| SCR011
   SCR013 -.->|"INT-163: Reports [Implemented]"| SCR013
@@ -130,17 +145,17 @@ flowchart LR
   SCR016 -.->|"INT-197: Close [Implemented]"| SCR015
   SCR016 -.->|"INT-196: ← [Missing]"| SCR015
   SCR017 -.->|"INT-218: Home [Implemented]"| SCR006
-  SCR017 -.->|"INT-219: Timeline [Partial]"| SCR011
+  SCR017 -.->|"INT-219: Timeline [Implemented]"| SCR011
   SCR017 -.->|"INT-220: Reports [Implemented]"| SCR013
-  SCR017 -.->|"INT-222: Care (actual dock label) [Broken]"| SCR015
-  SCR017 -.->|"INT-222: Care (actual dock label) [Broken]"| SCR018
-  SCR017 -.->|"INT-202: +  Book [Partial]"| SCR022
+  SCR017 -.->|"INT-222: Medications; Care Circle still absent [Partial]"| SCR015
+  SCR017 -.->|"INT-202: + Book [Implemented]"| SCR022
   USCR006["UNKNOWN destination / modal"]:::unknown
   SCR006 -.->|"INT-051, INT-052, INT-058, INT-059, INT-067"| USCR006
   USCR011["UNKNOWN destination / modal"]:::unknown
   SCR011 -.->|"INT-140"| USCR011
-  USCR012["UNKNOWN destination / modal"]:::unknown
-  SCR012 -.->|"INT-147, INT-149"| USCR012
+  USCR012["Scoped packet unavailable"]:::unknown
+  SCR012 -->|"INT-147: saved answers [Implemented]"| ANSWERS012["Read-only answer dialog"]:::action
+  SCR012 -.->|"INT-149: blocked packet"| USCR012
   USCR013["UNKNOWN destination / modal"]:::unknown
   SCR013 -.->|"INT-150, INT-152, INT-164"| USCR013
   USCR014["UNKNOWN destination / modal"]:::unknown
@@ -150,7 +165,7 @@ flowchart LR
   USCR016["UNKNOWN destination / modal"]:::unknown
   SCR016 -.->|"INT-198, INT-200"| USCR016
   USCR017["UNKNOWN destination / modal"]:::unknown
-  SCR017 -.->|"INT-201, INT-209, INT-215, INT-221"| USCR017
+  SCR017 -.->|"INT-209, INT-215, INT-221"| USCR017
   classDef screen fill:#201923,color:#EAE1EB,stroke:#453A2B
   classDef action fill:#453A2B,color:#EAE1EB,stroke:#DFA64F
   classDef unknown fill:#120F14,color:#DFA64F,stroke:#DFA64F,stroke-dasharray:4 4
@@ -195,21 +210,21 @@ flowchart LR
   SCR010 -.->|"INT-108, INT-109, INT-122: ← / 2 other occurrences [Implemented]"| SCR006
   SCR010 -.->|"INT-111: View timeline [Implemented]"| SCR011
   SCR010 -.->|"INT-112: Review reports [Implemented]"| SCR013
-  SCR010 -.->|"INT-118"| ASCR010_4{"SAVE TO VAULT"}:::action
-  ASCR010_4 -.->|"Broken: resulting screen/state"| SCR013
-  SCR010 -.->|"INT-116: Review sharing scope [Missing]"| SCR020
-  SCR010 -.->|"INT-117: BOOK DOCTOR + PACKET [Partial]"| SCR022
-  SCR022 -.->|"INT-318: Care (actual dock label) [Broken]"| SCR015
-  SCR022 -.->|"INT-296, INT-297: ← / 1 other occurrences [Missing]"| SCR017
-  SCR022 -.->|"INT-318: Care (actual dock label) [Broken]"| SCR018
-  SCR022 -.->|"INT-314, INT-315: Review exact packet contents → / 1 other o [Missing]"| SCR020
+  SCR010 -->|"INT-118: existing saved AI record; Vault action still Partial"| SCR011
+  SCR010 -->|"INT-116: scope-limit explanation [Partial]"| SCOPE010["No packet / access grant"]:::action
+  SCOPE010 -.->|"Phase 6 scope service blocked"| SCR020
+  SCR010 -.->|"INT-117: BOOK DOCTOR only; packet blocked [Partial]"| SCR022
+  SCR022 -.->|"INT-318: Medications; Care Circle still absent [Partial]"| SCR015
+  SCR022 -.->|"INT-296/297: Back / Cancel [Implemented]"| SCR017
+  SCR022 -->|"INT-314: unavailable-scope review [Partial]"| SCOPEB4["No packet or grant"]:::action
+  SCOPEB4 -.->|"INT-315: blocked scope service"| SCR020
   SCR022 -.->|"INT-316: REVIEW BOOKING [Implemented]"| SCR023
   SCR023 -.->|"INT-323"| ASCR023_5{"CONFIRM BOOKING"}:::action
   ASCR023_5 -.->|"Partial: resulting screen/state"| SCR017
-  SCR023 -.->|"INT-322: Review scope → [Missing]"| SCR020
-  SCR023 -.->|"INT-319, INT-320, INT-321, INT-324: ← / 3 other occurrences [Partial]"| SCR022
-  USCR010["UNKNOWN destination / modal"]:::unknown
-  SCR010 -.->|"INT-110"| USCR010
+  SCR023 -->|"INT-322: scope-limit explanation [Partial]"| SCOPEB4
+  SCR023 -.->|"INT-319/320/321/324: preserved edit state [Implemented]"| SCR022
+  USCR010["Frozen evidence review"]:::action
+  SCR010 -->|"INT-110: result basis [Implemented]"| USCR010
   classDef screen fill:#201923,color:#EAE1EB,stroke:#453A2B
   classDef action fill:#453A2B,color:#EAE1EB,stroke:#DFA64F
   classDef unknown fill:#120F14,color:#DFA64F,stroke:#DFA64F,stroke-dasharray:4 4
@@ -675,7 +690,11 @@ flowchart TD
   R27 -->|"Schedule"| R24
   R27 -->|"Drafts"| R32
   R27 -->|"Add / create"| R38
-  R27 -->|"Patient card"| R29
+  CTX["SCR-028 compact context<br/>/app/doctor/patients/[patientId]/context"]:::screen
+  R27 -->|"Patient card"| CTX
+  CTX -->|"Close / Back"| R27
+  CTX -->|"Open patient record"| R29
+  CTX -->|"Explicit confirmed visit"| R30
   R38 -->|"Desk"| R7
   R38 -->|"Schedule"| R24
   R38 -->|"Patients"| R27
@@ -685,7 +704,7 @@ flowchart TD
   R29 -->|"Schedule"| R24
   R29 -->|"Patients"| R27
   R29 -->|"Drafts"| R32
-  R29 -->|"Begin: first requested/confirmed appointment"| R30
+  R29 -->|"Begin: selected confirmed appointment"| R30
   R29 -->|"Create prescription after POST encounter"| R34
   R30 -->|"Desk"| R7
   R30 -->|"Schedule"| R24
@@ -752,19 +771,19 @@ Upload, observation confirmation, note autosave, manual payment changes, draft d
 | [INT-070](02-interaction-map.md#int-070) | [SCR-007](01-information-architecture.md#scr-007) | ! | Missing; Open notifications/alerts; header bell is aria-hidden decorative span. |
 | [INT-071](02-interaction-map.md#int-071) | [SCR-007](01-information-architecture.md#scr-007) | RM | Partial; Open profile/account options; design reference Page 0 names Settings. |
 | [INT-089](02-interaction-map.md#int-089) | [SCR-007](01-information-architecture.md#scr-007) | You | Missing; Open personal/account area; exact destination is UNKNOWN. |
-| [INT-110](02-interaction-map.md#int-110) | [SCR-010](01-information-architecture.md#scr-010) | View result basis | Missing; View outcome evidence/basis. |
+| [INT-110](02-interaction-map.md#int-110) | [SCR-010](01-information-architecture.md#scr-010) | View result basis | Resolved in batch 3: local frozen-evidence dialog with retry and focus return. |
 | [INT-140](02-interaction-map.md#int-140) | [SCR-011](01-information-architecture.md#scr-011) | You | Missing; Open personal/account area; exact destination is UNKNOWN. |
 | [INT-147](02-interaction-map.md#int-147) | [SCR-012](01-information-architecture.md#scr-012) | Check-in answers | Missing; Review saved check-in answers; read-only review destination UNKNOWN. |
 | [INT-149](02-interaction-map.md#int-149) | [SCR-012](01-information-architecture.md#scr-012) | Consultation packet | Missing; Open scoped consultation packet; exact review destination UNKNOWN. |
-| [INT-150](02-interaction-map.md#int-150) | [SCR-013](01-information-architecture.md#scr-013) | ← | Missing; Return from Vault; back control absent. |
-| [INT-152](02-interaction-map.md#int-152) | [SCR-013](01-information-architecture.md#scr-013) | View all 7 | Missing; View complete document shelf; no separate all-documents action. |
+| [INT-150](02-interaction-map.md#int-150) | [SCR-013](01-information-architecture.md#scr-013) | ← | Resolved in batch 5: established parent or local source/shelf/report/download result; see 11. |
+| [INT-152](02-interaction-map.md#int-152) | [SCR-013](01-information-architecture.md#scr-013) | View all 7 | Resolved in batch 5: established parent or local source/shelf/report/download result; see 11. |
 | [INT-164](02-interaction-map.md#int-164) | [SCR-013](01-information-architecture.md#scr-013) | You | Missing; Open personal/account area; exact destination is UNKNOWN. |
-| [INT-175](02-interaction-map.md#int-175) | [SCR-014](01-information-architecture.md#scr-014) | ← | Missing; Return from Vault/source preview; no matching back button. |
-| [INT-182](02-interaction-map.md#int-182) | [SCR-015](01-information-architecture.md#scr-015) | ← | Missing; Return from medication registry; no back control. |
+| [INT-175](02-interaction-map.md#int-175) | [SCR-014](01-information-architecture.md#scr-014) | ← | Partial: source Close/Escape return is verified; the separate dimmed background-header Back behavior remains unresolved. |
+| [INT-182](02-interaction-map.md#int-182) | [SCR-015](01-information-architecture.md#scr-015) | ← | Resolved in batch 6: established Reports parent or selected local read-only prescription source; see 12. |
 | [INT-194](02-interaction-map.md#int-194) | [SCR-015](01-information-architecture.md#scr-015) | You | Missing; Open personal/account area; exact destination is UNKNOWN. |
-| [INT-198](02-interaction-map.md#int-198) | [SCR-016](01-information-architecture.md#scr-016) | Original prescription | Missing; Open original prescription for this medication; API exists but no patient prescription UI consumer. |
-| [INT-200](02-interaction-map.md#int-200) | [SCR-016](01-information-architecture.md#scr-016) | OPEN ORIGINAL PRESCRIPTION | Missing; Open original prescription for this medication; API exists but no patient prescription UI consumer. |
-| [INT-201](02-interaction-map.md#int-201) | [SCR-017](01-information-architecture.md#scr-017) | ← | Missing; Return from appointments; header back absent. |
+| [INT-198](02-interaction-map.md#int-198) | [SCR-016](01-information-architecture.md#scr-016) | Original prescription | Resolved in batch 6: established Reports parent or selected local read-only prescription source; see 12. |
+| [INT-200](02-interaction-map.md#int-200) | [SCR-016](01-information-architecture.md#scr-016) | OPEN ORIGINAL PRESCRIPTION | Resolved in batch 6: established Reports parent or selected local read-only prescription source; see 12. |
+| [INT-201](02-interaction-map.md#int-201) | [SCR-017](01-information-architecture.md#scr-017) | ← | Resolved in batch 4: existing Home parent. |
 | [INT-209](02-interaction-map.md#int-209) | [SCR-017](01-information-architecture.md#scr-017) | Open directions → | Missing; Open clinic directions. |
 | [INT-215](02-interaction-map.md#int-215) | [SCR-017](01-information-architecture.md#scr-017) | Open directions → | Missing; Open clinic directions. |
 | [INT-221](02-interaction-map.md#int-221) | [SCR-017](01-information-architecture.md#scr-017) | You | Missing; Open personal/account area; exact destination is UNKNOWN. |
@@ -789,12 +808,7 @@ Upload, observation confirmation, note autosave, manual payment changes, draft d
 | [INT-380](02-interaction-map.md#int-380) | [SCR-026](01-information-architecture.md#scr-026) | Open → | Missing; Open selected check-in result in authorized clinician context; exact destination UNKNOWN. |
 | [INT-382](02-interaction-map.md#int-382) | [SCR-026](01-information-architecture.md#scr-026) | Open → | Missing; Open authorized active medications; clinician destination UNKNOWN. |
 | [INT-399](02-interaction-map.md#int-399) | [SCR-027](01-information-architecture.md#scr-027) | You | Missing; Open personal/account area; exact destination is UNKNOWN. |
-| [INT-402](02-interaction-map.md#int-402) | [SCR-028](01-information-architecture.md#scr-028) | Review consent scope → | Missing; Review authorized consultation consent; doctor review destination UNKNOWN. |
-| [INT-403](02-interaction-map.md#int-403) | [SCR-028](01-information-architecture.md#scr-028) | Open full timeline → | Missing; Open patient's full clinical timeline; clinician destination UNKNOWN. |
-| [INT-404](02-interaction-map.md#int-404) | [SCR-028](01-information-architecture.md#scr-028) | Open medication history → | Missing; Open patient's medication history in clinician context; destination UNKNOWN. |
-| [INT-411](02-interaction-map.md#int-411) | [SCR-029](01-information-architecture.md#scr-029) | Open full timeline → | Missing; Open full clinician timeline. |
-| [INT-412](02-interaction-map.md#int-412) | [SCR-029](01-information-architecture.md#scr-029) | Open report & source → | Missing; Open report and original source. |
-| [INT-413](02-interaction-map.md#int-413) | [SCR-029](01-information-architecture.md#scr-029) | Open medication & prescription history → | Missing; Open medication/prescription history for this patient. |
+| [INT-402](02-interaction-map.md#int-402) | [SCR-028](01-information-architecture.md#scr-028) | Review consent scope → | Partial; current access-boundary explanation implemented; verified grant/receipt unavailable pending scoped consent. |
 | [INT-432](02-interaction-map.md#int-432) | [SCR-030](01-information-architecture.md#scr-030) | You | Missing; Open personal/account area; exact destination is UNKNOWN. |
 | [INT-448](02-interaction-map.md#int-448) | [SCR-032](01-information-architecture.md#scr-032) | Open source image → | Missing; Open exact queue source image/audio/draft; queue source links absent. |
 | [INT-452](02-interaction-map.md#int-452) | [SCR-032](01-information-architecture.md#scr-032) | Open source image → | Missing; Open exact queue source image/audio/draft; queue source links absent. |
@@ -829,3 +843,101 @@ Upload, observation confirmation, note autosave, manual payment changes, draft d
 SCR-013/015/017/022 now link to the existing SCR-011 route, `/app/patient/timeline`; all four incoming paths were exercised in Chromium (INT-162/192/219 and the code-only booking dock). Page 0 reference frame 3 was read through FigCraft to verify this destination. No new route or unresolved Care/staff destination was fabricated.
 
 SCR-033 → save/read-back → SCR-035 → finalized SCR-058, and SCR-030 → SCR-031 → flushed/checked completion → SCR-030 → dated amendment/history were exercised with synthetic HTTP boundaries. Close, Escape and Return restore the invoking action. Exact routes, failure paths and backend verification limits are recorded in [07](07-implementation-progress.md).
+
+## Batch 2 verified patient-record graph
+
+SCR-027 → SCR-028 → SCR-029 and SCR-028/029 → selected confirmed SCR-030 are connected. SCR-029 creates an own encounter before opening SCR-034; own prescription links reach SCR-058. Full timeline, medication history, source, access and upload results use local native dialogs. No patient-self route or arbitrary new clinician-history page is used.
+
+INT-402 now opens an honest access explanation, but verified consent scope/receipt remains unavailable. INT-389/417 are disabled for the pending follow-up service. Updated incoming/outgoing flows and synthetic test boundaries are in [08](08-patient-record-implementation.md). Unknown counts earlier in this audit remain the historical snapshot; resolved rows above are removed only for batch-2 interactions with established destinations/results.
+
+## Batch 3 current verified workflow
+
+```mermaid
+flowchart LR
+  HOME3["SCR-006 entry"] --> CHECK3["SCR-008 saved check-in"]
+  CHECK3 -->|"INT-092/100: restored prior block + answer"| CHECK3
+  CHECK3 -->|"INT-752: owner-checked reload"| CHECK3
+  CHECK3 -->|"INT-101/103: safety"| SAFE3["SCR-009 persisted interrupt"]
+  SAFE3 -->|"INT-107/757"| REVIEW3["Read-only answers; no resume"]
+  REVIEW3 --> SAFE3
+  CHECK3 -->|"Completed answers + analysis retry"| RESULT3["SCR-010 checked result"]
+  RESULT3 -->|"Urgent checked outcome"| SAFE3
+  RESULT3 -->|"INT-110/755/756"| BASIS3["Frozen evidence + retry"]
+  RESULT3 -->|"INT-111/118"| TIME3["SCR-011 AI timeline"]
+  TIME3 -->|"INT-130/134 selected session"| DETAIL3["SCR-012 AI entry detail"]
+  DETAIL3 -->|"INT-146/148"| RESULT3
+  DETAIL3 -->|"INT-147/759/760"| ANSWER3["Saved answer snapshot"]
+  DETAIL3 -->|"INT-144/145"| TIME3
+  RESULT3 -->|"INT-120: result only"| JSON3["Local checked-result JSON"]
+  RESULT3 -->|"INT-112"| VAULT3["SCR-013 reports"]
+  RESULT3 -->|"INT-117: ordinary booking"| BOOK3["SCR-022 booking"]
+  RESULT3 -.-> BLOCK3["Packet consent/share + optional measurements blocked"]
+```
+
+The selected entry route is `/app/patient/timeline/checkins/[sessionId]`, under the patient layout. No arbitrary packet destination is assigned. Existing source graphs retain unrelated audit findings; this projection and updated 02 rows supersede prior check-in/detail labels. Full result remains accessible from both detail result links; Back/Close returns to Timeline. Browser tests verify recovery, read-only safety review, selected entry/full result, reports and booking exits. Exact evidence and remaining constraints: [09](09-checkin-implementation.md).
+
+## Batch 4 current booking and appointment workflow
+
+```mermaid
+flowchart LR
+  A4["Patient entry / selected doctor"] --> B4["SCR-022 actual doctor, mode, date, slot, reason"]
+  B4 -->|"INT-316"| C4["SCR-023 review"]
+  C4 -->|"INT-319/320/321/324 edit"| B4
+  B4 -->|"INT-296/297 cancel without POST"| D4["SCR-017 appointments"]
+  C4 -->|"INT-323 actual visit request"| D4
+  D4 --> E4["Existing doctor request queue"]
+  E4 -->|"Confirm"| F4["Patient sees CONFIRMED"]
+  D4 -->|"INT-208/211/214/217"| G4["Native cancellation review"]
+  F4 --> G4
+  G4 -->|"INT-224/769 Keep or Escape"| D4
+  G4 -->|"INT-225 Yes cancel"| H4["Cancelled list"]
+  G4 -->|"INT-207/210/213/216/770 explicit cancel first"| I4["Owned cancelled rebook ID"]
+  I4 -->|"INT-771 restored mode/reason/doctor"| B4
+  C4 -.-> J4["Packet consent, draft storage, video and address dependencies remain blocked/excluded"]
+```
+
+No new route is introduced. Rebooking uses `/app/patient/book?rebook={id}` with an owned CANCELLED list entry; a replacement is not reserved until a new reviewed POST succeeds. Booking acknowledgement uses only a returned ID present in the patient's list. Header, existing Timeline/report/visit/medication exits and all edit paths are verified; no unresolved You route or clinic-map destination was invented. [Exact files, IDs and evidence](10-appointment-implementation.md).
+
+## Batch 5 current Vault/source workflow
+
+```mermaid
+flowchart LR
+  HOME5["Patient Home / result Reports"] --> V5["SCR-013 owned Vault"]
+  V5 -->|"INT-151/168"| U5["Validated init → checked PUT → complete"]
+  U5 -->|"Shared documents + reports polling"| R5["Actual extracted observations"]
+  V5 -->|"INT-152/781"| ALL5["All owned sources"]
+  ALL5 --> S5["SCR-014 selected source"]
+  V5 -->|"INT-153/154/155/157/173"| S5
+  S5 -->|"INT-177/178"| PDF5["Actual PDF pages"]
+  S5 -->|"INT-180/181"| FILE5["Original open / exact-byte download"]
+  S5 -->|"INT-179 report + focus"| R5
+  R5 -->|"INT-170/171"| C5["Patient correction + source review state"]
+  C5 --> T5["Fresh selected measurement trend"]
+  C5 --> V5
+  S5 -->|"INT-174/176 Close/Escape + focus return"| V5
+  V5 --> EXIST5["Existing Home / Timeline / Visits / Medications"]
+  V5 -.-> UNK5["You and separate dimmed source-header Back unresolved"]
+```
+
+No new route or endpoint is added. All local source selections use document/report IDs; report refresh cannot shift an array-index selection. A queued extraction refreshes all Vault consumers; errors remain recoverable without a reload. Native source access, signed-storage failure and download bytes are tested with synthetic data. Browser-native PDF viewer chrome and live storage/worker/database acceptance are not certified. Updated interactions retain their original IDs and add only INT-773–781 for new local recovery controls. [Evidence](11-vault-implementation.md).
+
+## Batch 6 current medication workflow
+
+```mermaid
+flowchart LR
+  REPORT6["SCR-013 Reports"] --> MED6["SCR-015 medication registry"]
+  MED6 -->|"INT-183–186/782 explicit status"| FILTER6["Filtered exposure / prescribed groups"]
+  FILTER6 -->|"INT-187–190 selected entry"| DETAIL6["SCR-016 native medication detail"]
+  DETAIL6 -->|"INT-198/200"| RX6["Existing patient GET: selected prescription version"]
+  RX6 -->|"INT-785 explicit version inspection"| RX6
+  RX6 -->|"INT-196 Back"| DETAIL6
+  DETAIL6 -->|"INT-199"| ENC6["Own Timeline GET: exact encounter ID"]
+  ENC6 -->|"INT-196 Back"| DETAIL6
+  ENC6 -->|"INT-787"| TIME6["SCR-011 full Timeline"]
+  DETAIL6 -->|"INT-196/197/788 Close/Escape + focus"| MED6
+  MED6 -->|"INT-182"| REPORT6
+  MED6 --> EXIST6["Existing Home / Timeline / Reports / Visits"]
+  MED6 -.-> UNKNOWN6["You unresolved; no Care Circle substitute"]
+```
+
+No route or endpoint is added. Source actions are local read-only states under the protected patient layout. INT-199's intended selected encounter record is provided from the existing owned Timeline projection; this is not a claim that the full mixed-source SCR-012 design is complete. Exact linked prescription version is preserved when known; missing legacy version metadata is explicit and a missing linked version never falls back to the latest. Later versions require deliberate inspection. All forward/back/close/retry paths and previous-module regressions are recorded in [batch 6](12-medication-implementation.md).

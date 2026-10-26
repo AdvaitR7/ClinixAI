@@ -20,11 +20,14 @@ export async function availabilityRoutes(app: FastifyInstance) {
       const { from, to } = parsed.data;
 
       // Date-only ranges ("YYYY-MM-DD") mean the full day; expand `to` to end-of-day.
-      const fromDate = new Date(from);
+      const fromDate = new Date(/^\d{4}-\d{2}-\d{2}$/.test(from) ? `${from}T00:00:00+05:30` : from);
       const toDate = /^\d{4}-\d{2}-\d{2}$/.test(to)
-        ? new Date(`${to}T23:59:59.999Z`)
+        ? new Date(`${to}T23:59:59.999+05:30`)
         : new Date(to);
 
+      if (!Number.isFinite(fromDate.getTime()) || !Number.isFinite(toDate.getTime()) || fromDate > toDate || toDate.getTime() - fromDate.getTime() > 366 * 86400000) {
+        return error(request, reply, 400, "VALIDATION_ERROR", "Choose a valid availability range of at most one year");
+      }
       const [availRows, bookedRows] = await Promise.all([
         database
           .select()
@@ -32,13 +35,13 @@ export async function availabilityRoutes(app: FastifyInstance) {
           .where(eq(doctorAvailability.doctorId, request.params.doctor_id))
           .limit(1),
         database
-          .select({ scheduledStart: appointments.scheduledStart })
+          .select({ scheduledStart: appointments.scheduledStart, scheduledEnd: appointments.scheduledEnd })
           .from(appointments)
           .where(
             and(
               eq(appointments.doctorId, request.params.doctor_id),
               inArray(appointments.status, ["REQUESTED", "CONFIRMED"]),
-              gte(appointments.scheduledStart, fromDate),
+              gte(appointments.scheduledStart, new Date(fromDate.getTime() - 86400000)),
               lte(appointments.scheduledStart, toDate),
             ),
           ),
@@ -50,7 +53,7 @@ export async function availabilityRoutes(app: FastifyInstance) {
       const slotMinutes = avail.slotDurationMinutes;
       const booked = bookedRows.map((b) => ({
         start: b.scheduledStart,
-        end: new Date(b.scheduledStart.getTime() + slotMinutes * 60 * 1000),
+        end: b.scheduledEnd ?? new Date(b.scheduledStart.getTime() + slotMinutes * 60 * 1000),
       }));
 
       const slots = computeSlots(
@@ -62,7 +65,7 @@ export async function availabilityRoutes(app: FastifyInstance) {
       );
 
       return {
-        slots: slots.map((s) => ({
+        slots: slots.filter((s) => s.start.getTime() > Date.now()).map((s) => ({
           start: s.start.toISOString(),
           end: s.end.toISOString(),
         })),

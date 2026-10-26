@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import {
   needsReviewByConfidence,
   patchObservationSchema,
@@ -15,6 +15,7 @@ import { logAccess } from "../audit/log.js";
 import { sendDocumentExtract } from "../queue.js";
 import {
   documents,
+  encounters,
   labObservations,
   labReports,
   type documents as _documents,
@@ -27,11 +28,13 @@ const BUCKET = "clinix-documents";
 type DocumentRow = typeof _documents.$inferSelect;
 type ObservationRow = typeof _labObservations.$inferSelect;
 
+/** Converts nullable database numerics to JSON numbers. */
 function num(v: string | number | null | undefined): number | null {
   if (v === null || v === undefined) return null;
   return Number(v);
 }
 
+/** Maps document metadata without exposing private storage paths. */
 function documentView(row: DocumentRow, viewUrl: string | null = null): DocumentView {
   return {
     document_id: row.id,
@@ -45,6 +48,7 @@ function documentView(row: DocumentRow, viewUrl: string | null = null): Document
   };
 }
 
+/** Keeps OCR confidence separate from a patient’s explicit value confirmation. */
 function observationView(row: ObservationRow): LabObservationView {
   const confidence = num(row.confidence);
   return {
@@ -60,7 +64,7 @@ function observationView(row: ObservationRow): LabObservationView {
     flag: row.flag,
     observed_at: row.observedAt ? row.observedAt.toISOString() : null,
     confidence,
-    needs_review: needsReviewByConfidence(confidence),
+    needs_review: !row.confirmedAt && needsReviewByConfidence(confidence),
     confirmed_at: row.confirmedAt ? row.confirmedAt.toISOString() : null,
   };
 }
@@ -106,6 +110,12 @@ async function uploadInit(
 
   const database = requireDb();
   const id = randomUUID();
+  if (body.encounter_id) {
+    const [encounter] = await database.select().from(encounters).where(eq(encounters.id, body.encounter_id)).limit(1);
+    if (!encounter || encounter.patientId !== patientId || (actorType === "DOCTOR" && encounter.relatedDoctorId !== actorId)) {
+      return error(request, reply, 403, "FORBIDDEN", "The encounter does not belong to this patient and clinician");
+    }
+  }
   // key = patientId/documentId — no filename in the path (filenames can carry PII).
   const key = `${patientId}/${id}`;
   await database.insert(documents).values({
@@ -154,6 +164,13 @@ async function uploadComplete(
     .limit(1);
   if (!doc || doc.patientId !== patientId || doc.deletedAt) {
     return error(request, reply, 404, "NOT_FOUND", "Document not found");
+  }
+  if (request.auth.role === "DOCTOR" && (doc.uploadedByActorType !== "DOCTOR" || doc.uploadedByActorId !== request.auth.doctorId)) {
+    return error(request, reply, 403, "FORBIDDEN", "Not your document upload");
+  }
+
+  if (["PROCESSING", "NEEDS_REVIEW", "COMPLETE"].includes(doc.processingStatus)) {
+    return { ok: true, document_id: documentId };
   }
 
   let bytes: Buffer;
@@ -222,7 +239,7 @@ export async function documentRoutes(app: FastifyInstance) {
     const rows = await database
       .select()
       .from(documents)
-      .where(and(eq(documents.patientId, patientId)))
+      .where(and(eq(documents.patientId, patientId), isNull(documents.deletedAt)))
       .orderBy(desc(documents.createdAt));
     return rows.map((r) => documentView(r));
   });
@@ -339,6 +356,10 @@ export async function documentRoutes(app: FastifyInstance) {
         return error(request, reply, 400, "VALIDATION_ERROR", "Invalid observation payload");
       }
       const body = parsed.data;
+      if ((!body.confirmed && body.value_numeric === undefined && body.value_text === undefined && body.unit === undefined)
+        || (body.value_numeric !== undefined && body.value_text !== undefined)) {
+        return error(request, reply, 400, "VALIDATION_ERROR", "Provide one value representation or confirm the observation");
+      }
 
       const database = requireDb();
       const [obs] = await database
@@ -350,20 +371,58 @@ export async function documentRoutes(app: FastifyInstance) {
         return error(request, reply, 404, "NOT_FOUND", "Observation not found");
       }
 
-      const set: Partial<typeof obs> = {};
-      if (body.value_numeric !== undefined) set.valueNumeric = body.value_numeric?.toString() ?? null;
-      if (body.value_text !== undefined) set.valueText = body.value_text;
-      if (body.unit !== undefined) set.unit = body.unit;
-      if (body.confirmed) {
-        set.confirmedAt = new Date();
-        set.confirmedByProfileId = request.auth.profileId;
-      }
+      const [report] = await database.select().from(labReports)
+        .where(and(eq(labReports.id, obs.labReportId), eq(labReports.patientId, patientId))).limit(1);
+      if (!report) return error(request, reply, 404, "NOT_FOUND", "Lab report not found");
 
-      const [updated] = await database
-        .update(labObservations)
-        .set(set)
-        .where(eq(labObservations.id, request.params.id))
-        .returning();
+      // Serialize corrections for a source so its last reviewed field clears the queue reliably.
+      const updated = await database.transaction(async (tx) => {
+        const [source] = await tx.select().from(documents)
+          .where(and(eq(documents.id, report.documentId), eq(documents.patientId, patientId), isNull(documents.deletedAt)))
+          .limit(1).for("update");
+        if (!source) return null;
+        const [current] = await tx.select().from(labObservations)
+          .where(and(eq(labObservations.id, obs.id), eq(labObservations.patientId, patientId))).limit(1);
+        if (!current) return null;
+        const set: Partial<typeof obs> = {};
+        if (body.value_numeric !== undefined) {
+          set.valueNumeric = body.value_numeric?.toString() ?? null;
+          set.valueText = null;
+        }
+        if (body.value_text !== undefined) {
+          set.valueText = body.value_text;
+          set.valueNumeric = null;
+        }
+        if (body.unit !== undefined) set.unit = body.unit;
+        if (body.value_numeric !== undefined || body.value_text !== undefined || body.unit !== undefined) {
+          const value = set.valueNumeric === undefined ? num(current.valueNumeric) : num(set.valueNumeric);
+          const sameUnit = body.unit === undefined || body.unit === current.unit;
+          const low = num(current.referenceLow);
+          const high = num(current.referenceHigh);
+          set.flag = value == null || !sameUnit ? null
+            : low != null && value < low ? "LOW"
+              : high != null && value > high ? "HIGH" : null;
+          set.confirmedAt = null;
+          set.confirmedByProfileId = null;
+        }
+        if (body.confirmed) {
+          set.confirmedAt = new Date();
+          set.confirmedByProfileId = request.auth.profileId;
+        }
+        const [saved] = await tx.update(labObservations).set(set)
+          .where(eq(labObservations.id, current.id)).returning();
+        if (source.documentType === "LAB_REPORT" && ["COMPLETE", "NEEDS_REVIEW"].includes(source.processingStatus)) {
+          const related = await tx.select({ id: labReports.id }).from(labReports)
+            .where(and(eq(labReports.documentId, source.id), eq(labReports.patientId, patientId)));
+          const fields = await tx.select().from(labObservations)
+            .where(and(eq(labObservations.patientId, patientId), inArray(labObservations.labReportId, related.map((r) => r.id))));
+          const pending = fields.some((field) => !field.confirmedAt && needsReviewByConfidence(num(field.confidence)));
+          await tx.update(documents).set({ processingStatus: pending ? "NEEDS_REVIEW" : "COMPLETE" })
+            .where(eq(documents.id, source.id));
+        }
+        return saved;
+      });
+      if (!updated) return error(request, reply, 404, "NOT_FOUND", "Source observation not found");
 
       await logAccess(request, {
         patientId,
@@ -420,6 +479,9 @@ export async function documentRoutes(app: FastifyInstance) {
       if (!(await authorizePatientAccess(request.auth, doc.patientId))) {
         return error(request, reply, 403, "FORBIDDEN", "Not authorized for this document");
       }
+      if (doc.uploadedByActorType !== "DOCTOR" || doc.uploadedByActorId !== doctorId) {
+        return error(request, reply, 403, "CONSENT_REQUIRED", "Patient-shared sources require verified consent scope");
+      }
       const viewUrl = await signedViewUrl(doc.storageObjectKey);
       await logAccess(request, {
         patientId: doc.patientId,
@@ -443,3 +505,5 @@ async function ownReport(patientId: string, reportId: string): Promise<boolean> 
     .limit(1);
   return r?.patientId === patientId;
 }
+
+export { loadReportView };

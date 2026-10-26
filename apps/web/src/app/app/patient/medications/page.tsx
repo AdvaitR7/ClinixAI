@@ -1,213 +1,104 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useRef, useState } from "react";
 import type { MedicationView } from "@clinix/schemas";
-import { WorkspaceShell } from "@/components/workspace-shell";
-import { Skeleton } from "@/components/skeleton";
-import { StatusBadge } from "@/components/status-badge";
+import { useAuth } from "@/lib/auth";
 import { useApiData } from "@/lib/api";
+import { WorkspaceShell } from "@/components/workspace-shell";
+import { ClinixBrand } from "@/components/clinix-brand";
+import { patientVisitNav } from "@/components/patient-visit-header";
+import { Skeleton } from "@/components/skeleton";
+import { VaultDialog } from "@/components/vault-dialog";
+import { MedicationEncounter, MedicationPrescription } from "@/components/medication-sources";
 
-const nav = [
-  { label: "Home", href: "/app/patient" },
-  { label: "Timeline", href: "/app/patient/timeline" },
-  { label: "Vault", href: "/app/patient/vault" },
-  { label: "Visits", href: "/app/patient/appointments" },
-  { label: "Care", href: "/app/patient/medications", active: true },
-];
+const nav = patientVisitNav.map((item) => ({ ...item, active: item.label === "Medications" }));
+const filters = [{ key: null, label: "All" }, { key: "CURRENT", label: "Active" }, { key: "PAST", label: "Completed" }, { key: "DISCONTINUED", label: "Discontinued" }, { key: "UNKNOWN_STATUS", label: "Status unknown" }] as const;
+const groups = [{ label: "ACTIVE MEDICATIONS", statuses: ["CURRENT"] }, { label: "PAST PRESCRIPTIONS", statuses: ["PAST", "DISCONTINUED"] }, { label: "CURRENT USE UNKNOWN", statuses: ["UNKNOWN_STATUS"] }];
 
-const FILTERS = [
-  { key: "CURRENT", label: "Active" },
-  { key: "PAST", label: "Completed" },
-  { key: "UNKNOWN_STATUS", label: "Prescribed" },
-] as const;
+/** Formats only an actual recorded date; exposure creation is not a prescription date. */
+function dateLabel(value: string | null | undefined) {
+  return value ? new Date(value).toLocaleDateString("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" }) : "Prescription date not recorded";
+}
 
-/** Page 10 — Medication history (SCREEN_CATALOG §7, Figma 29:2 & 30:2). */
+/** Keeps legacy records without source metadata from being mislabelled as confirmed exposures. */
+function sourceLabel(item: MedicationView) {
+  return item.source_kind === "PRESCRIPTION" ? "PRESCRIPTION" : item.source_kind === "RECORDED_EXPOSURE" ? "EXPOSURE RECORD" : "MEDICATION RECORD";
+}
+
+/** Labels recorded exposure status while keeping prescribed use explicitly unknown. */
+function MedicationStatus({ status }: { status: MedicationView["status"] }) {
+  const label = status === "CURRENT" ? "ACTIVE" : status === "PAST" ? "COMPLETED" : status === "DISCONTINUED" ? "DISCONTINUED" : "STATUS UNKNOWN";
+  return <span className={`inline-block shrink-0 rounded-full border px-3 py-1 text-[10px] ${status === "CURRENT" ? "border-botanical bg-botanical text-surface" : status === "DISCONTINUED" ? "border-copper text-review" : "border-hairline text-graphite"}`}>{label}</span>;
+}
+
+/** Uses the source brand/back/close positions without changing another module's header contract. */
+function MedicationHeader({ onBack, onClose }: { onBack?: () => void; onClose?: () => void }) {
+  return <div className={`flex w-full items-center gap-3 [&>span>span:last-child]:text-2xl [&>span>span:last-child]:font-normal ${onClose ? "justify-between" : ""}`}>
+    {onBack ? <button type="button" onClick={onBack} aria-label="Back to medication record" className="grid size-8 shrink-0 place-items-center text-[29px] text-botanical">←</button> : <Link href="/app/patient/vault" aria-label="Back to reports" className="grid size-8 shrink-0 place-items-center text-[29px] text-botanical">←</Link>}
+    <ClinixBrand monogram />
+    {onClose && <button type="button" onClick={onClose} className="min-h-11 text-xs text-evidence">Close</button>}
+  </div>;
+}
+
+/** Keeps medication selection and source content inside the current patient's session. */
 export default function MedicationsPage() {
+  const { identityVersion } = useAuth();
+  return <MedicationRegistry key={identityVersion} />;
+}
+
+/** Displays source-aligned medication groups and connected read-only record/source states. */
+function MedicationRegistry() {
   const state = useApiData<{ medications: MedicationView[] }>("/patients/self/medications");
   const [filter, setFilter] = useState<string | null>(null);
-  const [selectedMed, setSelectedMed] = useState<MedicationView | null>(null);
-
-  const list = state.status === "ready"
-    ? state.data.medications.filter((m) => !filter || m.status === filter)
-    : [];
-
-  return (
-    <WorkspaceShell workspace="Patient" title="Medications" nav={nav}>
-      {state.status === "loading" && (
-        <div className="space-y-4" aria-hidden="true">
-          <Skeleton className="h-28 rounded-3xl" />
-          <Skeleton className="h-36 rounded-3xl" />
-        </div>
-      )}
-
-      {state.status === "error" && (
-        <section className="clinix-card p-5">
-          <p className="font-sans text-sm text-critical">{state.error}</p>
-        </section>
-      )}
-
-      {state.status === "ready" && (
-        <>
-          <section className="clinix-card p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="clinix-label text-botanical">Registry</p>
-                <h2 className="mt-1 font-sans text-xl font-bold text-ink">Prescribed treatments</h2>
-              </div>
-              <span className="rounded-full border border-sage px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-botanical">
-                {state.data.medications.length} total
-              </span>
-            </div>
-            <p className="mt-2 font-sans text-xs leading-5 text-graphite">
-              Your active and historical medications as recorded across clinical consultations.
-            </p>
-          </section>
-
-          <div className="flex flex-wrap gap-2" aria-label="Filter medications by status">
-            <button
-              type="button"
-              onClick={() => setFilter(null)}
-              className={`min-h-10 rounded-full border px-4 font-sans text-xs font-semibold ${
-                filter === null ? "border-botanical bg-botanical text-surface" : "border-sage bg-surface text-graphite"
-              }`}
-            >
-              All
-            </button>
-            {FILTERS.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilter(f.key)}
-                className={`min-h-10 rounded-full border px-4 font-sans text-xs font-semibold ${
-                  filter === f.key ? "border-botanical bg-botanical text-surface" : "border-sage bg-surface text-graphite"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {list.length === 0 ? (
-            <div className="clinix-card p-6 text-center">
-              <p className="font-sans text-sm font-semibold text-ink">No medications recorded</p>
-              <p className="mt-1 font-sans text-xs text-graphite">Treatments prescribed by your doctors will appear here.</p>
-            </div>
-          ) : (
-            <ul className="space-y-3">
-              {list.map((m, i) => (
-                <li key={`${m.medicine_name}-${i}`}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMed(m)}
-                    className="clinix-card w-full p-5 text-left transition-transform active:translate-y-px"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="font-sans text-base font-bold text-ink">{m.medicine_name}</h3>
-                        <p className="mt-1 font-sans text-xs text-graphite">
-                          {[m.dose, m.route, m.frequency].filter(Boolean).join(" · ") || "Dosing not specified"}
-                        </p>
-                      </div>
-                      <StatusBadge status={m.status} />
-                    </div>
-                    {m.prescribing_doctor && (
-                      <div className="mt-4 flex items-center justify-between border-t border-hairline pt-3 font-sans text-xs text-graphite">
-                        <span>Dr. {m.prescribing_doctor}</span>
-                        {m.prescribed_date && (
-                          <span className="font-mono text-[11px]">
-                            {new Date(m.prescribed_date).toLocaleDateString("en-IN", {
-                              timeZone: "Asia/Kolkata",
-                              day: "numeric",
-                              month: "short",
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="rounded-2xl border border-sage/60 bg-surface/80 p-4 font-sans text-xs leading-5 text-graphite">
-            <span className="font-bold text-ink">Clinical caution:</span> Historical use is not authorization to restart treatment. Consult your doctor before changing or resuming any medicine.
-          </div>
-
-          {/* Page 10a / Node 30:2 — Medication detail sheet */}
-          {selectedMed && (
-            <div
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="med-detail-title"
-              className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4"
-            >
-              <div className="w-full max-w-lg rounded-t-[2rem] border border-sage bg-surface p-6 shadow-2xl sm:rounded-[2rem]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="clinix-label text-botanical">Treatment details</p>
-                    <h2 id="med-detail-title" className="mt-1 font-sans text-2xl font-bold text-ink">
-                      {selectedMed.medicine_name}
-                    </h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMed(null)}
-                    aria-label="Close treatment details"
-                    className="grid size-9 place-items-center rounded-full border border-sage bg-canvas text-ink"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="mt-4 flex items-center gap-2">
-                  <StatusBadge status={selectedMed.status} />
-                  {selectedMed.prescribing_doctor && (
-                    <span className="font-sans text-xs text-graphite">Prescribed by Dr. {selectedMed.prescribing_doctor}</span>
-                  )}
-                </div>
-
-                <div className="mt-5 space-y-3 rounded-2xl bg-canvas p-4 font-sans text-sm">
-                  <div className="flex justify-between border-b border-hairline pb-2">
-                    <span className="text-graphite">Dose / Route</span>
-                    <span className="font-semibold text-ink">{[selectedMed.dose, selectedMed.route].filter(Boolean).join(" · ") || "Not recorded"}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-hairline pb-2">
-                    <span className="text-graphite">Frequency</span>
-                    <span className="font-semibold text-ink">{selectedMed.frequency || "Not recorded"}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-hairline pb-2">
-                    <span className="text-graphite">Patient response</span>
-                    <span className="font-semibold text-ink">{selectedMed.response || "Not recorded"}</span>
-                  </div>
-                  {selectedMed.adverse_reaction && (
-                    <div className="flex justify-between border-b border-hairline pb-2 text-critical">
-                      <span>Adverse reaction</span>
-                      <span className="font-semibold">{selectedMed.adverse_reaction}</span>
-                    </div>
-                  )}
-                  {selectedMed.reason_stopped && (
-                    <div className="flex justify-between text-graphite">
-                      <span>Reason stopped</span>
-                      <span className="font-semibold text-ink">{selectedMed.reason_stopped}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedMed(null)}
-                    className="min-h-12 w-full rounded-2xl bg-botanical px-4 font-sans text-sm font-semibold text-surface"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </WorkspaceShell>
-  );
+  const [selected, setSelected] = useState<MedicationView | null>(null);
+  const [source, setSource] = useState<"prescription" | "encounter" | null>(null);
+  const returnFocus = useRef<HTMLButtonElement | null>(null);
+  const list = state.status === "ready" ? state.data.medications : [];
+  const visible = list.filter((item) => !filter || item.status === filter);
+  /** Opens the exact registry entry and retains the invoking button for focus return. */
+  function open(item: MedicationView, button: HTMLButtonElement) { returnFocus.current = button; setSelected(item); setSource(null); }
+  /** Returns from a source to detail, or from detail to the unchanged registry/filter. */
+  function back() { if (source) setSource(null); else setSelected(null); }
+  /** Closes all local record states without altering the source records or registry filter. */
+  function close() { setSelected(null); setSource(null); }
+  return <div className="[&>div]:bg-[#f4f1ea] [&>div>header]:bg-[#f4f1ea]"><WorkspaceShell workspace="Patient" title="Medication history" nav={nav} focused flowNavigation hideHeading headerContent={<MedicationHeader />}>
+    <div><p className="text-[9px] tracking-wider text-graphite">PATIENT RECORD · MEDICATION REGISTRY</p><h1 className="mt-3 text-[34px] leading-tight">Medication history</h1><p className="mt-3 text-sm leading-[22px] text-graphite">Encounter-linked prescriptions with source, prescriber, reason, and reaction history preserved.</p></div>
+    <div aria-hidden="true" className="h-28 rounded-[28px] bg-[#d7e0d8]" />
+    {state.status === "loading" && <Skeleton className="h-36 rounded-3xl" />}
+    {state.status === "error" && <div role="alert" className="clinix-card p-5 text-sm text-critical"><p>{state.error}</p><button type="button" onClick={() => void state.refresh()} className="mt-3 min-h-11 underline">Retry medications</button></div>}
+    {state.status === "ready" && <>
+      <section className="clinix-card p-[18px]" aria-label="Medication record summary"><div className="flex items-center justify-between gap-3"><p className="text-[9px] tracking-wider text-botanical">MEDICATION RECORD</p><span className="rounded-full bg-botanical px-3 py-1.5 text-[10px] text-surface">{list.filter((item) => item.status === "CURRENT").length} ACTIVE</span></div><p className="mt-4 text-[22px]">{list.length} medication records</p><p className="mt-3 text-xs leading-[18px] text-graphite">Prescription source is doctor-authored. Reaction notes keep their own provenance.</p></section>
+      <div><p className="mb-2 text-[10px] tracking-wider text-graphite">FILTER</p><div aria-label="Filter medications by status" className="flex flex-wrap gap-2">{filters.map((item) => <button key={item.label} type="button" aria-pressed={filter === item.key} onClick={() => setFilter(item.key)} className={`min-h-9 rounded-full border px-3 text-[10px] ${filter === item.key ? "border-botanical bg-botanical text-surface" : "border-hairline bg-surface text-graphite"}`}>{item.label}</button>)}</div></div>
+      {!visible.length && <p className="clinix-card p-5 text-sm">{list.length ? "No medications match this filter." : "No medications recorded."}</p>}
+      {groups.map((group) => {
+        const entries = visible.filter((item) => group.statuses.includes(item.status));
+        return entries.length ? <section key={group.label} aria-label={group.label}><h2 className="mb-4 text-[10px] tracking-wider text-graphite">{group.label}</h2><ul className="space-y-4">{entries.map((item, index) => <li key={item.entry_id ?? `${item.prescription_id}-${item.medicine_name}-${index}`} className="clinix-card p-[18px]">
+          <div className="flex items-start justify-between gap-2"><p className="text-[9px] tracking-wider text-graphite">{sourceLabel(item)}</p><MedicationStatus status={item.status} /></div>
+          <h3 className="mt-2 break-words text-[22px] leading-[27px]">{[item.medicine_name, item.strength].filter(Boolean).join(" · ")}</h3>
+          <p className="mt-5 text-xs leading-5 text-graphite">{dateLabel(item.prescribed_date)}</p>
+          <dl className="mt-4 grid grid-cols-3 gap-x-3 gap-y-4 border-t border-hairline pt-4">{[["Dose", item.dose], ["Frequency", item.frequency], ["Route", item.route], ["Duration", item.duration], ["Prescribing doctor", item.prescribing_doctor], ["Reason", item.reason_for_use]].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-[10px] text-graphite">{label}</dt><dd className="mt-1 break-words text-[13px] leading-[18px]">{value || "Not recorded"}</dd></div>)}</dl>
+          <div className="mt-4 flex items-center justify-between gap-3"><p className={`min-w-0 break-words text-[11px] ${item.adverse_reaction ? "text-review" : "text-graphite"}`}>{item.adverse_reaction ? `Recorded reaction · ${item.adverse_reaction}` : "Reaction history not recorded"}</p><button type="button" onClick={(event) => open(item, event.currentTarget)} aria-label={`Open record for ${item.medicine_name}`} className="min-h-11 shrink-0 text-[11px] text-evidence">Open record →</button></div>
+        </li>)}</ul></section> : null;
+      })}
+      <p className="clinix-card rounded-2xl p-4 text-xs leading-5 text-graphite">Historical use is not authorization to restart treatment. Source records preserve what was prescribed; current use is shown only when explicitly recorded.</p>
+    </>}
+    {selected && <VaultDialog fullScreen titleId="medication-detail-title" returnFocusRef={returnFocus} onClose={close}>
+      <MedicationHeader onBack={back} onClose={close} />
+      {source === "prescription" && selected.prescription_id ? <MedicationPrescription key={selected.prescription_id} medication={selected} /> : source === "encounter" && selected.encounter_id ? <MedicationEncounter key={selected.encounter_id} encounterId={selected.encounter_id} /> : <>
+        <p className="mt-6 w-fit rounded-full border border-sage bg-surface px-5 py-2 text-[10px] text-botanical">{sourceLabel(selected)}</p>
+        <p className="mt-5 text-[10px] uppercase text-graphite">{dateLabel(selected.prescribed_date)}</p>
+        <h2 id="medication-detail-title" className="mt-4 break-words text-[27px] leading-tight">{[selected.medicine_name, selected.strength].filter(Boolean).join(" · ")}</h2>
+        <div className="mt-3 flex items-center justify-between gap-2"><MedicationStatus status={selected.status} /><span className="rounded-full border border-hairline bg-surface px-4 py-1 text-[10px] text-graphite">{selected.source_kind === "PRESCRIPTION" ? "DOCTOR-AUTHORED" : selected.source_kind === "RECORDED_EXPOSURE" ? "RECORDED EXPOSURE" : "SOURCE UNKNOWN"}</span></div>
+        <section className="clinix-card mt-7 p-4"><h3 className="text-[10px] tracking-wider text-graphite">MEDICATION DETAILS</h3><dl className="mt-3">{[["Dose", selected.dose], ["Frequency", selected.frequency], ["Route", selected.route], ["Duration", selected.duration], ["Prescribing doctor", selected.prescribing_doctor], ["Associated problem", selected.reason_for_use], ...(selected.timing ? [["Timing", selected.timing]] : []), ...(selected.instructions ? [["Instructions", selected.instructions]] : []), ...(selected.started_on ? [["Recorded start", dateLabel(selected.started_on)]] : []), ...(selected.ended_on ? [["Recorded end", dateLabel(selected.ended_on)]] : [])].map(([label, value]) => <div key={label} className="grid grid-cols-[1fr_1.6fr] gap-3 border-b border-hairline py-2.5 text-xs last:border-0"><dt className="text-graphite">{label}</dt><dd className="break-words">{value || "Not recorded"}</dd></div>)}</dl></section>
+        <section className="clinix-card mt-8 p-4"><h3 className="text-[10px] tracking-wider text-graphite">ADVERSE REACTION NOTES</h3><p className="mt-3 break-words text-sm">{selected.adverse_reaction || "Reaction history not recorded"}</p>{selected.response && <p className="mt-3 text-xs">Recorded response: {selected.response}</p>}{selected.reason_stopped && <p className="mt-3 text-xs">Reason stopped: {selected.reason_stopped}</p>}<p className="mt-3 text-right text-[10px] text-graphite">{selected.adverse_reaction || selected.response || selected.reason_stopped ? "Attribution not recorded" : "No reaction assertion available"}</p></section>
+        <section className="clinix-card mt-6 p-4"><h3 className="text-[10px] tracking-wider text-graphite">PROVENANCE</h3><p className="mt-3 text-[11px] leading-[18px]">{selected.source_kind === "PRESCRIPTION" ? `Prescription authored by ${selected.prescribing_doctor || "an unrecorded author"}${selected.prescription_version_number ? ` · version ${selected.prescription_version_number}` : ""}. Current use has not been established.` : `${selected.source_kind === "RECORDED_EXPOSURE" ? "Recorded medication exposure" : "Medication record"}${selected.recorded_at ? ` · recorded ${dateLabel(selected.recorded_at)}` : ""}. Exposure authorship is not available in the current record.`}</p></section>
+        <section className="mt-8"><h3 className="text-[21px]">Source records</h3><p className="mt-2 text-[11px] leading-[17px] text-graphite">Open the exact prescription or the encounter chapter that created this medication record.</p><div className="mt-3 space-y-3">
+          <button type="button" onClick={() => setSource("prescription")} disabled={!selected.prescription_id} className="clinix-card flex min-h-20 w-full items-center justify-between gap-3 px-5 py-3 text-left disabled:opacity-50"><span><span className="block text-[13px]">Original prescription</span><span className="mt-2 block text-[10px] text-graphite">{selected.prescription_id ? selected.prescription_version_number ? `Doctor-authored · version ${selected.prescription_version_number}` : "Linked prescription · original version unknown" : "No prescription source recorded"}</span></span><span aria-hidden="true" className="text-2xl">›</span></button>
+          <button type="button" onClick={() => setSource("encounter")} disabled={!selected.encounter_id} className="clinix-card flex min-h-20 w-full items-center justify-between gap-3 px-5 py-3 text-left disabled:opacity-50"><span><span className="block text-[13px]">Encounter chapter</span><span className="mt-2 block text-[10px] text-graphite">{selected.encounter_id ? "Selected encounter · Timeline" : "No encounter source recorded"}</span></span><span aria-hidden="true" className="text-2xl">›</span></button>
+        </div></section>
+        <button type="button" disabled={!selected.prescription_id} onClick={() => setSource("prescription")} className="mb-8 mt-6 flex min-h-14 w-full items-center justify-between gap-3 rounded-[20px] bg-botanical px-5 text-xs text-surface disabled:opacity-50">OPEN ORIGINAL PRESCRIPTION <span aria-hidden="true" className="text-2xl">→</span></button>
+      </>}
+    </VaultDialog>}
+  </WorkspaceShell></div>;
 }
