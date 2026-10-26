@@ -1,3 +1,4 @@
+import type { AvailabilityRules } from "@clinix/schemas";
 import {
   bigint,
   boolean,
@@ -330,7 +331,7 @@ export const paymentEvents = pgTable("payment_events", {
 
 /**
  * Documented contract extension — source of truth for §14 availability.
- * Slots = weekly template minus booked appointments.
+ * Slots apply saved calendar rules to working windows, then exclude breaks and booked appointments.
  */
 export const doctorAvailability = pgTable("doctor_availability", {
   doctorId: uuid("doctor_id")
@@ -340,6 +341,7 @@ export const doctorAvailability = pgTable("doctor_availability", {
     .$type<{ day_of_week: number; start_time: string; end_time: string }[]>()
     .notNull(),
   slotDurationMinutes: integer("slot_duration_minutes").notNull().default(30),
+  rules: jsonb("rules").$type<AvailabilityRules>().notNull().default({ breaks: [], blocked_dates: [], overrides: [], online_template: null }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -431,6 +433,8 @@ export const prescriptionDraftItems = pgTable(
     instructions: text("instructions"),
     fieldConfidence: jsonb("field_confidence"),
     needsReview: boolean("needs_review").notNull().default(true),
+    reviewedByDoctorId: uuid("reviewed_by_doctor_id").references(() => doctors.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

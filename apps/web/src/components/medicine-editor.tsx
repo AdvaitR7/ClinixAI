@@ -3,6 +3,16 @@
 import type { PrescriptionItemInput } from "@clinix/schemas";
 import { useId } from "react";
 
+/** A medicine line plus its review state: `needs_review` comes from the saved draft, `reviewed` is the doctor's unsaved confirmation. */
+export type EditorItem = PrescriptionItemInput & { needs_review?: boolean; reviewed?: boolean; confidence?: number | null };
+
+/** Suggestions only: the fields stay free text so uncommon regimens are never blocked. */
+const OPTIONS: Partial<Record<keyof PrescriptionItemInput, string[]>> = {
+  route: ["Oral", "Topical", "Inhalation", "Intramuscular", "Intravenous", "Subcutaneous", "Ophthalmic", "Otic", "Nasal"],
+  frequency: ["Once daily", "Twice daily", "Three times daily", "Four times daily", "Every 8 hours", "As needed"],
+  timing: ["Before food", "After food", "With food", "At bedtime", "Morning", "Empty stomach"],
+};
+
 const FIELDS: { key: keyof PrescriptionItemInput; label: string; wide?: boolean }[] = [
   { key: "medicine_name", label: "Medicine name", wide: true },
   { key: "strength", label: "Strength (e.g. 500mg)" },
@@ -21,13 +31,16 @@ const inputClass =
 export function MedicineEditor({
   items,
   onChange,
+  blankItem = { medicine_name: "" },
 }: {
-  items: PrescriptionItemInput[];
-  onChange: (items: PrescriptionItemInput[]) => void;
+  items: EditorItem[];
+  onChange: (items: EditorItem[]) => void;
+  blankItem?: EditorItem;
 }) {
   const fieldId = useId();
   function update(i: number, key: keyof PrescriptionItemInput, value: string) {
-    onChange(items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
+    // Changing a value invalidates an earlier confirmation of that line.
+    onChange(items.map((it, idx) => (idx === i ? { ...it, [key]: value, ...(it.needs_review ? { reviewed: false } : {}) } : it)));
   }
   function remove(i: number) {
     onChange(items.filter((_, idx) => idx !== i));
@@ -81,6 +94,23 @@ export function MedicineEditor({
               </button>
             </div>
           </div>
+          {it.needs_review && (
+            <div className="mt-3 rounded-xl border border-review/60 bg-review/10 p-3 font-sans text-xs text-surface">
+              <p className="font-bold uppercase text-review">
+                Ambiguous{typeof it.confidence === "number" ? ` · Confidence ${Math.round(it.confidence * 100)}%` : ""}
+              </p>
+              <p className="mt-1">This line is not final until you compare it with the source.</p>
+              <label className="mt-2 flex min-h-11 items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={!!it.reviewed}
+                  onChange={(e) => onChange(items.map((row, idx) => (idx === i ? { ...row, reviewed: e.target.checked } : row)))}
+                  className="size-5 accent-copper"
+                />
+                I checked medication {i + 1} against the source
+              </label>
+            </div>
+          )}
           <div className="mt-3 grid grid-cols-2 gap-3">
             {FIELDS.map((f) => (
               <div key={f.key} className={f.wide ? "col-span-2" : undefined}>
@@ -88,8 +118,9 @@ export function MedicineEditor({
                 <input
                   id={`${fieldId}-${i}-${f.key}`}
                   type="text"
-                  value={it[f.key] ?? ""}
+                  value={(it[f.key] as string | undefined) ?? ""}
                   onChange={(e) => update(i, f.key, e.target.value)}
+                  list={OPTIONS[f.key] ? `${fieldId}-${f.key}-options` : undefined}
                   className={inputClass}
                 />
               </div>
@@ -97,9 +128,12 @@ export function MedicineEditor({
           </div>
         </div>
       ))}
+      {Object.entries(OPTIONS).map(([key, values]) => (
+        <datalist key={key} id={`${fieldId}-${key}-options`}>{values!.map((value) => <option key={value} value={value} />)}</datalist>
+      ))}
       <button
         type="button"
-        onClick={() => onChange([...items, { medicine_name: "" }])}
+        onClick={() => onChange([...items, { ...blankItem }])}
         className="min-h-12 w-full rounded-2xl border border-dashed border-copper/50 bg-doctor-panel px-4 font-sans text-xs font-semibold uppercase tracking-wider text-copper transition-colors hover:border-copper"
       >
         + Add another medicine

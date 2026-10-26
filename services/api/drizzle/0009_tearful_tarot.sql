@@ -1,0 +1,1 @@
+ALTER TABLE "doctor_availability" ADD COLUMN "rules" jsonb DEFAULT '{"breaks":[],"blocked_dates":[],"overrides":[],"online_template":null}'::jsonb NOT NULL;

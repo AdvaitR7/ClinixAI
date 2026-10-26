@@ -541,6 +541,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Dependencies | Truthful clinical context, reviewed-item persistence and source viewer. |
 | Existing phase / scope mismatch | Phase 3/4 marked complete. |
 | Verification method | Synthetic ambiguous OCR remains blocked until resolved; failed source has explicit recovery; preview/finalized content identical and review state attributable. |
+| Batch 8 update | PARTIAL → addressed: per-line review flags persisted with confirming doctor/time (migration 0010), server gate `REVIEW_REQUIRED`, source-failure retry, truthful safety panel, printable preview, direct-entry PREVIEW/FINALIZE. Not done: no allergy source or interaction engine exists (stated in UI), no server-enforced required dose/frequency (no spec), source/safety/preview checklist is a client acknowledgment, migration not applied to a live DB. See [14](14-prescription-gates-implementation.md). |
 
 <a id="gap-025"></a>
 

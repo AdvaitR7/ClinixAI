@@ -14,7 +14,7 @@ type NavItem = {
 };
 
 /** Provides account access and sign-out in the original workspace header. */
-function AccountMenu() {
+export function AccountMenu() {
   const { user, signOut } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const initial = user?.email?.slice(0, 1).toUpperCase() ?? "•";

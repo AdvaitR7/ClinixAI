@@ -37,7 +37,8 @@ function NewPrescriptionForm() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function save() {
+  /** Creates the draft, then continues to the saved draft, its preview, or the final review. */
+  async function save(next: "review" | "preview" | "finalize" = "review") {
     const cleaned = items.filter((i) => i.medicine_name.trim());
     if (cleaned.length === 0) {
       setError("Add at least one medicine name.");
@@ -56,7 +57,8 @@ function NewPrescriptionForm() {
           body: JSON.stringify({ source: "DIRECT_ENTRY", items: cleaned }),
         },
       );
-      router.replace(`/app/doctor/prescription-drafts/${res.id}`);
+      const base = `/app/doctor/prescription-drafts/${res.id}`;
+      router.replace(next === "preview" ? `${base}/preview` : next === "finalize" ? `${base}?finalize=1` : base);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save draft");
     } finally {
@@ -101,14 +103,33 @@ function NewPrescriptionForm() {
 
         {error && <p role="alert" className="font-sans text-sm font-medium text-critical">{error}</p>}
 
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => void save("preview")}
+            disabled={busy}
+            className="min-h-[54px] rounded-[1.25rem] border border-copper bg-doctor-panel px-4 font-sans text-sm font-semibold uppercase tracking-wider text-copper disabled:opacity-60"
+          >
+            Preview
+          </button>
+          <button
+            type="button"
+            onClick={() => void save("finalize")}
+            disabled={busy}
+            className="min-h-[54px] rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase tracking-wider text-ink transition-transform active:translate-y-px disabled:opacity-60"
+          >
+            Finalize prescription
+          </button>
+        </div>
         <button
           type="button"
-          onClick={save}
+          onClick={() => void save()}
           disabled={busy}
-          className="min-h-[54px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase tracking-wider text-ink transition-transform active:translate-y-px disabled:opacity-60"
+          className="min-h-[54px] w-full rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold uppercase tracking-wider text-surface disabled:opacity-60"
         >
           {busy ? "Saving draft…" : "Save draft for review →"}
         </button>
+        <p className="font-sans text-xs text-doctor-muted/70">Finalizing opens the final review first; nothing is finalized until you confirm there.</p>
       </div>
     </WorkspaceShell>
   );

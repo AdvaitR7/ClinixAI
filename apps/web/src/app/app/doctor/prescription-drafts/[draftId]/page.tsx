@@ -1,19 +1,20 @@
 "use client";
 
 import { useAuth } from "@/lib/auth";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import type {
   DocumentView,
   PrescriptionDraftView,
-  PrescriptionItemInput,
   PrescriptionView,
 } from "@clinix/schemas";
 import { patchPrescriptionDraftSchema } from "@clinix/schemas";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { MedicineEditor } from "@/components/medicine-editor";
+import { MedicineEditor, type EditorItem } from "@/components/medicine-editor";
+import { PrescriptionSafetyPanel } from "@/components/prescription-safety-panel";
 import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
 import { fetchApi, useApiData } from "@/lib/api";
 
@@ -25,18 +26,43 @@ const nav = [
   { label: "Follow-ups", href: "/app/doctor", disabled: true },
 ];
 
+/** Keeps only the persisted medicine fields; review state travels separately. */
+function plain(item: EditorItem) {
+  const { medicine_name, strength, dose, route, frequency, timing, duration, instructions } = item;
+  return { medicine_name, strength, dose, route, frequency, timing, duration, instructions };
+}
+
 /** Page 20 — draft review + finalization (SCREEN_CATALOG §7, Figma 61:2 & 61:215). */
 export default function PrescriptionDraftPage() {
+  return (
+    <Suspense fallback={<WorkspaceShell workspace="Doctor" title="Prescription draft" nav={nav}><Skeleton className="h-40 rounded-2xl" /></WorkspaceShell>}>
+      <PrescriptionDraft />
+    </Suspense>
+  );
+}
+
+/** Maps a saved draft line into editor state, exposing its stored flag and OCR confidence. */
+function toEditorItem(i: PrescriptionDraftView["items"][number]): EditorItem {
+  const confidence = (i.field_confidence as { confidence?: unknown } | null)?.confidence;
+  return { ...plain(i), needs_review: i.needs_review, reviewed: false, confidence: typeof confidence === "number" ? confidence : null };
+}
+
+function PrescriptionDraft() {
   const params = useParams<{ draftId: string }>();
   const router = useRouter();
+  const openFinalReview = useSearchParams().get("finalize") === "1";
   const { getToken } = useAuth();
   const state = useApiData<PrescriptionDraftView>(
     params.draftId ? `/doctor/prescription-drafts/${params.draftId}` : null,
   );
 
-  const [items, setItems] = useState<PrescriptionItemInput[]>([]);
+  const [items, setItems] = useState<EditorItem[]>([]);
   const [confirming, setConfirming] = useState(false);
-  const [reviewedItems, setReviewedItems] = useState<PrescriptionItemInput[] | null>(null);
+  const [reviewedItems, setReviewedItems] = useState<EditorItem[] | null>(null);
+  const [checks, setChecks] = useState({ source: false, safety: false, preview: false });
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  const [sourceTry, setSourceTry] = useState(0);
+  const autoStarted = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -50,45 +76,37 @@ export default function PrescriptionDraftPage() {
       ? state.data.source_document_id
       : null;
 
-  // OCR drafts: load the source image beside the extracted fields.
+  // OCR drafts: load the source image beside the extracted fields; a failure stays visible with a retry.
   useEffect(() => {
     if (!sourceDocId) return;
     void (async () => {
-      const token = await getToken();
-      if (!token) return;
       try {
+        const token = await getToken();
+        if (!token) throw new Error("Not signed in");
         setSourceDoc(await fetchApi<DocumentView>(token, `/doctor/documents/${sourceDocId}`));
-      } catch {
+        setSourceError(null);
+      } catch (err) {
         setSourceDoc(null);
+        setSourceError(err instanceof Error ? err.message : "Could not load the source document");
       }
     })();
-  }, [sourceDocId, getToken]);
+  }, [sourceDocId, sourceTry, getToken]);
 
   useEffect(() => {
     if (loadedItems && !initialized.current) {
       initialized.current = true;
-      setItems(
-        loadedItems.map((i) => ({
-          medicine_name: i.medicine_name,
-          strength: i.strength,
-          dose: i.dose,
-          route: i.route,
-          frequency: i.frequency,
-          timing: i.timing,
-          duration: i.duration,
-          instructions: i.instructions,
-        })),
-      );
+      setItems(loadedItems.map(toEditorItem));
     }
   }, [loadedItems]);
 
-  /** Saves every visible row before allowing the clinician to review the saved snapshot. */
-  async function save(review = false) {
+  /** Saves every visible row, reloads the stored review flags, and returns the saved draft (null on failure). */
+  async function persist(): Promise<PrescriptionDraftView | null> {
     setSaved(false);
-    const parsed = patchPrescriptionDraftSchema.safeParse({ items });
+    const payload = items.map((item) => ({ ...plain(item), ...(item.needs_review ? { reviewed: !!item.reviewed } : {}) }));
+    const parsed = patchPrescriptionDraftSchema.safeParse({ items: payload });
     if (!parsed.success || items.some((item) => !item.medicine_name.trim())) {
       setError("Check every medicine name and field length before saving.");
-      return;
+      return null;
     }
     setError(null);
     setBusy(true);
@@ -99,20 +117,46 @@ export default function PrescriptionDraftPage() {
         method: "PATCH",
         body: JSON.stringify(parsed.data),
       });
+      const latest = await fetchApi<PrescriptionDraftView>(token, `/doctor/prescription-drafts/${params.draftId}`);
+      if (latest.status === "APPROVED") throw new Error("This draft has already been finalized. Reopen it to view the prescription.");
+      setItems(latest.items.map(toEditorItem));
       setSaved(true);
-      if (review) {
-        const saved = await fetchApi<PrescriptionDraftView>(token, `/doctor/prescription-drafts/${params.draftId}`);
-        if (saved.status === "APPROVED") throw new Error("This draft has already been finalized. Reopen it to view the prescription.");
-        setItems(saved.items);
-        setReviewedItems(saved.items);
-        setConfirming(true);
-      }
+      return latest;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save draft");
+      return null;
     } finally {
       setBusy(false);
     }
   }
+
+  /** Saves, then opens the final review only when no extracted line is still unconfirmed. */
+  async function save(review = false) {
+    const latest = await persist();
+    if (!latest || !review) return;
+    const open = latest.items.filter((item) => item.needs_review).length;
+    if (open) {
+      setError(`Confirm ${open} flagged medicine${open === 1 ? "" : "s"} against the source before finalizing.`);
+      return;
+    }
+    setReviewedItems(latest.items.map(toEditorItem));
+    setChecks({ source: false, safety: false, preview: false });
+    setConfirming(true);
+  }
+
+  /** Saves the visible edits, then opens the printable preview of the saved draft. */
+  async function preview() {
+    if (await persist()) router.push(`/app/doctor/prescription-drafts/${params.draftId}/preview`);
+  }
+
+  // Direct entry's FINALIZE hands over here: save and open the same final review.
+  useEffect(() => {
+    if (openFinalReview && items.length && !autoStarted.current && state.status === "ready" && state.data.status !== "APPROVED") {
+      autoStarted.current = true;
+      void save(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openFinalReview, items.length, state.status]);
 
   /** Finalizes only the persisted snapshot displayed in the confirmation. */
   async function finalize() {
@@ -127,7 +171,7 @@ export default function PrescriptionDraftPage() {
         `/doctor/prescription-drafts/${params.draftId}/finalize`,
         {
           method: "POST",
-          body: JSON.stringify({ reviewed_items: reviewedItems }),
+          body: JSON.stringify({ reviewed_items: reviewedItems.map(plain) }),
           headers: { "Idempotency-Key": crypto.randomUUID() },
         },
       );
@@ -164,15 +208,20 @@ export default function PrescriptionDraftPage() {
   const editor = (
     <>
       <fieldset disabled={busy || confirming} className="min-w-0">
-        <MedicineEditor items={items} onChange={(next) => {
-          setItems(next);
-          setSaved(false);
-        }} />
+        <MedicineEditor
+          items={items}
+          blankItem={{ medicine_name: "", needs_review: draft.source !== "DIRECT_ENTRY" }}
+          onChange={(next) => {
+            setItems(next);
+            setSaved(false);
+          }}
+        />
       </fieldset>
+      <PrescriptionSafetyPanel patientId={draft.patient_id} riskFlags={draft.risk_flags} overallConfidence={draft.overall_confidence} />
       {saved && <p role="status" className="font-sans text-sm text-doctor-muted">Draft saved.</p>}
       {error && <p role="alert" className="font-sans text-sm font-medium text-critical">{error}</p>}
       {!finalized && (
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => save()}
@@ -180,6 +229,14 @@ export default function PrescriptionDraftPage() {
             className="min-h-12 flex-1 rounded-2xl border border-white/10 bg-doctor-panel font-sans text-xs font-semibold uppercase tracking-wider text-surface disabled:opacity-60"
           >
             Save draft
+          </button>
+          <button
+            type="button"
+            onClick={() => void preview()}
+            disabled={busy}
+            className="min-h-12 flex-1 rounded-2xl border border-copper bg-doctor-panel font-sans text-xs font-semibold uppercase tracking-wider text-copper disabled:opacity-60"
+          >
+            Preview
           </button>
           <button
             ref={finalizeButton}
@@ -232,6 +289,15 @@ export default function PrescriptionDraftPage() {
                 ))}
               </ul>
             </div>
+            <section aria-label="Before finalizing" className="mt-6 space-y-1 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+              <h4 className="text-lg">Before finalizing</h4>
+              {draft.source === "OCR" && (
+                <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="size-5 accent-copper" checked={checks.source} onChange={(e) => setChecks({ ...checks, source: e.target.checked })} />Medicines match the original source</label>
+              )}
+              <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="size-5 accent-copper" checked={checks.safety} onChange={(e) => setChecks({ ...checks, safety: e.target.checked })} />Allergies and current medicines reviewed with the patient</label>
+              <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="size-5 accent-copper" checked={checks.preview} onChange={(e) => setChecks({ ...checks, preview: e.target.checked })} />Printable preview checked</label>
+              <Link href={`/app/doctor/prescription-drafts/${params.draftId}/preview`} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-copper underline">Open full printable preview →</Link>
+            </section>
             <section className="mt-6 rounded-[22px] border border-evidence bg-graphite p-4 font-sans text-xs leading-5 text-surface">
               <h4 className="text-lg">Edits become amendments</h4>
               <p className="mt-2">Finalization preserves this version. Later corrections create a dated amendment or a new version; the original cannot be silently replaced.</p>
@@ -240,7 +306,7 @@ export default function PrescriptionDraftPage() {
               <button
                 type="button"
                 onClick={finalize}
-                disabled={busy}
+                disabled={busy || !checks.safety || !checks.preview || (draft.source === "OCR" && !checks.source)}
                 className="min-h-[60px] rounded-[18px] bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
               >
                 {busy ? "Finalizing…" : "Finalize prescription"}
@@ -279,19 +345,25 @@ export default function PrescriptionDraftPage() {
             This draft has been finalized and can no longer be edited directly.
           </p>
         </section>
-      ) : sourceDoc ? (
+      ) : sourceDocId ? (
         <div className="grid gap-6 md:grid-cols-2">
           <div className="clinix-doctor-card p-4 md:sticky md:top-4 md:self-start">
             <p className="clinix-label text-copper">
               Source document
             </p>
-            {sourceDoc.view_url && sourceDoc.mime_type.startsWith("image/") ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={sourceDoc.view_url}
-                alt="Source prescription"
-                className="mt-3 w-full rounded-2xl border border-white/10"
-              />
+            {sourceError ? (
+              <div role="alert" className="mt-3 font-sans text-xs text-critical">
+                <p>Source unavailable: {sourceError}</p>
+                <button type="button" onClick={() => { setSourceError(null); setSourceTry((n) => n + 1); }} className="mt-1 min-h-11 font-semibold text-copper underline">Retry source</button>
+              </div>
+            ) : !sourceDoc ? (
+              <p role="status" className="mt-3 font-sans text-xs text-doctor-muted/60">Loading source…</p>
+            ) : sourceDoc.view_url && sourceDoc.mime_type.startsWith("image/") ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sourceDoc.view_url} alt="Source prescription" className="mt-3 w-full rounded-2xl border border-white/10" />
+                <a href={sourceDoc.view_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center font-sans text-xs font-semibold text-copper hover:underline">Open original source →</a>
+              </>
             ) : sourceDoc.view_url ? (
               <a
                 href={sourceDoc.view_url}
@@ -299,7 +371,7 @@ export default function PrescriptionDraftPage() {
                 rel="noreferrer"
                 className="mt-3 inline-block font-sans text-xs font-semibold text-copper hover:underline"
               >
-                Open source document in new tab →
+                Open original source →
               </a>
             ) : (
               <p className="mt-3 font-sans text-xs text-doctor-muted/60">Source preview unavailable.</p>

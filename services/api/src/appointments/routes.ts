@@ -5,6 +5,7 @@ import {
   completeConsultationSchema,
   noteSectionsSchema,
   paymentStatusUpdateSchema,
+  scheduleDateSchema,
 } from "@clinix/schemas";
 import { requireDoctor, requirePatient } from "../auth/guards.js";
 import { error, requireDb } from "../http.js";
@@ -63,7 +64,7 @@ export async function appointmentRoutes(app: FastifyInstance) {
         lt(appointments.scheduledStart, end), or(gt(appointments.scheduledEnd, start), isNull(appointments.scheduledEnd)),
       ));
       const slots = computeSlots(availability.weeklyTemplate, availability.slotDurationMinutes, start, end,
-        overlaps.map((a) => ({ start: a.scheduledStart, end: a.scheduledEnd ?? new Date(a.scheduledStart.getTime() + availability.slotDurationMinutes * 60000) })));
+        overlaps.map((a) => ({ start: a.scheduledStart, end: a.scheduledEnd ?? new Date(a.scheduledStart.getTime() + availability.slotDurationMinutes * 60000) })), { rules: availability.rules, appointmentType: body.appointment_type });
       if (!slots.some((slot) => slot.start.getTime() === start.getTime())) return { status: 409, code: "SLOT_TAKEN", message: "This time is not available. Choose another slot." } as const;
       const [appointment] = await tx.insert(appointments).values({ patientId, doctorId: body.doctor_id,
         encounterId: body.encounter_id ?? null, appointmentType: body.appointment_type, status: "REQUESTED",
@@ -120,6 +121,9 @@ export async function appointmentRoutes(app: FastifyInstance) {
     if (typeof doctorId !== "string") return doctorId;
 
     const { from, to } = request.query as { from?: string; to?: string };
+    if ([from, to].some((date) => date && (!Number.isFinite(new Date(date).getTime()) || (/^\d{4}-\d{2}-\d{2}$/.test(date) && !scheduleDateSchema.safeParse(date).success))) || (from && to && from > to)) {
+      return error(request, reply, 400, "VALIDATION_ERROR", "Choose a valid schedule range");
+    }
     const database = requireDb();
     const rows = await database
       .select()
@@ -127,9 +131,9 @@ export async function appointmentRoutes(app: FastifyInstance) {
       .where(
         and(
           eq(appointments.doctorId, doctorId),
-          ...(from ? [gte(appointments.scheduledStart, new Date(from))] : []),
+          ...(from ? [gte(appointments.scheduledStart, new Date(/^\d{4}-\d{2}-\d{2}$/.test(from) ? `${from}T00:00:00+05:30` : from))] : []),
           ...(to
-            ? [lte(appointments.scheduledStart, /^\d{4}-\d{2}-\d{2}$/.test(to) ? new Date(`${to}T23:59:59.999Z`) : new Date(to))]
+            ? [lte(appointments.scheduledStart, /^\d{4}-\d{2}-\d{2}$/.test(to) ? new Date(`${to}T23:59:59.999+05:30`) : new Date(to))]
             : []),
         ),
       )
