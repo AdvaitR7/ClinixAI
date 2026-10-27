@@ -54,6 +54,16 @@ const meBaseSchema = z.object({
   patient_id: z.string().uuid().nullable(),
   doctor_id: z.string().uuid().nullable(),
   verification_status: z.string().nullable(),
+  memberships: z
+    .array(
+      z.object({
+        member_id: z.string().uuid(),
+        practice_id: z.string().uuid(),
+        practice_name: z.string(),
+        role: z.enum(["OWNER", "DOCTOR", "RECEPTION", "ASSISTANT"]),
+      }),
+    )
+    .default([]),
 });
 
 /** GET /me response — profile exists, so role is always set. */
@@ -1129,3 +1139,87 @@ export const removalRequestViewSchema = z.object({
   decisions: z.array(removalDecisionSchema),
 });
 export type RemovalRequestView = z.infer<typeof removalRequestViewSchema>;
+
+
+// --- Phase 7: staff & practice OS ---
+
+export const practiceRoleSchema = z.enum(["OWNER", "DOCTOR", "RECEPTION", "ASSISTANT"]);
+export type PracticeRole = z.infer<typeof practiceRoleSchema>;
+export const invitableRoleSchema = z.enum(["RECEPTION", "ASSISTANT"]);
+export const memberStatusSchema = z.enum(["INVITED", "ACTIVE", "SUSPENDED", "FORMER", "REVOKED"]);
+
+export const practiceCreateSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  phone: z.string().max(32).optional(),
+  address: z.string().max(300).optional(),
+});
+
+export const practiceInviteSchema = z.object({
+  contact: z.string().trim().min(3).max(200),
+  role: invitableRoleSchema,
+  assigned_doctor_id: z.string().uuid().optional(),
+});
+
+export const memberRoleChangeSchema = z.object({
+  role: invitableRoleSchema,
+  confirm_permission_change: z.literal(true),
+});
+
+export const memberEndSchema = z.object({
+  reason: z.string().trim().min(3).max(500),
+  effective_date: z.string().date(),
+  reassign_to_member_id: z.string().uuid().optional(),
+});
+
+export const followupCreateSchema = z.object({
+  due_at: z.string().datetime(),
+  reason: z.string().trim().min(2).max(500),
+  practice_id: z.string().uuid().optional(),
+});
+
+export const followupUpdateSchema = z.object({
+  assigned_member_id: z.string().uuid().nullable().optional(),
+  contact_status: z.enum(["UNREACHED", "REACHED"]).optional(),
+  due_at: z.string().datetime().optional(),
+  outcome: z.string().trim().max(2000).optional(),
+});
+
+export const followupCompleteSchema = z.object({
+  outcome: z.string().trim().max(2000).optional(),
+});
+
+export const intakeVitalsSchema = z
+  .object({
+    temperature_c: z.number().min(30).max(45).optional(),
+    pulse_bpm: z.number().int().min(20).max(250).optional(),
+    systolic_mmhg: z.number().int().min(40).max(300).optional(),
+    diastolic_mmhg: z.number().int().min(20).max(200).optional(),
+    spo2_percent: z.number().int().min(50).max(100).optional(),
+    weight_kg: z.number().min(1).max(500).optional(),
+    intake_note: z.string().max(1000).optional(),
+  })
+  .refine(
+    (v) =>
+      v.temperature_c !== undefined ||
+      v.pulse_bpm !== undefined ||
+      v.systolic_mmhg !== undefined ||
+      v.spo2_percent !== undefined ||
+      v.weight_kg !== undefined,
+    "Enter at least one vital sign",
+  );
+
+export const doctorServiceSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  mode: z.enum(["IN_CLINIC", "ONLINE"]),
+  fee_inr: z.number().int().min(0).max(100000),
+  duration_minutes: z.number().int().min(5).max(180),
+});
+
+export const doctorProfileUpdateSchema = z.object({
+  bio: z.string().max(1000).optional(),
+  languages: z.array(z.string().max(40)).max(10).optional(),
+  visit_duration_minutes: z.number().int().min(5).max(180).optional(),
+  services: z.array(doctorServiceSchema).max(10).optional(),
+  accepting_appointments: z.boolean().optional(),
+  directory_visible: z.boolean().optional(),
+});

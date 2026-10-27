@@ -4,7 +4,7 @@ import { db } from "../db.js";
 import { error } from "../http.js";
 import { patientDoctorRelationships } from "../schema.js";
 import { activeConsentsForDoctor, consentCovering } from "../privacy/consent.js";
-import type { AuthContext } from "./context.js";
+import type { AuthContext, PracticeMembership } from "./context.js";
 
 /** Doctor-only route guard; returns the authenticated doctorId. */
 export function requireDoctor(
@@ -15,6 +15,30 @@ export function requireDoctor(
     return error(request, reply, 403, "FORBIDDEN", "Doctor profile required");
   }
   return request.auth.doctorId;
+}
+
+/**
+ * Practice-member route guard. Picks the membership for `practiceId` (or the
+ * only/first one when omitted) and requires one of `roles`. Access derives only
+ * from ACTIVE rows loaded by the auth plugin, so ended or suspended members fail.
+ */
+export function requirePracticeRole(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  roles: PracticeMembership["role"][],
+  practiceId?: string | null,
+): PracticeMembership | FastifyReply {
+  const memberships = request.auth.memberships ?? [];
+  const member = practiceId
+    ? memberships.find((m) => m.practiceId === practiceId)
+    : memberships.find((m) => roles.includes(m.role)) ?? memberships[0];
+  if (!member) {
+    return error(request, reply, 403, "PRACTICE_MEMBERSHIP_REQUIRED", "An active practice membership is required");
+  }
+  if (!roles.includes(member.role)) {
+    return error(request, reply, 403, "FORBIDDEN", "Your practice role cannot do this");
+  }
+  return member;
 }
 
 /** Patient-only route guard; returns the authenticated patientId. */
