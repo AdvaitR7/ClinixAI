@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { RequireWorkspace } from "@/components/route-guards";
+import { RequireStaffWorkspace } from "@/components/route-guards";
 
-/** Keeps staff routes behind the database-resolved staff role. */
+/** Keeps staff routes behind an active practice membership resolved by the API. */
 export default function StaffLayout({ children }: { children: ReactNode }) {
-  return <RequireWorkspace role="CLINIC_STAFF">{children}</RequireWorkspace>;
+  return <RequireStaffWorkspace>{children}</RequireStaffWorkspace>;
 }

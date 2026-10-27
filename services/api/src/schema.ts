@@ -248,7 +248,9 @@ export const encounters = pgTable(
     initiatedByActorType: actorType("initiated_by_actor_type").notNull(),
     initiatedByActorId: uuid("initiated_by_actor_id"),
     relatedDoctorId: uuid("related_doctor_id").references(() => doctors.id),
-    relatedPracticeId: uuid("related_practice_id"),
+    relatedPracticeId: uuid("related_practice_id").references(
+      (): AnyPgColumn => practices.id,
+    ),
     parentEncounterId: uuid("parent_encounter_id").references(
       (): AnyPgColumn => encounters.id,
     ),
@@ -280,7 +282,7 @@ export const appointments = pgTable(
     doctorId: uuid("doctor_id")
       .notNull()
       .references(() => doctors.id),
-    practiceId: uuid("practice_id"),
+    practiceId: uuid("practice_id").references((): AnyPgColumn => practices.id),
     encounterId: uuid("encounter_id").references(() => encounters.id),
     appointmentType: appointmentType("appointment_type").notNull(),
     status: appointmentStatus("status").notNull().default("REQUESTED"),
@@ -1169,3 +1171,201 @@ export const safetyEvaluations = pgTable(
   },
   (t) => [index("safety_evaluations_enc_idx").on(t.encounterId)],
 );
+
+// --- Phase 7: staff & practice OS ---
+
+/** §7.1 — a clinic/practice. Created by a doctor, who becomes its OWNER. */
+export const practices = pgTable("practices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  createdByDoctorId: uuid("created_by_doctor_id").references(() => doctors.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * §7.2 — membership of a profile in a practice. Staff access exists only while
+ * status = ACTIVE. An invitation row has no profile until it is accepted; the
+ * invite token is stored only as a SHA-256 hash. role: OWNER | DOCTOR |
+ * RECEPTION | ASSISTANT. status: INVITED | ACTIVE | SUSPENDED | FORMER | REVOKED.
+ */
+export const practiceMembers = pgTable(
+  "practice_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    practiceId: uuid("practice_id")
+      .notNull()
+      .references(() => practices.id),
+    profileId: uuid("profile_id").references(() => profiles.id),
+    role: text("role").notNull(),
+    status: text("status").notNull().default("INVITED"),
+    inviteContactHash: text("invite_contact_hash"),
+    inviteContactHint: text("invite_contact_hint"),
+    inviteTokenHash: text("invite_token_hash").unique(),
+    inviteExpiresAt: timestamp("invite_expires_at", { withTimezone: true }),
+    invitedByProfileId: uuid("invited_by_profile_id").references(
+      () => profiles.id,
+    ),
+    assignedDoctorId: uuid("assigned_doctor_id").references(() => doctors.id),
+    effectiveFrom: timestamp("effective_from", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    endReason: text("end_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("practice_members_practice_idx").on(t.practiceId, t.status),
+    index("practice_members_profile_idx").on(t.profileId, t.status),
+  ],
+);
+
+/**
+ * §24.1 extended — a follow-up obligation. Distinct from a booked appointment:
+ * completing a follow-up never implies the visit was attended. `outcome` is
+ * written by doctors only. status: OPEN | COMPLETED | CANCELLED;
+ * contactStatus: UNREACHED | REACHED.
+ */
+export const followups = pgTable(
+  "followups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    doctorId: uuid("doctor_id").references(() => doctors.id),
+    practiceId: uuid("practice_id").references(() => practices.id),
+    sourceEncounterId: uuid("source_encounter_id")
+      .notNull()
+      .references(() => encounters.id),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    reason: text("reason").notNull(),
+    status: text("status").notNull().default("OPEN"),
+    assignedMemberId: uuid("assigned_member_id").references(
+      () => practiceMembers.id,
+    ),
+    contactStatus: text("contact_status").notNull().default("UNREACHED"),
+    outcome: text("outcome"),
+    completedByProfileId: uuid("completed_by_profile_id").references(
+      () => profiles.id,
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("followups_doctor_due_idx").on(t.doctorId, t.status, t.dueAt),
+    index("followups_patient_idx").on(t.patientId),
+    index("followups_practice_due_idx").on(t.practiceId, t.status, t.dueAt),
+  ],
+);
+
+/** §32.1 — in-app notifications. */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipientProfileId: uuid("recipient_profile_id")
+      .notNull()
+      .references(() => profiles.id),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    relatedResourceType: text("related_resource_type"),
+    relatedResourceId: uuid("related_resource_id"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("notifications_recipient_idx").on(t.recipientProfileId, t.readAt)],
+);
+
+/**
+ * Operational intake state for one appointment, kept out of appointment_status
+ * so the Phase 3 clinical flow is unchanged. status: ARRIVED | WAITING |
+ * READY_FOR_DOCTOR.
+ */
+export const appointmentIntakes = pgTable("appointment_intakes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  appointmentId: uuid("appointment_id")
+    .notNull()
+    .unique()
+    .references(() => appointments.id),
+  practiceId: uuid("practice_id").references(() => practices.id),
+  status: text("status").notNull(),
+  arrivedAt: timestamp("arrived_at", { withTimezone: true }),
+  readyAt: timestamp("ready_at", { withTimezone: true }),
+  intakeNote: text("intake_note"),
+  updatedByProfileId: uuid("updated_by_profile_id").references(
+    () => profiles.id,
+  ),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
+ * Staff-entered vitals for an encounter. Provenance is always CLINIC_STAFF
+ * (or DOCTOR when the doctor enters them); `needsDoctorReview` flags out-of-range
+ * values with no diagnostic meaning.
+ */
+export const intakeVitals = pgTable(
+  "intake_vitals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    appointmentId: uuid("appointment_id")
+      .notNull()
+      .references(() => appointments.id),
+    encounterId: uuid("encounter_id").references(() => encounters.id),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    temperatureC: numeric("temperature_c"),
+    pulseBpm: integer("pulse_bpm"),
+    systolicMmhg: integer("systolic_mmhg"),
+    diastolicMmhg: integer("diastolic_mmhg"),
+    spo2Percent: integer("spo2_percent"),
+    weightKg: numeric("weight_kg"),
+    needsDoctorReview: boolean("needs_doctor_review").notNull().default(false),
+    provenance: text("provenance").notNull().default("CLINIC_STAFF"),
+    enteredByProfileId: uuid("entered_by_profile_id")
+      .notNull()
+      .references(() => profiles.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("intake_vitals_appt_idx").on(t.appointmentId)],
+);
+
+/** Doctor-editable public profile and consultation services (Page 27). */
+export const doctorProfiles = pgTable("doctor_profiles", {
+  doctorId: uuid("doctor_id")
+    .primaryKey()
+    .references(() => doctors.id),
+  bio: text("bio"),
+  languages: jsonb("languages").notNull().default([]),
+  visitDurationMinutes: integer("visit_duration_minutes"),
+  services: jsonb("services").notNull().default([]),
+  acceptingAppointments: boolean("accepting_appointments")
+    .notNull()
+    .default(true),
+  directoryVisible: boolean("directory_visible").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

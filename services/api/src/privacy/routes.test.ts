@@ -134,7 +134,7 @@ describe("privacy routes", () => {
     expect(conflict.statusCode).toBe(409);
   });
 
-  it("stops clinic staff from deciding or routing before practice membership exists", async () => {
+  it("stops clinic staff without an active practice membership from deciding or routing", async () => {
     Object.assign(mocks.auth, { role: "CLINIC_STAFF", patientId: null, doctorId: null });
     expect((await app.inject({ method: "POST", url: "/doctor/record-removal-requests/req/resolve", payload: { outcome: "APPROVED" } })).statusCode).toBe(403);
     const route = await app.inject({ method: "POST", url: "/record-removal-requests/req/route", payload: { doctor_id: DOCTOR } });

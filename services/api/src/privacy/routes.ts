@@ -10,7 +10,8 @@ import {
   type LedgerCategory,
   type RemovalRequestView,
 } from "@clinix/schemas";
-import { requireDoctor, requirePatient } from "../auth/guards.js";
+import { requireDoctor, requirePatient, requirePracticeRole } from "../auth/guards.js";
+import { practiceDoctorIds } from "../practices/scope.js";
 import { logAccess } from "../audit/log.js";
 import { patientNames } from "../appointments/map.js";
 import { error, requireDb } from "../http.js";
@@ -423,22 +424,33 @@ export async function privacyRoutes(app: FastifyInstance) {
     return removalView(updated ?? { ...existing, status: body.outcome, resolvedAt: now }, { patient: null, doctor: null });
   });
 
-  /** Routes a request to the responsible doctor. Staff are refused until practice membership exists (Phase 7). */
+  /**
+   * Routes a request to a responsible doctor. A doctor routes their own requests;
+   * an active practice member routes requests held by a doctor of that practice
+   * to another doctor of the same practice. Staff cannot decide a request.
+   */
   app.post<{ Params: { id: string } }>("/record-removal-requests/:id/route", async (request, reply) => {
-    if (request.auth.role === "CLINIC_STAFF") {
-      return error(request, reply, 403, "PRACTICE_MEMBERSHIP_REQUIRED", "Staff routing needs practice membership, which is not available yet");
+    let scopeIds: string[];
+    if (request.auth.role === "DOCTOR" && request.auth.doctorId) {
+      scopeIds = [request.auth.doctorId];
+    } else {
+      const member = requirePracticeRole(request, reply, ["RECEPTION", "ASSISTANT", "OWNER"]);
+      if ("statusCode" in member) return member;
+      scopeIds = await practiceDoctorIds(member.practiceId);
+      if (scopeIds.length === 0) return error(request, reply, 403, "FORBIDDEN", "Practice has no doctors");
     }
-    const doctorId = requireDoctor(request, reply);
-    if (typeof doctorId !== "string") return doctorId;
     const parsed = removalRouteSchema.safeParse(request.body);
     if (!parsed.success) return error(request, reply, 400, "VALIDATION_ERROR", "Invalid routing");
     const database = requireDb();
     const target = await doctorNames(database, [parsed.data.doctor_id]);
     if (!target.has(parsed.data.doctor_id)) return error(request, reply, 404, "NOT_FOUND", "Doctor not found");
+    if (request.auth.role !== "DOCTOR" && !scopeIds.includes(parsed.data.doctor_id)) {
+      return error(request, reply, 403, "FORBIDDEN", "Staff can route only within their practice");
+    }
     const rows = await database
       .select()
       .from(recordRemovalRequests)
-      .where(and(eq(recordRemovalRequests.id, request.params.id), eq(recordRemovalRequests.targetActorId, doctorId)))
+      .where(and(eq(recordRemovalRequests.id, request.params.id), inArray(recordRemovalRequests.targetActorId, scopeIds)))
       .limit(1);
     if (rows.length === 0) return error(request, reply, 404, "NOT_FOUND", "Request not found");
     if (rows[0].resolvedAt) return error(request, reply, 409, "ALREADY_RESOLVED", "This request was already decided");
