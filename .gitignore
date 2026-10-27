@@ -1,4 +1,8 @@
 # Secrets — never commit
+/docs/
+/.sensitive_docs/
+/Synopsis.md
+/Synopsis.pdf
 .sensitive_docs/credentials.md
 .sensitive_docs/auth-migration-backups/
 .env
