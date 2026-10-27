@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
     transaction: vi.fn(),
   },
   allowed: true,
+  consentId: null as string | null,
   log: vi.fn(),
   send: vi.fn(),
 }));
@@ -41,6 +42,10 @@ vi.mock("../auth/guards.js", () => ({
       : reply.code(403).send({ error: "Patient required" }),
   requireDoctor: () => "doctor-own",
   authorizePatientAccess: async () => mocks.allowed,
+  authorizePatientResource: async () =>
+    mocks.consentId
+      ? { allowed: true, basis: "CONSENT", consentId: mocks.consentId }
+      : { allowed: false, basis: null, consentId: null },
 }));
 
 const blockId = "ce226d37-f9fb-4a41-bf08-d448a767801b";
@@ -84,6 +89,7 @@ describe("check-in isolation and persistence", () => {
     vi.clearAllMocks();
     role = "PATIENT";
     mocks.allowed = true;
+    mocks.consentId = null;
     mocks.send.mockResolvedValue(undefined);
     mocks.log.mockResolvedValue(undefined);
     queue = [];
@@ -540,35 +546,53 @@ describe("check-in isolation and persistence", () => {
       }),
     );
   });
-  it("rejects unrelated doctor AI access and fails closed for related cross-record consent", async () => {
+  it("hides absent encounters, tells related doctors consent is missing, and opens only with a consent scope", async () => {
     queue = [[]];
     expect(
-      (
-        await app.inject({
-          method: "GET",
-          url: "/doctor/encounters/foreign/ai-assistance",
-        })
-      ).statusCode,
+      (await app.inject({ method: "GET", url: "/doctor/encounters/foreign/ai-assistance" })).statusCode,
     ).toBe(404);
-    expect(queries[0].params).toEqual(["foreign", "doctor-own"]);
+    // Unrelated doctor, no consent: existence is not disclosed.
+    queue = [[enc]];
     mocks.allowed = false;
     expect(
-      (
-        await app.inject({
-          method: "GET",
-          url: "/doctor/patients/foreign/ai-assistance",
-        })
-      ).statusCode,
+      (await app.inject({ method: "GET", url: "/doctor/encounters/encounter-own/ai-assistance" })).statusCode,
     ).toBe(404);
+    // Related doctor, no consent: consent is named as the missing piece.
+    queue = [[enc]];
     mocks.allowed = true;
+    const related = await app.inject({ method: "GET", url: "/doctor/encounters/encounter-own/ai-assistance" });
+    expect(related.statusCode).toBe(403);
+    expect(related.json().error.code).toBe("CONSENT_REQUIRED");
+    expect(mocks.log).not.toHaveBeenCalled();
+    // Patient-wide route: no analysed check-in to share yet.
+    queue = [[]];
     expect(
-      (
-        await app.inject({
-          method: "GET",
-          url: "/doctor/patients/patient-own/ai-assistance",
-        })
-      ).statusCode,
+      (await app.inject({ method: "GET", url: "/doctor/patients/patient-own/ai-assistance" })).statusCode,
     ).toBe(403);
+    mocks.allowed = false;
+    queue = [[]];
+    expect(
+      (await app.inject({ method: "GET", url: "/doctor/patients/foreign/ai-assistance" })).statusCode,
+    ).toBe(404);
+  });
+  it("composes doctor AI assistance from a consented check-in and logs the consent", async () => {
+    mocks.consentId = "consent-1";
+    queue = [
+      [enc],
+      [{ ...session, status: "SUCCEEDED", patientOutcome: { summary: "Checked summary", questions_for_doctor: ["Any fever?"] } }],
+    ];
+    const response = await app.inject({ method: "GET", url: "/doctor/encounters/encounter-own/ai-assistance" });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      encounter_id: "encounter-own",
+      agreements: ["Checked summary"],
+      questions_to_ask_patient: ["Any fever?"],
+    });
+    expect(response.json().consent_locked_sections.length).toBeGreaterThan(0);
+    expect(mocks.log).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ consentId: "consent-1", resourceType: "AI_SESSION" }),
+    );
   });
   it("projects actual urgent and legacy-unavailable summaries into the timeline", async () => {
     queue = [

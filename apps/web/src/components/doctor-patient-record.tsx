@@ -366,6 +366,16 @@ export function DoctorPatientRecord({
     .join("");
 
   /** Shows available timeline events with their supplied source authority. */
+  const locked = record.locked_sections ?? [];
+  const lockedNames = locked.map((section) => section.section_name);
+  // Locked groups are listed explicitly instead of being silently omitted.
+  const lockedList = locked.length > 0 && (
+    <ul className="mt-3 space-y-1 text-xs" aria-label="Locked record groups">
+      {locked.map((section) => (
+        <li key={section.section_name}>Locked · {section.section_name} — {section.reason}</li>
+      ))}
+    </ul>
+  );
   const timeline = (all = false) => (
     <div className={`${card} space-y-3`}>
       {compact && !all && (
@@ -511,13 +521,15 @@ export function DoctorPatientRecord({
               {record.consent_active === true
                 ? "Consent reported active"
                 : record.consent_active === false
-                  ? "Consent inactive"
+                  ? "No active patient consent"
                   : "Consent status unavailable"}
             </p>
             <p className="mt-1 text-xs">
               {record.access_scope === "DOCTOR_OWN_RECORDS"
                 ? "Access: your clinical records only"
-                : "Access scope not recorded"}
+                : record.access_scope === "CONSENT_SCOPED"
+                  ? "Access: your records plus what the patient shared"
+                  : "Access scope not recorded"}
             </p>
           </div>
           {!compact && (
@@ -637,11 +649,11 @@ export function DoctorPatientRecord({
               <dl className="mt-3 space-y-2 text-xs">
                 <div>
                   <dt className="text-copper">Recent check-in</dt>
-                  <dd>Unavailable in this scope</dd>
+                  <dd>{lockedNames.includes("AI check-in packet") ? "Not shared with you" : "Shared by the patient"}</dd>
                 </div>
                 <div>
                   <dt className="text-copper">Shared packet</dt>
-                  <dd>Consent scope unavailable</dd>
+                  <dd>{lockedNames.length === 0 ? "All groups shared" : `${lockedNames.length} groups locked`}</dd>
                 </div>
               </dl>
             )}
@@ -878,17 +890,20 @@ export function DoctorPatientRecord({
           <section className="rounded-[18px] bg-surface p-4 text-xs text-ink">
             <h2 className="clinix-label text-copper">Role-based access</h2>
             <p className="mt-2">
-              Your own clinical records are shown. Patient-shared and other
-              clinicians’ records require verified consent scope.
+              Your own clinical records are always shown. Other record groups
+              open only while the patient’s consent covers them.
             </p>
+            {lockedList}
           </section>
         ) : (
           <section className={`${card} border-review`}>
             <h2 className="clinix-label text-review">Consent-locked records</h2>
             <p className="mt-2">
-              Patient-shared and other clinicians’ records are unavailable
-              without verified scope.
+              {lockedNames.length === 0
+                ? "The patient has shared every record group with you."
+                : "These groups are unavailable without the patient’s consent."}
             </p>
+            {lockedList}
             <button
               type="button"
               onClick={(event) => open("scope", event.currentTarget)}
@@ -908,8 +923,9 @@ export function DoctorPatientRecord({
                 Clinical context summary
               </h2>
               <p className="mt-3 text-xs">
-                Consent-scoped AI context is unavailable. No generated summary,
-                confidence or outcome is asserted.
+                {lockedNames.includes("AI check-in packet")
+                  ? "AI context appears when the patient shares a check-in packet. No generated summary, confidence or outcome is asserted."
+                  : "The patient shared a check-in packet. Open it from the consultation to see the checked summary."}
               </p>
             </div>
           </section>
@@ -1026,20 +1042,18 @@ export function DoctorPatientRecord({
             {dialog === "meds" && history}
             {dialog === "scope" && (
               <div className={card}>
-                <p>Scope: your clinical records only.</p>
+                <p>
+                  Scope:{" "}
+                  {record.access_scope === "CONSENT_SCOPED"
+                    ? "your records plus what the patient shared."
+                    : "your clinical records only."}
+                </p>
                 <p className="mt-3">
                   Consent status:{" "}
-                  {record.consent_active === true
-                    ? "Reported active; scope not available"
-                    : record.consent_active === false
-                      ? "Inactive"
-                      : "Unavailable"}
-                  .
+                  {record.consent_active === true ? "active" : "none active"}.
+                  Only the patient can change what is shared or extend it.
                 </p>
-                <p className="mt-3">
-                  Patient-shared history, other specialties and external reports
-                  remain locked. Scoped consent management is not implemented.
-                </p>
+                {lockedList}
               </div>
             )}
             {dialog === "upload" && (

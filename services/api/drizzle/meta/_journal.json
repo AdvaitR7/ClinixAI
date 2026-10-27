@@ -78,6 +78,20 @@
       "when": 1793035345105,
       "tag": "0010_equal_sleepwalker",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793037414345,
+      "tag": "0011_mean_epoch",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793037418452,
+      "tag": "0012_access_events_append_only",
+      "breakpoints": true
     }
   ]
 }

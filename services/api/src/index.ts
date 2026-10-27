@@ -18,6 +18,7 @@ import { documentRoutes } from "./documents/routes.js";
 import { interactionRoutes } from "./interactions/routes.js";
 import { aiRoutes } from "./ai/routes.js";
 import { timelineRoutes } from "./timeline/routes.js";
+import { privacyRoutes } from "./privacy/routes.js";
 import { startQueue } from "./queue.js";
 import { checkDb } from "./db";
 
@@ -64,6 +65,7 @@ await app.register(
     await instance.register(interactionRoutes);
     await instance.register(aiRoutes);
     await instance.register(timelineRoutes);
+    await instance.register(privacyRoutes);
   },
   { prefix: "/api/v1" },
 );

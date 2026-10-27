@@ -4,8 +4,8 @@ import { accessEvents } from "../schema.js";
 
 /**
  * Append-only access ledger write (DB §26.1). Application roles INSERT only;
- * no UPDATE/DELETE code path exists anywhere in the codebase. The Phase 6
- * `GET /patients/self/access-ledger` endpoint will read these rows back.
+ * no UPDATE/DELETE code path exists anywhere in the codebase. `GET /patients/self/access-ledger`
+ * reads these rows back (privacy/routes.ts).
  */
 export async function logAccess(
   request: FastifyRequest,
@@ -15,6 +15,8 @@ export async function logAccess(
     resourceType: string;
     resourceId?: string;
     action: string;
+    /** Consent that authorized this access, when it was consent-based. */
+    consentId?: string | null;
   },
 ) {
   const database = requireDb();
@@ -26,6 +28,7 @@ export async function logAccess(
     resourceType: e.resourceType,
     resourceId: e.resourceId ?? null,
     action: e.action,
+    consentId: e.consentId ?? null,
     requestId: request.id,
   });
 }

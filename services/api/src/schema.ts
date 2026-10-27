@@ -652,10 +652,89 @@ export const patientClaimEvents = pgTable("patient_claim_events", {
     .defaultNow(),
 });
 
+export const consentStatus = pgEnum("consent_status", ["ACTIVE", "REVOKED", "EXPIRED"]);
+
 /**
- * §26.1 — append-only access ledger. Application roles INSERT only; no
- * UPDATE/DELETE code path exists anywhere. `consent_id` carries no FK until the
- * Phase 6 consents table lands (ponytail: add FK then).
+ * §25.1 — patient-granted, time-boxed sharing authorization. `status` is
+ * stored, but an ACTIVE row past `expires_at` is treated as expired at read
+ * time (see privacy/consent.ts); there is no expiry job.
+ */
+export const consents = pgTable(
+  "consents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    granteeType: actorType("grantee_type").notNull(),
+    granteeId: uuid("grantee_id").notNull(),
+    purpose: text("purpose").notNull(),
+    status: consentStatus("status").notNull().default("ACTIVE"),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("consents_patient_status_idx").on(t.patientId, t.status),
+    index("consents_grantee_status_idx").on(t.granteeType, t.granteeId, t.status),
+  ],
+);
+
+/** §25.2 — explicit resource scopes of one consent (prefer resource ids). */
+export const consentScopes = pgTable(
+  "consent_scopes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    consentId: uuid("consent_id")
+      .notNull()
+      .references(() => consents.id),
+    resourceType: text("resource_type").notNull(),
+    resourceId: uuid("resource_id"),
+    resourceFilter: jsonb("resource_filter"),
+    permission: text("permission").notNull().default("READ"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("consent_scopes_consent_idx").on(t.consentId)],
+);
+
+/**
+ * §27.1 — patient request to remove a record from active views. `status`
+ * vocabulary: OPEN | ROUTED | APPROVED | PARTIALLY_APPROVED | DENIED.
+ * `decisions` holds the per-record REMOVE/RETAIN outcome of a resolution.
+ */
+export const recordRemovalRequests = pgTable(
+  "record_removal_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    patientId: uuid("patient_id")
+      .notNull()
+      .references(() => patients.id),
+    targetActorType: actorType("target_actor_type").notNull(),
+    targetActorId: uuid("target_actor_id"),
+    resourceType: text("resource_type").notNull(),
+    resourceId: uuid("resource_id"),
+    reason: text("reason"),
+    status: text("status").notNull().default("OPEN"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    routedByProfileId: uuid("routed_by_profile_id").references(() => profiles.id),
+    routedAt: timestamp("routed_at", { withTimezone: true }),
+    routingNote: text("routing_note"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolutionNote: text("resolution_note"),
+    resolvedByProfileId: uuid("resolved_by_profile_id").references(() => profiles.id),
+    decisions: jsonb("decisions"),
+  },
+  (t) => [
+    index("rrr_patient_idx").on(t.patientId, t.status),
+    index("rrr_target_idx").on(t.targetActorType, t.targetActorId, t.status),
+  ],
+);
+
+/**
+ * §26.1 — append-only access ledger. Application roles INSERT only (UPDATE and
+ * DELETE are revoked in migration 0012); no UPDATE/DELETE code path exists.
  */
 export const accessEvents = pgTable(
   "access_events",
@@ -670,7 +749,7 @@ export const accessEvents = pgTable(
     resourceType: text("resource_type").notNull(),
     resourceId: uuid("resource_id"),
     action: text("action").notNull(),
-    consentId: uuid("consent_id"),
+    consentId: uuid("consent_id").references(() => consents.id),
     requestId: text("request_id"),
     ipHash: text("ip_hash"),
     metadata: jsonb("metadata"),

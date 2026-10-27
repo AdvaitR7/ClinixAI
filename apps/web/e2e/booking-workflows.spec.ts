@@ -62,6 +62,7 @@ function visitState() {
         scheduled_start: "2099-10-28T10:00:00+05:30",
       },
     ] as Visit[],
+    consents: [] as unknown[],
     failDoctors: false,
     failAvailability: false,
     failBooking: false,
@@ -229,6 +230,7 @@ async function visitServices(
         draft_queue: { pending: 0 },
         followups_due: { due_today: 0, overdue: 0 },
       };
+    else if (path === "/patients/self/consents") body = state.consents;
     else if (path === "/patients/self/timeline") body = { entries: [] };
     else if (
       [
@@ -276,13 +278,9 @@ test("SCR-022/023 reviews real doctor/mode/date/reason, preserves edits, and mak
     path: "../../docs/architecture/evidence/implementation-scr-022-393.png",
     fullPage: true,
   });
-  await page
-    .getByRole("button", { name: "Review exact packet contents →" })
-    .click();
   await expect(
-    page.getByRole("dialog", { name: "Record sharing unavailable" }),
-  ).toContainText("No health records are attached");
-  await page.keyboard.press("Escape");
+    page.getByRole("link", { name: "Choose what to share →" }),
+  ).toHaveAttribute("href", `/app/patient/care/share/${alpha}?from=book`);
   await page
     .getByRole("button", { name: "REVIEW BOOKING", exact: true })
     .click();
@@ -297,13 +295,9 @@ test("SCR-022/023 reviews real doctor/mode/date/reason, preserves edits, and mak
     fullPage: true,
   });
   expect(state.posts).toHaveLength(0);
-  await page
-    .getByRole("button", { name: "Review scope →", exact: true })
-    .click();
   await expect(
-    page.getByRole("dialog", { name: "Record sharing unavailable" }),
-  ).toContainText("No health records are attached");
-  await page.keyboard.press("Escape");
+    page.getByText("No sharing permission selected"),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await expect(
     page.getByRole("button", { name: /Online video/ }),
@@ -585,9 +579,7 @@ test("picker/list failures retry; foreign rebook and unsupported packet context 
     page.getByRole("alert").filter({ hasText: "unavailable in your record" }),
   ).toBeVisible();
   await page.goto(`/app/patient/book?doctorId=${alpha}&packetId=unsupported`);
-  await expect(
-    page.getByText(/Incoming packet context cannot be attached/),
-  ).toBeVisible();
+  await expect(page.getByText("No records attached")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Save as draft unavailable" }),
   ).toBeDisabled();
@@ -601,6 +593,43 @@ test("picker/list failures retry; foreign rebook and unsupported packet context 
   await expect(page.getByRole("tab", { name: "Upcoming · 2" })).toBeVisible();
   await expect(page.getByText(/Your booking is recorded/)).toHaveCount(0);
   expect(state.posts).toHaveLength(0);
+});
+
+test("a granted sharing permission is shown in review and referenced by the booking", async ({
+  page,
+}) => {
+  const state = visitState();
+  state.consents = [
+    {
+      id: "5d1c8a0e-6a5e-4a58-9a52-0f0b0d0c0e01",
+      doctor_id: alpha,
+      doctor_name: "Synthetic Alpha",
+      speciality: "Neurology",
+      purpose: "Follow-up",
+      status: "ACTIVE",
+      starts_at: "2099-10-01T00:00:00Z",
+      expires_at: null,
+      revoked_at: null,
+      scopes: [{ resource_type: "MEDICATION" }],
+    },
+  ];
+  await visitServices(page, state);
+  await page.goto(
+    `/app/patient/book?doctorId=${alpha}&consentId=5d1c8a0e-6a5e-4a58-9a52-0f0b0d0c0e01`,
+  );
+  await page.getByLabel("Choose date (India time)").fill("2099-11-02");
+  await page.getByRole("button", { name: /10:00/ }).click();
+  await expect(
+    page.getByText("Records shared with this doctor"),
+  ).toBeVisible();
+  await expect(page.getByText("Sharing permission active")).toBeVisible();
+  await page.getByRole("button", { name: "REVIEW BOOKING", exact: true }).click();
+  await page.getByRole("button", { name: "CONFIRM BOOKING", exact: true }).click();
+  await expect(page).toHaveURL(/\/appointments\?booked=new-visit-/);
+  expect(
+    state.posts.find((entry) => entry.path === "/patients/self/appointments")!
+      .body,
+  ).toMatchObject({ consent_id: "5d1c8a0e-6a5e-4a58-9a52-0f0b0d0c0e01" });
 });
 
 for (const width of [320, 768, 1440])

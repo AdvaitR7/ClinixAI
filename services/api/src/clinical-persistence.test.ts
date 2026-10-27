@@ -150,7 +150,7 @@ describe("clinical record persistence boundaries", () => {
 
   it("returns original note and separately dated amendment content on reopening", async () => {
     const amended = { id: "amendment-own", doctorId: "doctor-own", createdAt: new Date("2026-10-25T09:00:00Z"), content: JSON.stringify({ reason: "Correction", assessment: "Revised assessment" }) };
-    rows = [[{ ...appointment, patientId: "patient-own" }], [{ ...note, isFinal: true }], [amended]];
+    rows = [[{ ...appointment, patientId: "patient-own" }], [{ ...note, isFinal: true }], [], [amended]];
     const response = await app.inject({ method: "GET", url: "/doctor/appointments/appointment-own/consultation" });
     expect(response.statusCode).toBe(200);
     expect(response.json().note.assessment).toBe("Reviewed assessment");

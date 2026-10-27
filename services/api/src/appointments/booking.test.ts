@@ -185,11 +185,22 @@ describe("booking and appointment state boundaries", () => {
     expect(response.json().error.code).toBe("BOOKING_EXISTS");
     expect(writes).toHaveLength(0);
   });
-  it("does not claim scoped consent succeeded through an ignored request field", async () => {
+  it("rejects a consent that is not active for this doctor before booking", async () => {
+    rows = [[]];
     const response = await app.inject({
       method: "POST",
       url: "/patients/self/appointments",
-      payload: { ...payload, consent_id: "not-supported" },
+      payload: { ...payload, consent_id: "9f4d2a31-7a3b-4c52-8f43-6d0f1c0d9e11" },
+    });
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.code).toBe("CONSENT_INVALID");
+    expect(mocks.database.transaction).not.toHaveBeenCalled();
+  });
+  it("still refuses unsupported packet ids instead of silently ignoring them", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/patients/self/appointments",
+      payload: { ...payload, packet_id: "x" },
     });
     expect(response.statusCode).toBe(409);
     expect(mocks.database.transaction).not.toHaveBeenCalled();

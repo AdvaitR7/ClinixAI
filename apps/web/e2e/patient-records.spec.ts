@@ -322,7 +322,7 @@ test("directory → compact context → dossier → selected consultation, with 
   });
   await page.getByRole("button", { name: "Review consent scope →" }).click();
   await expect(page.getByRole("dialog")).toContainText(
-    "other specialties and external reports remain locked",
+    "Only the patient can change what is shared",
   );
   await page.keyboard.press("Escape");
   await page

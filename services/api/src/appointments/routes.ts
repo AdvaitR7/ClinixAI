@@ -19,11 +19,12 @@ import {
   profiles,
 } from "../schema.js";
 import { computeSlots } from "../availability/slots.js";
+import { activeConsentsForDoctor } from "../privacy/consent.js";
 import { appointmentView, patientNames } from "./map.js";
 
 type BookingResult = { status: number; code: string; message: string } | { appointment: typeof appointments.$inferSelect; created: boolean };
 
-/** Registers booking and appointment transitions without implying record-sharing consent. */
+/** Registers booking and appointment transitions; record sharing happens only through an explicit consent_id. */
 export async function appointmentRoutes(app: FastifyInstance) {
   app.post("/patients/self/appointments", async (request, reply) => {
     const patientId = requirePatient(request, reply);
@@ -31,11 +32,18 @@ export async function appointmentRoutes(app: FastifyInstance) {
     const parsed = bookAppointmentSchema.safeParse(request.body);
     if (!parsed.success) return error(request, reply, 400, "VALIDATION_ERROR", "Invalid appointment payload");
     const raw = request.body as Record<string, unknown>;
-    if ("consent_id" in raw || "packet_id" in raw || "packetId" in raw) return error(request, reply, 409, "CONSENT_UNAVAILABLE", "Scoped packet sharing is not supported. No booking or sharing was created.");
+    if ("packet_id" in raw || "packetId" in raw) return error(request, reply, 409, "CONSENT_UNAVAILABLE", "Share records through a consent (consent_id); packet ids are not supported. No booking was created.");
     const body = parsed.data;
     const start = new Date(body.scheduled_start);
     if (!Number.isFinite(start.getTime())) return error(request, reply, 400, "VALIDATION_ERROR", "Invalid scheduled_start");
     const database = requireDb();
+    // A referenced consent must be the patient's own, granted to this doctor, and usable now.
+    if (body.consent_id) {
+      const active = await activeConsentsForDoctor(database, patientId, body.doctor_id);
+      if (!active.some((c) => c.id === body.consent_id)) {
+        return error(request, reply, 409, "CONSENT_INVALID", "That sharing permission is not active for this doctor. No booking was created.");
+      }
+    }
     const result: BookingResult = await database.transaction(async (tx): Promise<BookingResult> => {
       // All patient booking attempts for this doctor serialize before checking capacity.
       const [doctor] = await tx.select({ id: doctors.id }).from(doctors).where(eq(doctors.id, body.doctor_id)).for("update");

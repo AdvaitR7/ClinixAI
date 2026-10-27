@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { doctorPatientRoutes } from "./routes.js";
 import {
   appointments,
+  consentScopes,
+  consents,
   documents,
   encounters,
   labReports,
@@ -101,6 +103,34 @@ describe("doctor patient record composition", () => {
     await app.close();
   });
 
+  const grant = (scopes: { resourceType: string; resourceId: string | null }[], over: Record<string, unknown> = {}) => {
+    data.set(consents, [{ id: "consent-1", patientId: "patient-own", granteeType: "DOCTOR", granteeId: "doctor-own", purpose: "Follow-up", status: "ACTIVE", startsAt: new Date("2026-10-01T00:00:00Z"), expiresAt: null, revokedAt: null, ...over }]);
+    data.set(consentScopes, scopes.map((scope) => ({ consentId: "consent-1", ...scope })));
+  };
+
+  it("lets an active medication consent widen medications and reports the remaining locked groups", async () => {
+    mocks.allowed = false;
+    grant([{ resourceType: "MEDICATION", resourceId: null }]);
+    const response = await app.inject({ method: "GET", url: "/doctor/patients/patient-own/workspace" });
+    expect(response.statusCode).toBe(200);
+    expect(mocks.medications).toHaveBeenCalledWith("patient-own", undefined);
+    const body = response.json();
+    expect(body).toMatchObject({ consent_active: true, access_scope: "CONSENT_SCOPED" });
+    const locked = body.locked_sections.map((s: { section_name: string }) => s.section_name);
+    expect(locked).not.toContain("Medication history");
+    expect(locked).toContain("Health timeline");
+    expect(mocks.log).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ consentId: "consent-1", purpose: "Follow-up" }));
+  });
+
+  it("ignores expired and revoked consents", async () => {
+    mocks.allowed = false;
+    grant([{ resourceType: "MEDICATION", resourceId: null }], { expiresAt: new Date("2026-10-02T00:00:00Z") });
+    expect((await app.inject({ method: "GET", url: "/doctor/patients/patient-own/workspace" })).statusCode).toBe(403);
+    grant([{ resourceType: "MEDICATION", resourceId: null }], { status: "REVOKED", revokedAt: new Date("2026-10-02T00:00:00Z") });
+    expect((await app.inject({ method: "GET", url: "/doctor/patients/patient-own/workspace" })).statusCode).toBe(403);
+    expect(mocks.log).not.toHaveBeenCalled();
+  });
+
   it("denies unrelated access before querying identity or records", async () => {
     mocks.allowed = false;
     const response = await app.inject({
@@ -108,7 +138,9 @@ describe("doctor patient record composition", () => {
       url: "/doctor/patients/patient-own/workspace",
     });
     expect(response.statusCode).toBe(403);
-    expect(mocks.database.select).not.toHaveBeenCalled();
+    // Only the consent lookup runs; no identity or clinical record is read.
+    expect(queries.map((query) => query.table)).not.toContain(patientIdentity);
+    expect(queries.map((query) => query.table)).not.toContain(encounters);
     expect(mocks.log).not.toHaveBeenCalled();
   });
 
@@ -120,7 +152,7 @@ describe("doctor patient record composition", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       allergies: [],
-      consent_active: null,
+      consent_active: false,
       current_concern: null,
       access_scope: "DOCTOR_OWN_RECORDS",
       medications: [],
@@ -132,6 +164,8 @@ describe("doctor patient record composition", () => {
       /Penicillin|Vitamin D|Migraine|CONSENT ACTIVE/,
     );
     expect(mocks.medications).toHaveBeenCalledWith("patient-own", "doctor-own");
+    // Uncovered record groups are reported as locked, never silently omitted.
+    expect(response.json().locked_sections.map((s: { section_name: string }) => s.section_name)).toContain("Medication history");
   });
 
   it("scopes every composed appointment, encounter, document and prescription to this patient and doctor", async () => {

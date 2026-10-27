@@ -1,8 +1,9 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { and, desc, eq } from "drizzle-orm";
 import { patientCheckinOutcomeSchema } from "@clinix/schemas";
 import {
   authorizePatientAccess,
+  authorizePatientResource,
   requireDoctor,
   requirePatient,
 } from "../auth/guards.js";
@@ -15,8 +16,9 @@ import {
   interactionSessions,
 } from "../schema.js";
 import { sendAiAnalysis } from "../queue.js";
+import { activeConsentsForDoctor, lockedSections } from "../privacy/consent.js";
 
-/** Exposes owner-only check-in results; cross-record doctor AI awaits scoped consent. */
+/** Exposes owner-only check-in results; doctor AI assistance is composed only from consented check-in packets. */
 export async function aiRoutes(app: FastifyInstance) {
   app.post("/encounters/:id/ai-analysis", async (request, reply) => {
     const patientId = requirePatient(request, reply);
@@ -242,40 +244,83 @@ export async function aiRoutes(app: FastifyInstance) {
     return reply.send({ ai_session_id: id, sources });
   });
 
-  // A relationship cannot authorize an AI bundle containing other clinicians' or patient-held records.
+  /**
+   * Doctor-facing AI assistance for one encounter. The check-in packet is
+   * patient-held, so a relationship alone never opens it: an active consent
+   * scope for CHECKIN_PACKET (the encounter, or the whole group) is required.
+   */
+  async function doctorAssistance(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    patientId: string,
+    encounterId: string,
+  ) {
+    const access = await authorizePatientResource(request.auth, {
+      patientId,
+      resourceType: "CHECKIN_PACKET",
+      resourceId: encounterId,
+    });
+    if (!access.allowed) {
+      // Related doctors learn that consent is the missing piece; others learn nothing.
+      return (await authorizePatientAccess(request.auth, patientId))
+        ? error(request, reply, 403, "CONSENT_REQUIRED", "The patient has not shared this check-in with you.")
+        : error(request, reply, 404, "NOT_FOUND", "Encounter not found");
+    }
+    const database = requireDb();
+    const [done] = await database
+      .select()
+      .from(aiSessions)
+      .where(and(eq(aiSessions.encounterId, encounterId), eq(aiSessions.status, "SUCCEEDED")))
+      .orderBy(desc(aiSessions.startedAt))
+      .limit(1);
+    const checked = patientCheckinOutcomeSchema.safeParse(done?.patientOutcome);
+    if (!done || !checked.success) {
+      return error(request, reply, 404, "NOT_FOUND", "No analysed check-in is available for this encounter");
+    }
+    await logAccess(request, {
+      patientId,
+      resourceType: "AI_SESSION",
+      resourceId: done.id,
+      action: "VIEW",
+      purpose: "Doctor AI assistance",
+      consentId: access.consentId,
+    });
+    const active = await activeConsentsForDoctor(database, patientId, request.auth.doctorId as string);
+    return reply.send({
+      encounter_id: encounterId,
+      historical_matches: checked.data.historical_matches,
+      agreements: [checked.data.summary],
+      material_disagreements: [],
+      missing_information: [],
+      questions_to_ask_patient: checked.data.questions_for_doctor,
+      uncertainty_score: null,
+      consent_locked_sections: lockedSections(active),
+    });
+  }
+
   app.get("/doctor/encounters/:id/ai-assistance", async (request, reply) => {
     const doctorId = requireDoctor(request, reply);
     if (typeof doctorId !== "string") return doctorId;
     const { id } = request.params as { id: string };
-    const [enc] = await requireDb()
-      .select()
-      .from(encounters)
-      .where(
-        and(eq(encounters.id, id), eq(encounters.relatedDoctorId, doctorId)),
-      )
-      .limit(1);
-    if (!enc || !(await authorizePatientAccess(request.auth, enc.patientId)))
-      return error(request, reply, 404, "NOT_FOUND", "Encounter not found");
-    return error(
-      request,
-      reply,
-      403,
-      "CONSENT_REQUIRED",
-      "AI assistance is unavailable until record-specific consent is supported.",
-    );
+    const [enc] = await requireDb().select().from(encounters).where(eq(encounters.id, id)).limit(1);
+    if (!enc) return error(request, reply, 404, "NOT_FOUND", "Encounter not found");
+    return doctorAssistance(request, reply, enc.patientId, enc.id);
   });
   app.get("/doctor/patients/:id/ai-assistance", async (request, reply) => {
     const doctorId = requireDoctor(request, reply);
     if (typeof doctorId !== "string") return doctorId;
     const { id } = request.params as { id: string };
-    if (!(await authorizePatientAccess(request.auth, id)))
-      return error(request, reply, 404, "NOT_FOUND", "Patient not found");
-    return error(
-      request,
-      reply,
-      403,
-      "CONSENT_REQUIRED",
-      "AI assistance is unavailable until record-specific consent is supported.",
-    );
+    const [latest] = await requireDb()
+      .select()
+      .from(aiSessions)
+      .where(and(eq(aiSessions.patientId, id), eq(aiSessions.status, "SUCCEEDED")))
+      .orderBy(desc(aiSessions.startedAt))
+      .limit(1);
+    if (!latest) {
+      return (await authorizePatientAccess(request.auth, id))
+        ? error(request, reply, 403, "CONSENT_REQUIRED", "The patient has not shared a check-in with you.")
+        : error(request, reply, 404, "NOT_FOUND", "Patient not found");
+    }
+    return doctorAssistance(request, reply, id, latest.encounterId);
   });
 }

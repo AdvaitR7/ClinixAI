@@ -316,6 +316,16 @@ async function main() {
   check("Workspace returns factual patient identity", workspaceRes.json?.identity?.full_name === "Maya Rao");
   check("Workspace returns masked phone number", Boolean(workspaceRes.json?.identity?.phone_last4));
 
+  // Phase 6: the check-in packet is patient-held; the doctor sees it only after consent.
+  const noConsentAi = await api(doctorToken, "GET", `/doctor/encounters/${checkinEncId}/ai-assistance`);
+  check("AI assistance is refused without consent", noConsentAi.status === 403);
+  const grantRes = await api(patientToken, "POST", "/patients/self/consents", {
+    doctor_id: doctorId,
+    purpose: "Gate check-in review",
+    expiry: "7_DAYS",
+    scopes: [{ resource_type: "CHECKIN_PACKET", resource_id: checkinEncId }],
+  });
+  check("Patient granted check-in consent", grantRes.status === 201);
   const docAiRes = await api(doctorToken, "GET", `/doctor/encounters/${checkinEncId}/ai-assistance`);
   check("Doctor retrieved AI assistance view", docAiRes.status === 200);
   check("AI assistance provides agreements", docAiRes.json?.agreements?.length > 0);

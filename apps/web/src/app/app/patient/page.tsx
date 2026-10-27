@@ -13,7 +13,7 @@ const nav = [
   { label: "Timeline", href: "/app/patient/timeline" },
   { label: "Vault", href: "/app/patient/vault" },
   { label: "Visits", href: "/app/patient/appointments" },
-  { label: "Care", href: "/app/patient/medications" },
+  { label: "Care", href: "/app/patient/care" },
 ];
 
 const day = new Intl.DateTimeFormat("en-IN", {

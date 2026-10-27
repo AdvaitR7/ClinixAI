@@ -98,7 +98,7 @@ These exclusive statuses total 52 design frames. A PARTIAL/MISMATCH screen can a
 
 ## Documents
 
-Current implementation evidence: [batch 1](07-implementation-progress.md), [batch 2](08-patient-record-implementation.md), [batch 3](09-checkin-implementation.md), [batch 4](10-appointment-implementation.md), [batch 5](11-vault-implementation.md), [batch 6](12-medication-implementation.md), [batch 7](13-schedule-implementation.md), [batch 8](14-prescription-gates-implementation.md).
+Current implementation evidence: [batch 1](07-implementation-progress.md), [batch 2](08-patient-record-implementation.md), [batch 3](09-checkin-implementation.md), [batch 4](10-appointment-implementation.md), [batch 5](11-vault-implementation.md), [batch 6](12-medication-implementation.md), [batch 7](13-schedule-implementation.md), [batch 8](14-prescription-gates-implementation.md), [batch 9](15-privacy-implementation.md).
 
 1. [Information architecture](01-information-architecture.md) — every design frame, exact names/IDs, roles, containment, shells, code-derived screens and state/accessibility requirements.
 2. [Complete interaction map](02-interaction-map.md) — 788 current individually identified controls/events, expected/actual behavior, destinations, confidence and source manifest.
@@ -149,10 +149,10 @@ Each checked row has full tree traversal, rendered appearance review and control
 | [x] | [SCR-015](01-information-architecture.md#scr-015) | `Page 10 [Patient]` | Page 10 / ClinixAI / Medication History · `1310` | 14 | PARTIAL | [Design capture](evidence/design-1310.png) · [Controls](02-interaction-map.md#scr-015) |
 | [x] | [SCR-016](01-information-architecture.md#scr-016) | `Page 10 [Patient]` | Page 10a / ClinixAI / Medication Detail · `1495` | 5 | PARTIAL | [Design capture](evidence/design-1495.png) · [Controls](02-interaction-map.md#scr-016) |
 | [x] | [SCR-017](01-information-architecture.md#scr-017) | `Page 11 [Patient]` | Page 11 / ClinixAI / Patient Appointments · `1555` | 29 | PARTIAL | [Design capture](evidence/design-1555.png) · [Controls](02-interaction-map.md#scr-017) |
-| [x] | [SCR-018](01-information-architecture.md#scr-018) | `Page 12 [Patient]` | Page 12 / ClinixAI / Care Circle & Directory · `1703` | 19 | MISSING | [Design capture](evidence/design-1703.png) · [Controls](02-interaction-map.md#scr-018) |
-| [x] | [SCR-019](01-information-architecture.md#scr-019) | `Page 12 [Patient]` | Page 12a / ClinixAI / Discover Doctors · `1832` | 22 | MISSING | [Design capture](evidence/design-1832.png) · [Controls](02-interaction-map.md#scr-019) |
-| [x] | [SCR-020](01-information-architecture.md#scr-020) | `Page 12 [Patient]` | Page 12b / ClinixAI / Consent Scope Picker · `1944` | 10 | MISSING | [Design capture](evidence/design-1944.png) · [Controls](02-interaction-map.md#scr-020) |
-| [x] | [SCR-021](01-information-architecture.md#scr-021) | `Page 13 [Patient]` | Page 13 / ClinixAI / Privacy & Access Ledger · `2021` | 19 | MISSING | [Design capture](evidence/design-2021.png) · [Controls](02-interaction-map.md#scr-021) |
+| [x] | [SCR-018](01-information-architecture.md#scr-018) | `Page 12 [Patient]` | Page 12 / ClinixAI / Care Circle & Directory · `1703` | 19 | PARTIAL | [Design capture](evidence/design-1703.png) · [Controls](02-interaction-map.md#scr-018) |
+| [x] | [SCR-019](01-information-architecture.md#scr-019) | `Page 12 [Patient]` | Page 12a / ClinixAI / Discover Doctors · `1832` | 22 | PARTIAL | [Design capture](evidence/design-1832.png) · [Controls](02-interaction-map.md#scr-019) |
+| [x] | [SCR-020](01-information-architecture.md#scr-020) | `Page 12 [Patient]` | Page 12b / ClinixAI / Consent Scope Picker · `1944` | 10 | PARTIAL | [Design capture](evidence/design-1944.png) · [Controls](02-interaction-map.md#scr-020) |
+| [x] | [SCR-021](01-information-architecture.md#scr-021) | `Page 13 [Patient]` | Page 13 / ClinixAI / Privacy & Access Ledger · `2021` | 19 | PARTIAL | [Design capture](evidence/design-2021.png) · [Controls](02-interaction-map.md#scr-021) |
 | [x] | [SCR-022](01-information-architecture.md#scr-022) | `Page 14 [Patient]` | Page 14 / ClinixAI / Consultation Booking & Packet Builder · `2143` | 30 | PARTIAL | [Design capture](evidence/design-2143.png) · [Controls](02-interaction-map.md#scr-022) |
 | [x] | [SCR-023](01-information-architecture.md#scr-023) | `Page 14 [Patient]` | Page 14a / ClinixAI / Review Consultation Booking · `2255` | 7 | PARTIAL | [Design capture](evidence/design-2255.png) · [Controls](02-interaction-map.md#scr-023) |
 | [x] | [SCR-024](01-information-architecture.md#scr-024) | `Page 15 [Doctor]` | Page 15 / ClinixAI / Doctor Schedule · `2317` | 28 | PARTIAL | [Design capture](evidence/design-2317.png) · [Controls](02-interaction-map.md#scr-024) |
@@ -180,9 +180,9 @@ Each checked row has full tree traversal, rendered appearance review and control
 | [x] | [SCR-046](01-information-architecture.md#scr-046) | `Page 25 [Doctor]` | Page 25 / ClinixAI / Practice Team & Memberships · `5015` | 18 | MISSING | [Design capture](evidence/design-5015.png) · [Controls](02-interaction-map.md#scr-046) |
 | [x] | [SCR-047](01-information-architecture.md#scr-047) | `Page 25 [Doctor]` | Page 25a / Confirm Role Change · `5179` | 2 | MISSING | [Design capture](evidence/design-5179.png) · [Controls](02-interaction-map.md#scr-047) |
 | [x] | [SCR-048](01-information-architecture.md#scr-048) | `Page 25 [Doctor]` | Page 25b / End Membership Confirmation · `5202` | 4 | MISSING | [Design capture](evidence/design-5202.png) · [Controls](02-interaction-map.md#scr-048) |
-| [x] | [SCR-049](01-information-architecture.md#scr-049) | `Page 26 [Doctor]` | Page 26 / ClinixAI / Record Removal & Retention Requests · `5233` | 13 | MISSING | [Design capture](evidence/design-5233.png) · [Controls](02-interaction-map.md#scr-049) |
-| [x] | [SCR-050](01-information-architecture.md#scr-050) | `Page 26 [Doctor]` | Page 26a / ClinixAI / Confirm Retention Decision · `5352` | 2 | MISSING | [Design capture](evidence/design-5352.png) · [Controls](02-interaction-map.md#scr-050) |
-| [x] | [SCR-051](01-information-architecture.md#scr-051) | `Page 26 [Doctor]` | Page 26b / ClinixAI / Staff Route Request · `5396` | 4 | MISSING | [Design capture](evidence/design-5396.png) · [Controls](02-interaction-map.md#scr-051) |
+| [x] | [SCR-049](01-information-architecture.md#scr-049) | `Page 26 [Doctor]` | Page 26 / ClinixAI / Record Removal & Retention Requests · `5233` | 13 | PARTIAL | [Design capture](evidence/design-5233.png) · [Controls](02-interaction-map.md#scr-049) |
+| [x] | [SCR-050](01-information-architecture.md#scr-050) | `Page 26 [Doctor]` | Page 26a / ClinixAI / Confirm Retention Decision · `5352` | 2 | PARTIAL | [Design capture](evidence/design-5352.png) · [Controls](02-interaction-map.md#scr-050) |
+| [x] | [SCR-051](01-information-architecture.md#scr-051) | `Page 26 [Doctor]` | Page 26b / ClinixAI / Staff Route Request · `5396` | 4 | PARTIAL | [Design capture](evidence/design-5396.png) · [Controls](02-interaction-map.md#scr-051) |
 | [x] | [SCR-052](01-information-architecture.md#scr-052) | `Page 27 [Doctor]` | Page 27 / ClinixAI / Doctor Profile & Consultation Services · `5440` | 12 | MISSING | [Design capture](evidence/design-5440.png) · [Controls](02-interaction-map.md#scr-052) |
 
 ## Design-page coverage

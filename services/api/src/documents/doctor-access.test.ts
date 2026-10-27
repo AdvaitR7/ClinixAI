@@ -5,6 +5,7 @@ import { documentRoutes } from "./routes.js";
 const mocks = vi.hoisted(() => ({
   database: { select: vi.fn(), insert: vi.fn() },
   allowed: true,
+  consentId: null as string | null,
   signedView: vi.fn(),
   download: vi.fn(),
 }));
@@ -13,6 +14,11 @@ vi.mock("../auth/guards.js", () => ({
   requireDoctor: () => "doctor-own",
   requirePatient: () => "patient-own",
   authorizePatientAccess: async () => mocks.allowed,
+  // Own uploads need a relationship; anything else needs a consent scope.
+  authorizePatientResource: async (_auth: unknown, e: { ownedByActor?: boolean }) =>
+    (e.ownedByActor && mocks.allowed) || mocks.consentId
+      ? { allowed: true, basis: mocks.consentId ? "CONSENT" : "OWN_RECORD", consentId: mocks.consentId }
+      : { allowed: false, basis: null, consentId: null },
 }));
 vi.mock("../audit/log.js", () => ({ logAccess: vi.fn() }));
 vi.mock("../storage.js", () => ({
@@ -29,6 +35,7 @@ describe("doctor source access", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mocks.allowed = true;
+    mocks.consentId = null;
     mocks.signedView.mockResolvedValue(
       "https://source.example.test/synthetic.pdf",
     );
@@ -86,6 +93,14 @@ describe("doctor source access", () => {
       expect(mocks.signedView).not.toHaveBeenCalled();
     },
   );
+  it.each(["PATIENT", "OTHER_DOCTOR"])("opens a %s source once a consent scope covers it", async (type) => {
+    if (type === "PATIENT") row.uploadedByActorType = "PATIENT";
+    else row.uploadedByActorId = "doctor-other";
+    mocks.consentId = "consent-1";
+    const response = await app.inject({ method: "GET", url: "/doctor/documents/doc-own" });
+    expect(response.statusCode).toBe(200);
+    expect(mocks.signedView).toHaveBeenCalledWith("synthetic-key");
+  });
   it("denies an unrelated clinician before signing any original", async () => {
     mocks.allowed = false;
     const response = await app.inject({
