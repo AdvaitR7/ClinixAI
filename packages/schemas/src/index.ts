@@ -156,6 +156,8 @@ export const bookAppointmentSchema = z.object({
   appointment_type: appointmentTypeSchema,
   scheduled_start: z.string().min(1),
   reason: z.string().max(1000).optional(),
+  /** Consent already granted to this doctor for the visit (Phase 6 scope picker). */
+  consent_id: z.string().uuid().optional(),
 });
 export type BookAppointment = z.infer<typeof bookAppointmentSchema>;
 
@@ -314,7 +316,8 @@ export const doctorWorkspaceSchema = z.object({
   relationships: z.array(relationshipViewSchema),
   appointments: z.array(appointmentViewSchema),
   timeline: z.array(timelineEntrySchema),
-  access_scope: z.literal("DOCTOR_OWN_RECORDS").optional(),
+  access_scope: z.enum(["DOCTOR_OWN_RECORDS", "CONSENT_SCOPED"]).optional(),
+  locked_sections: z.array(z.lazy(() => consentLockedSectionSchema)).optional(),
   current_concern_at: z.string().nullable().optional(),
   last_updated_at: z.string().nullable().optional(),
   medications: z.array(z.lazy(() => medicationViewSchema)).optional(),
@@ -974,3 +977,155 @@ export const patientTimelineResponseSchema = z.object({
 });
 export type PatientTimelineResponse = z.infer<typeof patientTimelineResponseSchema>;
 
+
+// --- Phase 6: privacy (DB §25–27; API §16, §28–29) ---
+
+/** Record groups a consent can cover. ALLERGY / MENTAL_WELLNESS have no data source yet. */
+export const consentResourceTypeSchema = z.enum([
+  "ENCOUNTER",
+  "DOCUMENT",
+  "MEDICATION",
+  "TIMELINE",
+  "CHECKIN_PACKET",
+]);
+export type ConsentResourceType = z.infer<typeof consentResourceTypeSchema>;
+
+export const consentExpirySchema = z.enum(["7_DAYS", "30_DAYS", "UNTIL_WITHDRAWN"]);
+export type ConsentExpiry = z.infer<typeof consentExpirySchema>;
+
+export const consentScopeInputSchema = z.object({
+  resource_type: consentResourceTypeSchema,
+  /** Omitted = the whole record group; set = one specific record. */
+  resource_id: z.string().uuid().optional(),
+});
+export type ConsentScopeInput = z.infer<typeof consentScopeInputSchema>;
+
+/** POST /patients/self/consents/preview */
+export const consentPreviewRequestSchema = z.object({
+  doctor_id: z.string().uuid(),
+  encounter_id: z.string().uuid().optional(),
+});
+
+export const consentSuggestedScopeSchema = z.object({
+  resource_type: z.string(),
+  label: z.string(),
+  recommended: z.boolean(),
+  available: z.boolean(),
+  unavailable_reason: z.string().nullable(),
+});
+export const consentPreviewSchema = z.object({
+  suggested_scopes: z.array(consentSuggestedScopeSchema),
+});
+export type ConsentPreview = z.infer<typeof consentPreviewSchema>;
+
+/** POST /patients/self/consents */
+export const consentCreateSchema = z.object({
+  doctor_id: z.string().uuid(),
+  purpose: z.string().trim().min(1).max(300),
+  expiry: consentExpirySchema,
+  scopes: z.array(consentScopeInputSchema).min(1).max(50),
+});
+export type ConsentCreate = z.infer<typeof consentCreateSchema>;
+
+export const consentViewSchema = z.object({
+  id: z.string().uuid(),
+  doctor_id: z.string().uuid(),
+  doctor_name: z.string(),
+  speciality: z.string().nullable(),
+  purpose: z.string(),
+  /** Effective status: ACTIVE past expires_at is reported as EXPIRED. */
+  status: z.enum(["ACTIVE", "REVOKED", "EXPIRED"]),
+  starts_at: z.string(),
+  expires_at: z.string().nullable(),
+  revoked_at: z.string().nullable(),
+  scopes: z.array(consentScopeInputSchema),
+});
+export type ConsentView = z.infer<typeof consentViewSchema>;
+
+export const consentLockedSectionSchema = z.object({
+  section_name: z.string(),
+  reason: z.string(),
+});
+export type ConsentLockedSection = z.infer<typeof consentLockedSectionSchema>;
+
+export const ledgerCategorySchema = z.enum(["CLINICAL", "ADMIN", "AI"]);
+export type LedgerCategory = z.infer<typeof ledgerCategorySchema>;
+
+/** One human-readable access ledger row (API spec §28). */
+export const ledgerEventSchema = z.object({
+  id: z.string().uuid(),
+  timestamp: z.string(),
+  category: ledgerCategorySchema,
+  actor: z.object({ type: z.string(), display_name: z.string() }),
+  action: z.string(),
+  purpose: z.string().nullable(),
+  resource_label: z.string(),
+  consent_id: z.string().uuid().nullable(),
+});
+export type LedgerEvent = z.infer<typeof ledgerEventSchema>;
+
+export const accessLedgerSchema = z.object({
+  events: z.array(ledgerEventSchema),
+  total: z.number().int(),
+  counts: z.object({ all: z.number().int(), clinical: z.number().int(), admin: z.number().int(), ai: z.number().int() }),
+  next_cursor: z.string().nullable(),
+});
+export type AccessLedger = z.infer<typeof accessLedgerSchema>;
+
+export const removalStatusSchema = z.enum(["OPEN", "ROUTED", "APPROVED", "PARTIALLY_APPROVED", "DENIED"]);
+export type RemovalStatus = z.infer<typeof removalStatusSchema>;
+
+/** POST /patients/self/record-removal-requests */
+export const removalRequestCreateSchema = z.object({
+  target_actor_type: z.enum(["DOCTOR"]),
+  target_actor_id: z.string().uuid(),
+  resource_type: z.string().min(1).max(64),
+  resource_id: z.string().uuid().optional(),
+  reason: z.string().trim().max(1000).optional(),
+});
+export type RemovalRequestCreate = z.infer<typeof removalRequestCreateSchema>;
+
+export const removalDecisionSchema = z.object({
+  resource_type: z.string(),
+  resource_id: z.string().uuid().nullable(),
+  label: z.string().optional(),
+  decision: z.enum(["REMOVE", "RETAIN"]),
+});
+
+/** POST /doctor/record-removal-requests/:id/resolve */
+export const removalResolveSchema = z
+  .object({
+    outcome: z.enum(["APPROVED", "PARTIALLY_APPROVED", "DENIED"]),
+    reason: z.string().trim().max(2000).optional(),
+    decisions: z.array(removalDecisionSchema).max(100).optional(),
+  })
+  .refine((v) => v.outcome === "APPROVED" || (v.reason && v.reason.length > 0), {
+    message: "A written reason is required for partial approval or retention",
+    path: ["reason"],
+  });
+export type RemovalResolve = z.infer<typeof removalResolveSchema>;
+
+/** POST /staff/record-removal-requests/:id/route */
+export const removalRouteSchema = z.object({
+  doctor_id: z.string().uuid(),
+  note: z.string().trim().max(500).optional(),
+});
+
+export const removalRequestViewSchema = z.object({
+  id: z.string().uuid(),
+  patient_id: z.string().uuid(),
+  patient_name: z.string().nullable(),
+  target_doctor_id: z.string().uuid().nullable(),
+  target_doctor_name: z.string().nullable(),
+  resource_type: z.string(),
+  resource_id: z.string().uuid().nullable(),
+  reason: z.string().nullable(),
+  status: removalStatusSchema,
+  requested_at: z.string(),
+  routed_at: z.string().nullable(),
+  routing_note: z.string().nullable(),
+  resolved_at: z.string().nullable(),
+  resolution_note: z.string().nullable(),
+  decisions: z.array(removalDecisionSchema),
+});
+export type RemovalRequestView = z.infer<typeof removalRequestViewSchema>;

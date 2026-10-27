@@ -17,6 +17,8 @@ import {
 } from "../schema.js";
 import { appointmentView, patientNames } from "../appointments/map.js";
 import { medicationsForPatient } from "../medications/derive.js";
+import { logAccess } from "../audit/log.js";
+import { activeConsentsForDoctor, consentCovering } from "../privacy/consent.js";
 
 const NOTE_CONSULTATION = "CONSULTATION";
 const NOTE_AMENDMENT = "CONSULTATION_AMENDMENT";
@@ -225,7 +227,17 @@ export async function consultationRoutes(app: FastifyInstance) {
       )[0];
 
       const names = await patientNames([appt.patientId]);
-      const currentMedications = await medicationsForPatient(appt.patientId, doctorId);
+      // Medication history beyond this doctor's own prescriptions needs a covering consent.
+      const medicationConsent = consentCovering(await activeConsentsForDoctor(database, appt.patientId, doctorId), "MEDICATION");
+      const currentMedications = await medicationsForPatient(appt.patientId, medicationConsent ? undefined : doctorId);
+      await logAccess(request, {
+        patientId: appt.patientId,
+        purpose: "Consultation",
+        resourceType: "ENCOUNTER",
+        resourceId: encounterId,
+        action: "VIEW",
+        consentId: medicationConsent?.id ?? null,
+      });
       const amendments = await database.select().from(consultationNotes).where(and(
         eq(consultationNotes.encounterId, encounterId),
         eq(consultationNotes.noteType, NOTE_AMENDMENT),

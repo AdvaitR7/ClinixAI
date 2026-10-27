@@ -23,8 +23,14 @@ const relationshipView = (r: {
   preferred: r.isPreferred,
 });
 
-/** GET /doctors — doctor picker for patient booking (documented contract extension). */
-async function listDoctors(database: NonNullable<ReturnType<typeof requireDb>>) {
+/**
+ * GET /doctors — doctor picker/directory (documented contract extension).
+ * Optional `q` (name or speciality contains) and `verified_only` narrow the list.
+ */
+async function listDoctors(
+  database: NonNullable<ReturnType<typeof requireDb>>,
+  filter: { q?: string; verifiedOnly?: boolean } = {},
+) {
   const rows = await database
     .select({
       doctorId: doctors.id,
@@ -33,8 +39,12 @@ async function listDoctors(database: NonNullable<ReturnType<typeof requireDb>>) 
       verificationStatus: doctors.verificationStatus,
     })
     .from(doctors)
-    .innerJoin(profiles, eq(profiles.id, doctors.profileId));
-  return rows.map((r) => ({
+    .innerJoin(profiles, eq(profiles.id, doctors.profileId))
+    .where(filter.verifiedOnly ? eq(doctors.verificationStatus, "VERIFIED") : undefined);
+  const needle = filter.q?.trim().toLowerCase();
+  return rows
+    .filter((r) => !needle || `${r.name} ${r.speciality ?? ""}`.toLowerCase().includes(needle))
+    .map((r) => ({
     doctor_id: r.doctorId,
     name: r.name,
     speciality: r.speciality,
@@ -43,9 +53,12 @@ async function listDoctors(database: NonNullable<ReturnType<typeof requireDb>>) 
 }
 
 export async function relationshipRoutes(app: FastifyInstance) {
-  app.get("/doctors", async () => {
+  app.get<{ Querystring: { q?: string; verified_only?: string } }>("/doctors", async (request) => {
     const database = requireDb();
-    return listDoctors(database);
+    return listDoctors(database, {
+      q: request.query.q,
+      verifiedOnly: request.query.verified_only === "true",
+    });
   });
 
   app.get("/patients/self/doctors", async (request, reply) => {
@@ -125,6 +138,8 @@ export async function relationshipRoutes(app: FastifyInstance) {
           .set({
             relationshipType: body.relationship_type,
             isPreferred: body.preferred ?? false,
+            status: "ACTIVE",
+            endedAt: null,
           })
           .where(eq(patientDoctorRelationships.id, existing[0].id));
       } else {
@@ -136,6 +151,27 @@ export async function relationshipRoutes(app: FastifyInstance) {
         });
       }
 
+      return reply.code(200).send({ ok: true });
+    },
+  );
+
+  /** Ends the care relationship (Care Circle "Remove"). Grants no consent change: revoke sharing separately. */
+  app.delete<{ Params: { doctor_id: string } }>(
+    "/patients/self/doctors/:doctor_id/relationships",
+    async (request, reply) => {
+      const patientId = requirePatient(request, reply);
+      if (typeof patientId !== "string") return patientId;
+      const database = requireDb();
+      await database
+        .update(patientDoctorRelationships)
+        .set({ status: "ENDED", endedAt: new Date() })
+        .where(
+          and(
+            eq(patientDoctorRelationships.patientId, patientId),
+            eq(patientDoctorRelationships.doctorId, request.params.doctor_id),
+            eq(patientDoctorRelationships.status, "ACTIVE"),
+          ),
+        );
       return reply.code(200).send({ ok: true });
     },
   );

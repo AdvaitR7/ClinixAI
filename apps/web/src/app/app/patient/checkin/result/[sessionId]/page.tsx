@@ -420,23 +420,23 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
         </section>
         <section className="mt-6 rounded-[24px] border-[5px] border-[#ece2d1] bg-[#fbf8f1] p-5">
           <p className="text-[9px] uppercase">CONSULTATION PACKET</p>
-          <h2 className="mt-3 text-xl">Sharing unavailable</h2>
+          <h2 className="mt-3 text-xl">Not shared</h2>
           <p className="mt-3 text-xs leading-relaxed text-[#5f5a52]">
             This result is saved to your record. Booking a visit does not share
-            this result or grant access to other records. Scoped packet consent
-            is not yet supported.
+            it. To let a doctor see it, choose what to share; you control the
+            scope and expiry and can revoke at any time.
           </p>
           <button
             type="button"
             onClick={(event) => openDialog("scope", event.currentTarget)}
             className="mt-3 min-h-11 w-full text-right text-[10px] text-[#b8a06b]"
           >
-            Review sharing scope
+            What sharing includes
           </button>
         </section>
         <div className="mt-6 space-y-3">
           <Link
-            href="/app/patient/book"
+            href={`/app/patient/book?encounterId=${encodeURIComponent(session?.encounter_id ?? "")}`}
             className="flex min-h-[64px] items-center justify-between rounded-[20px] bg-[#1f1f1f] px-5 text-sm text-[#fbf8f1]"
           >
             BOOK DOCTOR{" "}
@@ -454,13 +454,12 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
             SAVED TO RECORD · VIEW TIMELINE <span>→</span>
           </Link>
           <div className="flex gap-3">
-            <button
-              type="button"
-              disabled
-              className="min-h-[48px] flex-1 rounded-2xl bg-[#fbf8f1] text-xs opacity-50"
+            <Link
+              href="/app/patient/care"
+              className="grid min-h-[48px] flex-1 place-items-center rounded-2xl bg-[#fbf8f1] text-xs"
             >
-              SHARE PACKET
-            </button>
+              SHARE WITH DOCTOR
+            </Link>
             <button
               type="button"
               disabled={evidenceLoading}
@@ -492,9 +491,11 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
             </h2>
             {dialog === "scope" && (
               <p className="mt-4 text-sm text-graphite">
-                No packet or doctor-access grant has been created. Downloading
-                this result creates a local copy only. The evidence below
-                describes analysis inputs, not a sharing authorization.
+                Nothing is shared yet. Pick a doctor from your care circle and
+                choose this check-in; they see it only until the expiry you
+                set. Downloading this result creates a local copy only. The
+                evidence below describes analysis inputs, not a sharing
+                authorization.
               </p>
             )}
             <p className="mt-4 text-sm text-graphite">

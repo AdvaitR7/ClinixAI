@@ -301,7 +301,7 @@ Tables (DB spec §25–27): `consents`, `consent_scopes`, `access_events` (appen
 
 Fastify `authorizePatientResource` helper (API spec §36): every sensitive read → consent check → access-event write. Screens: 13 (ledger UI, scopes in plain language, revoke), 12 (care circle + directory + per-doctor sharing), 26 (removal requests: approve/partial/retain with rationale).
 
-**Gate:** doctor view writes ledger entry visible on Page 13; revoke consent → doctor's Page 17 shows consent-locked sections as blocked (not silently omitted); every AI run logs `AI_PROCESS` event.
+**Gate (script: services/api/gate-phase6.mjs, not yet run live):** doctor view writes ledger entry visible on Page 13; revoke consent → doctor's Page 17 shows consent-locked sections as blocked (not silently omitted); every AI run logs `AI_PROCESS` event.
 
 ### Phase 7 — Staff & practice OS (Screens 21, 23, 24, 25, 27)
 
@@ -325,9 +325,11 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 - [x] 10, 11, 14, 18, 19, 20 (Phase 3)
 - [x] 9 (Phase 4)
 - [x] 6, 7, 8 (Phase 5)
-- [ ] 12, 13, 26 (Phase 6)
+- [~] 12, 13, 26 (Phase 6) — implemented in Batch 9 (see docs/architecture/15-privacy-implementation.md); not live-verified
 - [ ] 21, 23, 24, 25, 27 (Phase 7)
 - [ ] PWA shell + install (Phase 8)
+
+Checked boxes mean the phase gate passed, not that screens match the designs. Per-screen fidelity and defects of completed phases are tracked in `docs/architecture/05-implementation-gap-analysis.md`.
 
 ## Validation gates (repo-native once they exist)
 

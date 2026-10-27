@@ -6,11 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type {
   AppointmentType,
   AvailabilitySlot,
+  ConsentView,
   DoctorOption,
   PatientAppointmentView,
 } from "@clinix/schemas";
 import { useAuth } from "@/lib/auth";
 import { fetchApi, useApiData } from "@/lib/api";
+import { expiryText, scopeSummary } from "@/lib/privacy";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
 import {
@@ -150,9 +152,8 @@ function BookingEntry() {
       doctors={doctors.data}
       initialDoctorId={old?.doctor_id ?? query.get("doctorId") ?? ""}
       previous={old}
-      incomingPacket={Boolean(
-        query.get("packetId") || query.get("encounterId"),
-      )}
+      initialConsentId={query.get("consentId")}
+      encounterId={query.get("encounterId")}
     />
   );
 }
@@ -231,12 +232,14 @@ function BookingForm({
   doctors,
   initialDoctorId,
   previous,
-  incomingPacket,
+  initialConsentId,
+  encounterId,
 }: {
   doctors: DoctorOption[];
   initialDoctorId: string;
   previous?: PatientAppointmentView;
-  incomingPacket: boolean;
+  initialConsentId: string | null;
+  encounterId: string | null;
 }) {
   const { getToken } = useAuth();
   const router = useRouter();
@@ -249,7 +252,7 @@ function BookingForm({
   const [slot, setSlot] = useState<AvailabilitySlot | null>(null);
   const [reason, setReason] = useState(previous?.reason ?? "");
   const [reviewing, setReviewing] = useState(false);
-  const [dialog, setDialog] = useState<"doctor" | "reason" | "scope" | null>(
+  const [dialog, setDialog] = useState<"doctor" | "reason" | null>(
     null,
   );
   const [busy, setBusy] = useState(false);
@@ -265,11 +268,20 @@ function BookingForm({
     };
   }, []);
   const doctor = doctors.find((item) => item.doctor_id === doctorId);
+  // A sharing permission granted on the scope picker for the selected doctor; booking only references it.
+  const consents = useApiData<ConsentView[]>("/patients/self/consents");
+  const sharing =
+    consents.status === "ready" && Array.isArray(consents.data)
+      ? consents.data.find(
+          (c) => c.id === initialConsentId && c.doctor_id === doctorId && c.status === "ACTIVE",
+        )
+      : undefined;
+  const shareHref = `/app/patient/care/share/${doctorId}?from=book${encounterId ? `&encounterId=${encodeURIComponent(encounterId)}` : ""}`;
   const days = daysFrom(calendarStart);
 
   /** Associates native-dialog focus return with the exact invoking control. */
   function openDialog(
-    kind: "doctor" | "reason" | "scope",
+    kind: "doctor" | "reason",
     button: HTMLButtonElement,
   ) {
     actionRef.current = button;
@@ -299,6 +311,7 @@ function BookingForm({
             appointment_type: mode,
             scheduled_start: slot.start,
             ...(reason.trim() ? { reason: reason.trim() } : {}),
+            ...(sharing ? { consent_id: sharing.id } : {}),
           }),
         },
       );
@@ -331,48 +344,27 @@ function BookingForm({
   const scope = (
     <section className={`${card} ring-[5px] ring-sage/25`}>
       <p className={label}>Scoped consultation packet</p>
-      <h2 className="mt-3 text-lg">No records attached</h2>
+      <h2 className="mt-3 text-lg">
+        {sharing ? "Records shared with this doctor" : "No records attached"}
+      </h2>
       <p className="mt-2 text-xs leading-relaxed text-graphite">
-        Packet sharing is unavailable. Booking this visit does not grant access
-        to your check-ins, reports, medicines or timeline.
+        {sharing
+          ? `${scopeSummary(sharing)}. ${expiryText(sharing)}.`
+          : "Booking this visit does not grant access to your check-ins, reports, medicines or timeline unless you choose to share them."}
       </p>
-      {!reviewing && (
-        <div className="mt-4 space-y-2">
-          {[
-            "Recent AI check-in",
-            "Selected reports",
-            "Medication list",
-            "Full health timeline",
-          ].map((item) => (
-            <label
-              key={item}
-              className="flex min-h-14 items-center gap-3 rounded-xl border border-sage p-3 text-xs text-graphite"
-            >
-              <input
-                type="checkbox"
-                disabled
-                checked={false}
-                readOnly
-                className="size-5"
-              />
-              {item}
-            </label>
-          ))}
-        </div>
+      {doctor && (
+        <Link href={shareHref} className="mt-3 flex min-h-11 w-full items-center justify-end text-[10px] text-evidence">
+          {sharing ? "Change what is shared →" : "Choose what to share →"}
+        </Link>
       )}
-      <button
-        type="button"
-        onClick={(e) => openDialog("scope", e.currentTarget)}
-        className="mt-3 min-h-11 w-full text-right text-[10px] text-evidence"
-      >
-        {reviewing ? "Review scope →" : "Review exact packet contents →"}
-      </button>
     </section>
   );
   const receipt = (
     <section className={card}>
       <p className={label}>Sharing status</p>
-      <h2 className="mt-3 text-base">No consent or sharing receipt created</h2>
+      <h2 className="mt-3 text-base">
+        {sharing ? "Sharing permission active" : "No sharing permission selected"}
+      </h2>
       <dl className="mt-3 space-y-3 border-t border-sage pt-3 text-xs">
         <div className="flex justify-between gap-4">
           <dt className="text-graphite">Recipient</dt>
@@ -380,20 +372,13 @@ function BookingForm({
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-graphite">Record scope</dt>
-          <dd>None shared by this booking</dd>
+          <dd className="text-right">{sharing ? scopeSummary(sharing) : "None shared by this booking"}</dd>
         </div>
         <div className="flex justify-between gap-4">
           <dt className="text-graphite">Expiry</dt>
-          <dd>Not applicable</dd>
+          <dd>{sharing ? expiryText(sharing) : "Not applicable"}</dd>
         </div>
       </dl>
-      <button
-        type="button"
-        disabled
-        className="mt-4 min-h-11 w-full text-right text-[10px] text-graphite/60"
-      >
-        Change sharing scope unavailable
-      </button>
     </section>
   );
   return (
@@ -441,7 +426,7 @@ function BookingForm({
         </h1>
         <p className="mt-2 text-xs leading-relaxed text-graphite">
           {reviewing
-            ? "Confirm the visit details below. No record sharing is included."
+            ? "Confirm the visit details below."
             : "Choose the doctor, visit mode and an available time."}
         </p>
       </div>
@@ -452,15 +437,6 @@ function BookingForm({
         >
           The previous visit was cancelled. Choose and confirm a new time to
           create a new request.
-        </p>
-      )}
-      {incomingPacket && (
-        <p
-          role="status"
-          className="rounded-2xl border border-review p-4 text-xs text-review"
-        >
-          Incoming packet context cannot be attached. This booking will not
-          share it.
         </p>
       )}
       {!reviewing ? (
@@ -738,9 +714,7 @@ function BookingForm({
           <h2 id="booking-dialog-title" className="text-xl">
             {dialog === "doctor"
               ? "Select doctor"
-              : dialog === "reason"
-                ? "Reason for visit"
-                : "Record sharing unavailable"}
+              : "Reason for visit"}
           </h2>
           {dialog === "doctor" && (
             <div className="mt-4 space-y-3">
@@ -790,13 +764,6 @@ function BookingForm({
                 Use this reason
               </button>
             </>
-          )}
-          {dialog === "scope" && (
-            <p className="mt-4 text-sm leading-relaxed">
-              No health records are attached and no consent grant will be
-              created by this booking. Scoped sharing, recipient access and
-              expiry controls require the pending privacy service.
-            </p>
           )}
         </ClinicalReviewDialog>
       )}

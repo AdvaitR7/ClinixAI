@@ -350,7 +350,7 @@ test("SCR-008 restores real questions and answers, resumes after reload, retries
   expect(state.creates).toBe(1);
   expect(state.submissions).toHaveLength(count);
   await page.getByRole("link", { name: "BOOK DOCTOR", exact: true }).click();
-  await expect(page).toHaveURL(/\/app\/patient\/book$/);
+  await expect(page).toHaveURL(/\/app\/patient\/book\?encounterId=/);
 });
 
 test("SCR-009 answer review and reload preserve safety actions and never resume analysis", async ({
@@ -430,8 +430,8 @@ test("SCR-010 evidence retry, scoped export, timeline detail and cross-module ex
   await page.goto(`/app/patient/checkin/result/${sessionId}`);
   await expect(page.getByText("SAVED TO RECORD · VIEW TIMELINE")).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "SHARE PACKET", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("link", { name: "SHARE WITH DOCTOR", exact: true }),
+  ).toHaveAttribute("href", "/app/patient/care");
   const basis = page.getByRole("button", { name: "View result basis" });
   await basis.click();
   const dialog = page.getByRole("dialog", { name: "Result basis" });
@@ -452,10 +452,10 @@ test("SCR-010 evidence retry, scoped export, timeline detail and cross-module ex
     path: "../../docs/architecture/evidence/implementation-scr-010-393.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Review sharing scope" }).click();
+  await page.getByRole("button", { name: "What sharing includes" }).click();
   await expect(
     page.getByRole("dialog", { name: "Sharing scope" }),
-  ).toContainText("No packet or doctor-access grant");
+  ).toContainText("Nothing is shared yet");
   await page.keyboard.press("Escape");
   const downloadEvent = page.waitForEvent("download");
   await page.getByRole("button", { name: "DOWNLOAD RESULT" }).click();

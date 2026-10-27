@@ -61,6 +61,7 @@ export default function DoctorPage() {
 
       {state.status === "ready" && (
         <>
+          <Link href="/app/doctor/requests" className="font-sans text-xs font-medium text-doctor-muted/70">Record removal requests</Link>
           <section aria-labelledby="attention-title">
             <h2 id="attention-title" className="sr-only">Attention summary</h2>
             <div className="grid grid-cols-3 gap-3">

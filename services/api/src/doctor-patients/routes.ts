@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { and, asc, desc, eq, gte, inArray, isNull, max } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, max, or, type SQL } from "drizzle-orm";
 import { doctorCreatePatientSchema } from "@clinix/schemas";
 import { authorizePatientAccess, requireDoctor } from "../auth/guards.js";
 import { hashIdentity } from "../crypto.js";
@@ -20,6 +20,7 @@ import {
 import { appointmentView } from "../appointments/map.js";
 import { medicationsForPatient } from "../medications/derive.js";
 import { loadReportView } from "../documents/routes.js";
+import { activeConsentsForDoctor, consentCovering, lockedSections, scopeCovers } from "../privacy/consent.js";
 
 const PHONE_RE = /^\+?\d[\d\s()-]*$/;
 
@@ -184,21 +185,33 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
       if (typeof doctorId !== "string") return doctorId;
 
       const patientId = request.params.patient_id;
-      const allowed = await authorizePatientAccess(request.auth, patientId);
+      const database = requireDb();
+      // Relationship is not permission: a related doctor always sees their own
+      // records; everything else needs an active, unexpired consent scope.
+      const active = await activeConsentsForDoctor(database, patientId, doctorId);
+      const allowed = active.length > 0 || (await authorizePatientAccess(request.auth, patientId));
       if (!allowed) {
         return error(request, reply, 403, "FORBIDDEN", "Not authorized for this patient record");
       }
+      const scopes = active.flatMap((c) => c.scopes);
+      const hasGroup = (type: string) => scopes.some((x) => x.resourceType === type && x.resourceId === null);
+      const scopedIds = (type: string) => scopes.flatMap((x) => (x.resourceType === type && x.resourceId ? [x.resourceId] : []));
+      const medicationConsent = consentCovering(active, "MEDICATION");
+      const encounterAll = hasGroup("ENCOUNTER") || hasGroup("TIMELINE");
+      const documentAll = hasGroup("DOCUMENT") || hasGroup("TIMELINE");
+      const documentListAll = hasGroup("DOCUMENT");
 
-      // Access ledger: a doctor opening the workspace is a sensitive read.
+      // Access ledger: a doctor opening the workspace is a sensitive read; the
+      // row carries the consent that widened it, if any.
       await logAccess(request, {
         patientId,
-        purpose: "Consultation",
+        purpose: active[0]?.purpose ?? "Consultation",
         resourceType: "PATIENT_WORKSPACE",
         resourceId: patientId,
         action: "VIEW",
+        consentId: active[0]?.id ?? null,
       });
 
-      const database = requireDb();
       const [patientRow] = await database
         .select({ status: patients.status })
         .from(patients)
@@ -215,23 +228,35 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
       }
       const decrypted = decryptMinimal(identity);
 
-      // Until scoped sharing exists, only this clinician's authored records are composed.
-      const [apptRows, encRows, documentRows, rxRows, medications] = await Promise.all([
+      // Own records always; patient-held and other clinicians' records only where a consent scope covers them.
+      const encounterScope: SQL | undefined = or(
+        eq(encounters.relatedDoctorId, doctorId),
+        encounterAll ? eq(encounters.patientId, patientId) : undefined,
+        scopedIds("ENCOUNTER").length ? inArray(encounters.id, scopedIds("ENCOUNTER")) : undefined,
+      );
+      const documentScope: SQL | undefined = or(
+        and(eq(documents.uploadedByActorType, "DOCTOR"), eq(documents.uploadedByActorId, doctorId)),
+        documentAll ? eq(documents.patientId, patientId) : undefined,
+        scopedIds("DOCUMENT").length ? inArray(documents.id, scopedIds("DOCUMENT")) : undefined,
+      );
+      const [apptRows, encRows, allDocumentRows, rxRows, medications] = await Promise.all([
         database.select().from(appointments)
           .where(and(eq(appointments.patientId, patientId), eq(appointments.doctorId, doctorId)))
           .orderBy(desc(appointments.scheduledStart)),
         database.select().from(encounters)
-          .where(and(eq(encounters.patientId, patientId), eq(encounters.relatedDoctorId, doctorId)))
+          .where(and(eq(encounters.patientId, patientId), encounterScope))
           .orderBy(desc(encounters.startedAt)),
         database.select().from(documents)
-          .where(and(eq(documents.patientId, patientId), eq(documents.uploadedByActorType, "DOCTOR"), eq(documents.uploadedByActorId, doctorId), isNull(documents.deletedAt)))
+          .where(and(eq(documents.patientId, patientId), documentScope, isNull(documents.deletedAt)))
           .orderBy(desc(documents.createdAt)),
         database.select({ id: prescriptions.id, encounterId: prescriptions.encounterId, finalizedAt: prescriptionVersions.finalizedAt })
           .from(prescriptions).innerJoin(prescriptionVersions, eq(prescriptionVersions.id, prescriptions.currentVersionId))
           .where(and(eq(prescriptions.patientId, patientId), eq(prescriptions.doctorId, doctorId)))
           .orderBy(desc(prescriptionVersions.finalizedAt)),
-        medicationsForPatient(patientId, doctorId),
+        medicationsForPatient(patientId, medicationConsent ? undefined : doctorId),
       ]);
+      // TIMELINE-only consent shows entries but not the document list or reports.
+      const documentRows = !hasGroup("TIMELINE") || documentListAll ? allDocumentRows : allDocumentRows.filter((doc) => (doc.uploadedByActorType === "DOCTOR" && doc.uploadedByActorId === doctorId) || documentListAll || scopeCovers(scopes, "DOCUMENT", doc.id));
       const reportRows = documentRows.length ? await database.select({ id: labReports.id }).from(labReports)
         .where(and(eq(labReports.patientId, patientId), inArray(labReports.documentId, documentRows.map((doc) => doc.id)))) : [];
       const reports = (await Promise.all(reportRows.map((report) => loadReportView(report.id)))).filter((report) => report !== null);
@@ -253,7 +278,7 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
           at: a.scheduledStart.toISOString(),
           label: `Appointment · ${a.status}`,
         })),
-        ...documentRows.map((doc) => ({ kind: "document" as const, id: doc.id, provenance: "SOURCE_DOCUMENT" as const, at: doc.createdAt.toISOString(), label: doc.originalFilename })),
+        ...allDocumentRows.map((doc) => ({ kind: "document" as const, id: doc.id, provenance: "SOURCE_DOCUMENT" as const, at: doc.createdAt.toISOString(), label: doc.originalFilename })),
         ...rxRows.map((rx) => ({ kind: "prescription" as const, id: rx.id, provenance: "DOCTOR_AUTHORED" as const, at: rx.finalizedAt.toISOString(), label: "Prescription finalized" })),
       ].sort((a, b) => b.at.localeCompare(a.at));
 
@@ -267,8 +292,9 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
           sex_at_registration: decrypted.sex_at_registration,
         },
         allergies: [],
-        consent_active: null,
-        access_scope: "DOCTOR_OWN_RECORDS",
+        consent_active: active.length > 0,
+        access_scope: active.length > 0 ? "CONSENT_SCOPED" : "DOCTOR_OWN_RECORDS",
+        locked_sections: lockedSections(active),
         current_concern: encRows[0]?.chiefConcern ?? null,
         current_concern_at: encRows[0]?.startedAt.toISOString() ?? null,
         last_updated_at: [identity.updatedAt, ...encRows.map((row) => row.updatedAt), ...apptRows.map((row) => row.updatedAt), ...documentRows.map((row) => row.createdAt), ...rxRows.map((row) => row.finalizedAt)]

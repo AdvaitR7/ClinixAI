@@ -1,5 +1,8 @@
 # Implementation gap analysis and ordered backlog
 
+**Batch 9 (2026-10-26):** [Phase 6 privacy](15-privacy-implementation.md) implements scoped consent, the access ledger read API, removal requests and SCR-018/019/020/021/049/050/051. GAP-006/012/028/029/033 are PARTIAL: DB migrations 0011/0012 are not applied, removal decisions do not yet hide records, staff routing awaits Phase 7. No whole screen is certified COMPLETE.
+
+
 **Batch 6 (2026-10-26):** [Phase 3 medication provenance](12-medication-implementation.md) supersedes SCR-015/016 findings. Registry groups/filters, source-aligned detail, exact-version patient prescription view and selected encounter chapter are implemented and tested. Prescribed items remain UNKNOWN_STATUS; exposure/reaction authorship is not invented. Live database acceptance and unresolved You navigation remain open; neither screen is COMPLETE.
 
 
@@ -197,6 +200,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Missing work | Implement authoritative consent scope/expiry/revocation and minimum-necessary composition; separate relationship from permission; show explicit locked state. |
 | Dependencies | Resolve consent model before packet/source/UI completion. |
 | Existing phase / scope mismatch | Phase 6 pending; current Phase 2/3/5 surfaces already claim consent. |
+| Batch 9 update | PARTIAL → addressed in code: `consents`/`consent_scopes`, `authorizePatientResource`, expiry derived at read time, workspace/AI assistance/source documents/consultation medication reads consent-scoped with `locked_sections` and consent ids in the ledger. Not live-verified (0011/0012 unapplied); allergy and mental-wellness data do not exist. See [15](15-privacy-implementation.md). |
 | Verification method | Synthetic related doctor with no/expired/revoked/limited grant sees only permitted groups; no broadening from Care relationship alone. |
 | Batch 2 update | PARTIAL containment: workspace/medication/source composition limited to this doctor’s own records; patient-shared/other-clinician groups locked. Full scoped grant/expiry/revocation service still unimplemented. See [08](08-patient-record-implementation.md). |
 
@@ -315,6 +319,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Missing work | Define packet/consent contract; hydrate incoming context; persist exact records and receipt; validate authoritative doctor access after booking. |
 | Dependencies | Consent enforcement and source model. |
 | Existing phase / scope mismatch | Phase 3/5 marked complete; Phase 6 dependency unresolved. |
+| Batch 9 update | PARTIAL: booking accepts and validates `consent_id`; the scope picker (SCR-020) creates the consent and returns to booking, which shows scope and expiry. Consent is not persisted on the appointment; `packet_id` stays refused. See [15](15-privacy-implementation.md). |
 | Verification method | Select only synthetic lab A and not B; book from result, reload, inspect authorized doctor context and receipt: only A plus explicitly selected context travels. |
 | Batch 3 update | Still BLOCKED: result now states sharing unavailable and opens a truthful scope explanation; ordinary booking no longer carries ignored packet/encounter query parameters or claims sharing. No packet or consent workflow invented. See [09](09-checkin-implementation.md). |
 | Batch 4 update | Still BLOCKED on scoped consent. Fake selectable packet attachments/receipt/expiry removed from booking/review; explicit no-sharing state shown. Existing booking endpoint rejects provided unsupported packet/consent fields rather than silently succeeding. No Phase 6 service invented. See [10](10-appointment-implementation.md). |
@@ -613,6 +618,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Missing work | Complete designed screens on agreed routes/states; define remove/search/profile/message scope; never grant history from adding a doctor. |
 | Dependencies | Consent authorization, directory eligibility and navigation decisions. |
 | Existing phase / scope mismatch | Phase 6 pending (Page 12); discovery/scope substates not separately tracked in 30-screen checklist. |
+| Batch 9 update | PARTIAL: Care Circle, verified-only Discover with search, scope picker and relationship removal implemented/tested; adding a doctor grants nothing. Message and View profile stay disabled. See [15](15-privacy-implementation.md). |
 | Verification method | Synthetic Care relationship actions preserve independent sharing; verified discovery filters work; unknown messaging/profile behavior resolved before implementation. |
 
 <a id="gap-029"></a>
@@ -631,6 +637,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Missing work | Implement scoped ledger reads/receipts, permission lifecycle and resolve patient request entry/details; verify append-only storage policy separately. |
 | Dependencies | Consent model and retention request contract. |
 | Existing phase / scope mismatch | Phase 6 pending; append-only claims require current verification. |
+| Batch 9 update | PARTIAL: ledger read API (human-readable, filtered, paged), permissions list with revoke, removal request and tracking on SCR-021. DB-level append-only (migration 0012) is written but not applied or verified live. Access-receipt detail is designed (frame 5617), not built. See [15](15-privacy-implementation.md). |
 | Verification method | Synthetic access/AI events appear accurately; patient B denied; revoke immediately blocks doctor scope; receipt/request status immutable and explainable. |
 
 <a id="gap-030"></a>
@@ -703,6 +710,7 @@ Navigation and shared contracts should be established before isolated visual pol
 | Missing work | Define request/decision version contract, legal/policy configuration and per-record visibility, owner/doctor authority, routing-only staff variant and patient tracking. |
 | Dependencies | Consent/ledger, membership and professional-record retention policy. |
 | Existing phase / scope mismatch | Phase 6 pending; staff routing depends on Phase 7 boundaries. |
+| Batch 9 update | PARTIAL: doctor inbox, decision with required reason, per-record partial outcomes, confirmation dialog and patient tracking implemented/tested. Decisions are recorded only; records are not yet hidden. Staff routing refused until Phase 7 practice membership. See [15](15-privacy-implementation.md). |
 | Verification method | Synthetic partial/retain cases require reason, preserve decision/audit versions, deny staff decision calls, and update correct patient status. |
 
 <a id="gap-034"></a>

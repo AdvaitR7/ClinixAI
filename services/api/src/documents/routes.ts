@@ -9,7 +9,7 @@ import {
   type LabObservationView,
   type LabReportView,
 } from "@clinix/schemas";
-import { authorizePatientAccess, requireDoctor, requirePatient } from "../auth/guards.js";
+import { authorizePatientAccess, authorizePatientResource, requireDoctor, requirePatient } from "../auth/guards.js";
 import { error, requireDb } from "../http.js";
 import { logAccess } from "../audit/log.js";
 import { sendDocumentExtract } from "../queue.js";
@@ -476,11 +476,17 @@ export async function documentRoutes(app: FastifyInstance) {
       if (!doc || doc.deletedAt) {
         return error(request, reply, 404, "NOT_FOUND", "Document not found");
       }
-      if (!(await authorizePatientAccess(request.auth, doc.patientId))) {
-        return error(request, reply, 403, "FORBIDDEN", "Not authorized for this document");
-      }
-      if (doc.uploadedByActorType !== "DOCTOR" || doc.uploadedByActorId !== doctorId) {
-        return error(request, reply, 403, "CONSENT_REQUIRED", "Patient-shared sources require verified consent scope");
+      // Own uploads need a relationship; patient-held or other clinicians' documents need a consent scope.
+      const access = await authorizePatientResource(request.auth, {
+        patientId: doc.patientId,
+        resourceType: "DOCUMENT",
+        resourceId: doc.id,
+        ownedByActor: doc.uploadedByActorType === "DOCTOR" && doc.uploadedByActorId === doctorId,
+      });
+      if (!access.allowed) {
+        return (await authorizePatientAccess(request.auth, doc.patientId))
+          ? error(request, reply, 403, "CONSENT_REQUIRED", "The patient has not shared this document with you")
+          : error(request, reply, 403, "FORBIDDEN", "Not authorized for this document");
       }
       const viewUrl = await signedViewUrl(doc.storageObjectKey);
       await logAccess(request, {
@@ -489,6 +495,7 @@ export async function documentRoutes(app: FastifyInstance) {
         resourceType: "DOCUMENT",
         resourceId: doc.id,
         action: "VIEW",
+        consentId: access.consentId,
       });
       return documentView(doc, viewUrl);
     },
