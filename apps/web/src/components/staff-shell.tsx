@@ -8,7 +8,7 @@ type Active = "home" | "schedule" | "patients" | "intake" | "followups";
 
 /**
  * Staff navigation dock (FigCraft frame 5844). Four destinations in a fixed order;
- * Schedule and Patients are operational anchors on the dashboard, never clinical views.
+ * Schedule, Patients and Intake open the operational view (FigCraft frame 5953), never clinical views.
  */
 export function StaffShell({
   role,
@@ -22,11 +22,11 @@ export function StaffShell({
   children: ReactNode;
 }) {
   const third = role === "ASSISTANT"
-    ? { key: "intake" as const, label: "Intake", href: "/app/staff#intake" }
-    : { key: "patients" as const, label: "Patients", href: "/app/staff#schedule" };
+    ? { key: "intake" as const, label: "Intake", href: "/app/staff/schedule?tab=intake" }
+    : { key: "patients" as const, label: "Patients", href: "/app/staff/schedule?tab=patients" };
   const nav = [
     { label: "Home", href: "/app/staff", key: "home" },
-    { label: "Schedule", href: "/app/staff#schedule", key: "schedule" },
+    { label: "Schedule", href: "/app/staff/schedule", key: "schedule" },
     { label: third.label, href: third.href, key: third.key },
     { label: "Follow-ups", href: "/app/staff/followups", key: "followups" },
   ].map(({ key, ...item }) => ({ ...item, active: key === active }));

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useApiData, useMe } from "@/lib/api";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { clinicDate, useApiWrite, type TeamMember } from "@/lib/staff";
@@ -71,7 +72,10 @@ export default function TeamPage() {
       )}
       {manager && (
         <>
-          <p className="text-sm font-semibold">{manager.practice_name}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">{manager.practice_name}</p>
+            <Link href="/app/doctor/practice" className="min-h-11 text-xs text-evidence">Practice settings →</Link>
+          </div>
           <section className={card} aria-labelledby="invite-heading">
             <p className={label}>Invite team member</p>
             <h2 id="invite-heading" className="sr-only">Invite</h2>

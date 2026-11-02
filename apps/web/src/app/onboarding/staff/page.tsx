@@ -34,6 +34,7 @@ function StaffInvitation() {
   const write = useApiWrite();
   const preview = useApiData<Preview>(token && status === "signed-in" ? `/practice-invitations/${token}` : null);
   const [agreed, setAgreed] = useState(false);
+  const [contact, setContact] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +43,7 @@ function StaffInvitation() {
     setBusy(true);
     setError(null);
     try {
-      await write(`/practice-invitations/${token}/${action}`, "POST");
+      await write(`/practice-invitations/${token}/${action}`, "POST", action === "accept" ? { contact: contact.trim() } : {});
       router.replace(action === "accept" ? "/app/staff" : "/onboarding/role");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not complete this step.");
@@ -112,12 +113,16 @@ function StaffInvitation() {
               </div>
             </div>
           </section>
-          <label className="mt-6 flex min-h-11 items-start gap-3 font-sans text-xs text-surface">
+          <label className="mt-6 block font-sans text-xs text-surface">
+            Email or mobile this invitation was sent to
+            <input value={contact} onChange={(e) => setContact(e.target.value)} autoComplete="off" className="mt-2 min-h-11 w-full rounded-xl border border-copper bg-ink px-3 text-sm" />
+          </label>
+          <label className="mt-4 flex min-h-11 items-start gap-3 font-sans text-xs text-surface">
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 size-5" />
             I understand this membership is limited to operational access.
           </label>
           {error && <p role="alert" className="mt-3 font-sans text-xs text-critical">{error}</p>}
-          <button type="button" disabled={!agreed || busy} onClick={() => void respond("accept")} className="mt-6 min-h-[58px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink disabled:cursor-not-allowed disabled:opacity-55">
+          <button type="button" disabled={!agreed || busy || contact.trim().length < 3} onClick={() => void respond("accept")} className="mt-6 min-h-[58px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink disabled:cursor-not-allowed disabled:opacity-55">
             Accept practice membership
           </button>
           <button type="button" disabled={busy} onClick={() => void respond("decline")} className="mt-3 min-h-11 w-full font-sans text-sm font-medium text-evidence">Decline invitation</button>

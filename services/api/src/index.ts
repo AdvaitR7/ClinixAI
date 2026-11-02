@@ -21,6 +21,7 @@ import { timelineRoutes } from "./timeline/routes.js";
 import { privacyRoutes } from "./privacy/routes.js";
 import { practiceRoutes } from "./practices/routes.js";
 import { staffRoutes } from "./staff/routes.js";
+import { staffOperationsRoutes } from "./staff/operations-routes.js";
 import { followupRoutes } from "./followups/routes.js";
 import { notificationRoutes } from "./notifications/routes.js";
 import { doctorProfileRoutes } from "./doctors/profile-routes.js";
@@ -73,6 +74,7 @@ await app.register(
     await instance.register(privacyRoutes);
     await instance.register(practiceRoutes);
     await instance.register(staffRoutes);
+    await instance.register(staffOperationsRoutes);
     await instance.register(followupRoutes);
     await instance.register(notificationRoutes);
     await instance.register(doctorProfileRoutes);

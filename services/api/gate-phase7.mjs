@@ -29,10 +29,13 @@ function check(name, ok, detail) {
 }
 
 /** Creates a synthetic staff account and accepts the invitation as that account. */
-async function joinAs(tag, token) {
+async function joinAs(tag, token, contact) {
   const user = await createGateUser(tag, { display_name: `Synthetic ${tag}` });
   const userToken = await sessionTokenFor(user.id);
-  const accepted = await api(userToken, "POST", `/practice-invitations/${token}/accept`);
+  const wrong = await api(userToken, "POST", `/practice-invitations/${token}/accept`, { contact: "someone-else@example.test" });
+  if (wrong.status !== 403 && wrong.status !== 409) check("Wrong contact is refused", false, wrong.status);
+  if (wrong.status === 403) check("Wrong contact is refused", wrong.json?.error?.code === "CONTACT_MISMATCH");
+  const accepted = await api(userToken, "POST", `/practice-invitations/${token}/accept`, { contact });
   return { userToken, accepted };
 }
 
@@ -53,17 +56,17 @@ async function main() {
   // Invitations: expired/revoked/declined tokens cannot be accepted; accepted ones grant exactly the invited role.
   const revokedInvite = await api(doctorToken, "POST", `/practices/${practiceId}/invitations`, { contact: `revoked-${tag}@example.test`, role: "RECEPTION" });
   await api(doctorToken, "POST", `/practices/${practiceId}/members/${revokedInvite.json?.member_id}/revoke`);
-  const revoked = await joinAs(`${tag}r`, revokedInvite.json?.invite_token);
+  const revoked = await joinAs(`${tag}r`, revokedInvite.json?.invite_token, `revoked-${tag}@example.test`);
   check("A revoked invitation cannot be accepted", revoked.accepted.status === 409, revoked.accepted.json?.error?.code);
 
   const asstInvite = await api(doctorToken, "POST", `/practices/${practiceId}/invitations`, { contact: `assistant-${tag}@example.test`, role: "ASSISTANT" });
   const recInvite = await api(doctorToken, "POST", `/practices/${practiceId}/invitations`, { contact: `reception-${tag}@example.test`, role: "RECEPTION" });
   check("Invitations issue one-time tokens", Boolean(asstInvite.json?.invite_token) && Boolean(recInvite.json?.invite_token));
-  const assistant = await joinAs(`${tag}a`, asstInvite.json?.invite_token);
-  const receptionist = await joinAs(`${tag}c`, recInvite.json?.invite_token);
+  const assistant = await joinAs(`${tag}a`, asstInvite.json?.invite_token, `assistant-${tag}@example.test`);
+  const receptionist = await joinAs(`${tag}c`, recInvite.json?.invite_token, `reception-${tag}@example.test`);
   check("Assistant accepts membership", assistant.accepted.status === 200 && assistant.accepted.json?.role === "ASSISTANT");
   check("Receptionist accepts membership", receptionist.accepted.status === 200 && receptionist.accepted.json?.role === "RECEPTION");
-  const replay = await api(assistant.userToken, "POST", `/practice-invitations/${asstInvite.json?.invite_token}/accept`);
+  const replay = await api(assistant.userToken, "POST", `/practice-invitations/${asstInvite.json?.invite_token}/accept`, { contact: `assistant-${tag}@example.test` });
   check("An accepted invitation cannot be replayed", replay.status === 404 || replay.status === 409);
 
   // Synthetic patient and a doctor-booked appointment today.
@@ -126,6 +129,79 @@ async function main() {
   check("Staff cannot write the clinical outcome", outcome.status === 403);
   const done = await api(receptionist.userToken, "POST", `/followups/${fid}/complete`, {});
   check("Staff complete the task operationally", done.status === 200 && done.json?.status === "COMPLETED");
+
+
+  // Closing pass: schedule, patients, booking, payment, claims, settings, profile, routing, notifications.
+  const sched = await api(receptionist.userToken, "GET", "/staff/schedule");
+  check("Staff schedule lists today's appointment", sched.status === 200 && (sched.json?.appointments ?? []).some((a) => a.id === apptId));
+  const pats = await api(assistant.userToken, "GET", "/staff/patients?q=Synthetic");
+  check("Staff patient list is operational and masked", pats.status === 200 && (pats.json ?? []).some((p) => p.patient_id === patientId && /^\u2022\u2022\u2022 \d{4}$/.test(p.phone_hint)));
+  check("Patient list exposes no clinical fields", !JSON.stringify(pats.json ?? []).match(/diagnos|prescription|allerg/i));
+  const ledger = await api(patientToken, "GET", "/patients/self/access-ledger");
+  check("Staff patient-list view appears on the patient's ledger", (ledger.json?.events ?? []).some((e) => e.actor?.type === "CLINIC_STAFF"));
+
+  const staffDocs = await api(assistant.userToken, "GET", "/staff/doctors");
+  check("Staff see only practice doctors", (staffDocs.json ?? []).length === 1 && staffDocs.json[0].doctor_id === doctorId);
+  const later = new Date(Date.now() + (3 + Math.floor(Math.random() * 300)) * 86400000); later.setUTCMinutes(0, 0, 0);
+  const sb = await api(assistant.userToken, "POST", "/staff/appointments", { patient_id: patientId, doctor_id: doctorId, appointment_type: "IN_PERSON", scheduled_start: later.toISOString(), reason: "Synthetic staff booking" });
+  check("Staff book for a practice patient (REQUESTED)", sb.status === 201 && sb.json?.appointment?.status === "REQUESTED", sb.status);
+  const dup = await api(assistant.userToken, "POST", "/staff/appointments", { patient_id: patientId, doctor_id: doctorId, appointment_type: "IN_PERSON", scheduled_start: later.toISOString() });
+  check("A taken slot is refused", dup.status === 409 && dup.json?.error?.code === "SLOT_TAKEN");
+  const outsider = await createGateUser(`${tag}out`, { display_name: "Synthetic Outsider" });
+  const outToken = await sessionTokenFor(outsider.id);
+  const outOnb = await api(outToken, "POST", "/patients/self", { full_name: "Synthetic Outsider", phone: `+9198${Math.floor(10000000 + Math.random() * 90000000)}`, date_of_birth: "1990-01-01", sex_at_registration: "MALE" });
+  const foreign = await api(assistant.userToken, "POST", "/staff/appointments", { patient_id: outOnb.json?.patient_id, doctor_id: doctorId, appointment_type: "IN_PERSON", scheduled_start: new Date(later.getTime() + 3600000).toISOString() });
+  check("Staff cannot book a patient outside the practice", foreign.status === 404);
+  const confA = await api(assistant.userToken, "POST", `/staff/appointments/${sb.json?.appointment?.id}/confirm`);
+  check("Staff confirm a requested appointment", confA.status === 200 && confA.json?.status === "CONFIRMED");
+
+  const pay = await api(assistant.userToken, "POST", `/staff/appointments/${apptId}/payment-status`, { payment_status: "PAID", reference_note: "Synthetic cash" });
+  check("Staff record a manual payment", pay.status === 200 && pay.json?.payment_status === "PAID");
+  const rcpt = await api(assistant.userToken, "GET", `/staff/appointments/${apptId}/receipt`);
+  check("Receipt shows payment history without clinical content", rcpt.status === 200 && rcpt.json?.events?.[0]?.new_status === "PAID" && !JSON.stringify(rcpt.json).match(/diagnos|prescription/i));
+
+  const mobile = `+9197${Math.floor(10000000 + Math.random() * 90000000)}`;
+  const unclaimed = await api(doctorToken, "POST", "/doctor/patients", { full_name: "Synthetic Unclaimed", mobile, date_of_birth: "1991-02-02", sex_at_registration: "female" });
+  const unclaimedId = unclaimed.json?.patient_id;
+  await api(doctorToken, "POST", "/doctor/appointments", { patient_id: unclaimedId, appointment_type: "IN_PERSON", scheduled_start: new Date(later.getTime() + 7200000).toISOString(), reason: "Synthetic unclaimed visit" });
+  const claims = await api(assistant.userToken, "GET", "/staff/claim-invitations");
+  check("Claim list shows unclaimed practice patients only", claims.status === 200 && (claims.json ?? []).some((c) => c.patient_id === unclaimedId) && !(claims.json ?? []).some((c) => c.patient_id === patientId));
+  const claimInvite = await api(assistant.userToken, "POST", `/staff/patients/${unclaimedId}/claim-invites`);
+  check("Staff issue a claim invitation without seeing the record", claimInvite.status === 201 && Boolean(claimInvite.json?.invite_token));
+  const claimedInvite = await api(assistant.userToken, "POST", `/staff/patients/${patientId}/claim-invites`);
+  check("Claimed patients cannot receive a claim invitation", claimedInvite.status === 409);
+
+  const settings = await api(doctorToken, "GET", `/practices/${practiceId}`);
+  check("Owner reads practice settings", settings.status === 200 && settings.json?.can_edit === true);
+  const saved = await api(doctorToken, "PUT", `/practices/${practiceId}`, { name: `Synthetic Clinic ${tag} Renamed`, phone: "+911234567890", address: "1 Synthetic Road" });
+  check("Owner saves practice settings", saved.status === 200 && saved.json?.address === "1 Synthetic Road");
+  const staffSettings = await api(assistant.userToken, "PUT", `/practices/${practiceId}`, { name: "Hijack" });
+  check("Staff cannot edit practice settings", staffSettings.status === 403);
+
+  const prof = await api(doctorToken, "GET", "/doctors/self/profile");
+  check("Doctor profile returns locked verified fields", prof.status === 200 && Boolean(prof.json?.locked?.registration_number));
+  const profSave = await api(doctorToken, "PUT", "/doctors/self/profile", { bio: "Synthetic bio", services: [{ name: "In-clinic visit", mode: "IN_CLINIC", fee_inr: 600, duration_minutes: 20 }] });
+  check("Doctor saves editable profile fields", profSave.status === 200);
+  const lockedWrite = await api(doctorToken, "PUT", "/doctors/self/profile", { registration_number: "HACK" });
+  check("Verified fields cannot be written", lockedWrite.status === 400);
+  const prof2 = await api(doctorToken, "GET", "/doctors/self/profile");
+  check("Saved profile round-trips", prof2.json?.bio === "Synthetic bio" && prof2.json?.services?.length === 1);
+
+  const rr = await api(patientToken, "POST", "/patients/self/record-removal-requests", { target_actor_type: "DOCTOR", target_actor_id: doctorId, resource_type: "DOCUMENT", reason: "ReasonMarker7731" });
+  const rl = await api(assistant.userToken, "GET", "/staff/record-removal-requests");
+  check("Staff see requests held by practice doctors without reasons", rl.status === 200 && (rl.json ?? []).some((r) => r.id === rr.json?.id) && !JSON.stringify(rl.json).includes("ReasonMarker7731"));
+  const decide = await api(assistant.userToken, "POST", `/doctor/record-removal-requests/${rr.json?.id}/resolve`, { outcome: "APPROVED" });
+  check("Staff cannot decide a removal request", decide.status === 403);
+  const routed = await api(assistant.userToken, "POST", `/record-removal-requests/${rr.json?.id}/route`, { doctor_id: doctorId });
+  check("Staff route a request within the practice", routed.status === 200);
+  const decided = await api(doctorToken, "POST", `/doctor/record-removal-requests/${rr.json?.id}/resolve`, { outcome: "DENIED", reason: "Retained for the clinical record." });
+  check("Practice owner/doctor decides the routed request", decided.status === 200 && decided.json?.status === "DENIED");
+
+  const notes = await api(doctorToken, "GET", "/notifications");
+  const note = (notes.json ?? []).find((n) => n.type === "PRACTICE_INVITATION_ACCEPTED");
+  check("Inviter is notified when an invitation is accepted", Boolean(note));
+  const read = await api(doctorToken, "POST", `/notifications/${note?.id}/read`);
+  check("Notification can be marked read", read.status === 200 && read.json?.read === true);
 
   // Membership lifecycle: ended membership loses access, history stays.
   const end = await api(doctorToken, "POST", `/practices/${practiceId}/members/${receptionist.accepted.json?.member_id}/end`, { reason: "Synthetic gate end", effective_date: new Date().toISOString().slice(0, 10) });

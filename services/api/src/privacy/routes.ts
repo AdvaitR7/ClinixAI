@@ -382,6 +382,9 @@ export async function privacyRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string } }>("/doctor/record-removal-requests/:id/resolve", async (request, reply) => {
     const doctorId = requireDoctor(request, reply);
     if (typeof doctorId !== "string") return doctorId;
+    // The addressed doctor decides; a practice OWNER may also decide for the practice's doctors.
+    const ownedPractices = (request.auth.memberships ?? []).filter((m) => m.role === "OWNER");
+    const deciderScope = [doctorId, ...(await Promise.all(ownedPractices.map((m) => practiceDoctorIds(m.practiceId)))).flat()];
     const parsed = removalResolveSchema.safeParse(request.body);
     if (!parsed.success) return error(request, reply, 400, "VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid decision");
     const body = parsed.data;

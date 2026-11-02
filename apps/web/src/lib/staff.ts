@@ -94,3 +94,26 @@ export function clinicTime(iso: string): string {
 export function clinicDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" });
 }
+
+const PRACTICE_KEY = "clinix.staff.activePractice";
+
+/** Remembers the staff member's chosen practice on this device. */
+export function rememberPractice(practiceId: string) {
+  try {
+    window.localStorage.setItem(PRACTICE_KEY, practiceId);
+  } catch {
+    /* storage unavailable: selection lasts for this page only */
+  }
+}
+
+/** Resolves the active practice: explicit choice, then the remembered one, then the first membership. */
+export function pickPractice(choice: string | null, practiceIds: string[]): string | null {
+  if (choice && practiceIds.includes(choice)) return choice;
+  let stored: string | null = null;
+  try {
+    stored = typeof window === "undefined" ? null : window.localStorage.getItem(PRACTICE_KEY);
+  } catch {
+    stored = null;
+  }
+  return stored && practiceIds.includes(stored) ? stored : practiceIds[0] ?? null;
+}

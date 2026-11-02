@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import {
+  invitationAcceptSchema,
   memberEndSchema,
   memberRoleChangeSchema,
   practiceCreateSchema,
@@ -67,6 +68,29 @@ export async function practiceRoutes(app: FastifyInstance) {
       return practice!;
     });
     return reply.code(201).send({ practice_id: result.id, name: result.name });
+  });
+
+  /** Practice details for owners and practice doctors. */
+  app.get<{ Params: { id: string } }>("/practices/:id", async (request, reply) => {
+    const member = requirePracticeRole(request, reply, ["OWNER", "DOCTOR"], request.params.id);
+    if ("statusCode" in member) return member;
+    const [row] = await requireDb().select().from(practices).where(eq(practices.id, request.params.id)).limit(1);
+    if (!row) return error(request, reply, 404, "NOT_FOUND", "Practice not found");
+    return { practice_id: row.id, name: row.name, phone: row.phone, address: row.address, can_edit: member.role === "OWNER" };
+  });
+
+  /** Only the owner edits practice name, phone and address. */
+  app.put<{ Params: { id: string } }>("/practices/:id", async (request, reply) => {
+    const member = requirePracticeRole(request, reply, ["OWNER"], request.params.id);
+    if ("statusCode" in member) return member;
+    const parsed = practiceCreateSchema.safeParse(request.body);
+    if (!parsed.success) return error(request, reply, 400, "VALIDATION_ERROR", "Invalid practice");
+    const [row] = await requireDb()
+      .update(practices)
+      .set({ name: parsed.data.name, phone: parsed.data.phone ?? null, address: parsed.data.address ?? null, updatedAt: new Date() })
+      .where(eq(practices.id, request.params.id))
+      .returning();
+    return { practice_id: row!.id, name: row!.name, phone: row!.phone, address: row!.address, can_edit: true };
   });
 
   /** Lists the caller's own active practices. */
@@ -164,7 +188,7 @@ export async function practiceRoutes(app: FastifyInstance) {
     if ("statusCode" in member) return member;
     const [row] = await requireDb()
       .update(practiceMembers)
-      .set({ status: "REVOKED", inviteTokenHash: null, updatedAt: new Date() })
+      .set({ status: "REVOKED", updatedAt: new Date() })
       .where(and(eq(practiceMembers.id, request.params.memberId), eq(practiceMembers.practiceId, request.params.id), eq(practiceMembers.status, "INVITED")))
       .returning();
     if (!row) return error(request, reply, 404, "NOT_FOUND", "No pending invitation");
@@ -267,6 +291,8 @@ export async function practiceRoutes(app: FastifyInstance) {
   app.post<{ Params: { token: string } }>("/practice-invitations/:token/accept", { config: publicRoute() }, async (request, reply) => {
     const identity = await verifiedBearer(request, reply);
     if (!identity) return reply;
+    const parsedContact = invitationAcceptSchema.safeParse(request.body);
+    if (!parsedContact.success) return error(request, reply, 400, "VALIDATION_ERROR", "Enter the email or mobile this invitation was sent to");
     const database = requireDb();
     try {
       const result = await database.transaction(async (tx) => {
@@ -279,6 +305,7 @@ export async function practiceRoutes(app: FastifyInstance) {
         if (!row) return { code: 404 as const };
         const state = inviteState(row);
         if (state !== "OPEN") return { code: 409 as const, state };
+        if (row.inviteContactHash !== sha256(parsedContact.data.contact.toLowerCase())) return { code: 403 as const };
         const [existing] = await tx.select().from(profiles).where(eq(profiles.supabaseUserId, identity.userId)).limit(1);
         const profile = existing ?? (await ensureProfile(identity, "CLINIC_STAFF", tx));
         const [updated] = await tx
@@ -299,6 +326,7 @@ export async function practiceRoutes(app: FastifyInstance) {
         return { code: 200 as const, member: updated!, primaryRole: profile.primaryRole };
       });
       if (result.code === 404) return error(request, reply, 404, "NOT_FOUND", "Invitation not found");
+      if (result.code === 403) return error(request, reply, 403, "CONTACT_MISMATCH", "That contact does not match this invitation");
       if (result.code === 409) return error(request, reply, 409, `INVITATION_${result.state}`, "This invitation can no longer be accepted");
       return { member_id: result.member.id, practice_id: result.member.practiceId, role: result.member.role, primary_role: result.primaryRole };
     } catch (cause) {
@@ -313,7 +341,7 @@ export async function practiceRoutes(app: FastifyInstance) {
     if (!identity) return reply;
     const [row] = await requireDb()
       .update(practiceMembers)
-      .set({ status: "REVOKED", inviteTokenHash: null, updatedAt: new Date() })
+      .set({ status: "REVOKED", updatedAt: new Date() })
       .where(and(eq(practiceMembers.inviteTokenHash, sha256(request.params.token)), eq(practiceMembers.status, "INVITED")))
       .returning();
     if (!row) return error(request, reply, 404, "NOT_FOUND", "Invitation not found");
