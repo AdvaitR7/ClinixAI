@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { and, asc, eq, gte, inArray, lt, or } from "drizzle-orm";
+import { decryptMinimal } from "../patients/identity.js";
 import { intakeVitalsSchema } from "@clinix/schemas";
 import { requireDoctor, requirePracticeRole } from "../auth/guards.js";
 import type { PracticeMembership } from "../auth/context.js";
@@ -12,6 +13,8 @@ import {
   appointments,
   followups,
   intakeVitals,
+  patientIdentity,
+  patients,
   practices,
   profiles,
 } from "../schema.js";
@@ -114,6 +117,84 @@ export async function staffRoutes(app: FastifyInstance) {
         contact_status: t.contactStatus,
       })),
     };
+  });
+
+  /** Appointments for one clinic day (IST), practice-scoped; defaults to today. */
+  app.get<{ Querystring: { practice_id?: string; date?: string } }>("/staff/schedule", async (request, reply) => {
+    const member = staffMember(request, reply);
+    if ("statusCode" in member) return member;
+    const day = request.query.date ?? new Date().toISOString().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return error(request, reply, 400, "VALIDATION_ERROR", "Invalid date");
+    const start = new Date(`${day}T00:00:00+05:30`);
+    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+    const database = requireDb();
+    const doctorIds = await practiceDoctorIds(member.practiceId);
+    const scope = member.assignedDoctorId
+      ? eq(appointments.doctorId, member.assignedDoctorId)
+      : or(eq(appointments.practiceId, member.practiceId), doctorIds.length ? inArray(appointments.doctorId, doctorIds) : undefined);
+    const rows = await database
+      .select()
+      .from(appointments)
+      .where(and(scope, gte(appointments.scheduledStart, start), lt(appointments.scheduledStart, end)))
+      .orderBy(asc(appointments.scheduledStart));
+    const intakes = rows.length
+      ? await database.select().from(appointmentIntakes).where(inArray(appointmentIntakes.appointmentId, rows.map((r) => r.id)))
+      : [];
+    const names = await patientNames(rows.map((r) => r.patientId));
+    return {
+      date: day,
+      role: member.role,
+      appointments: rows.map((r) => ({
+        ...appointmentView(r, names.get(r.patientId) ?? ""),
+        intake_status: intakes.find((i) => i.appointmentId === r.id)?.status ?? null,
+      })),
+    };
+  });
+
+  /**
+   * Operational patient list: patients with an appointment at this practice's doctors.
+   * Name, claim state, masked phone and next visit only; each patient shown is written to the access ledger.
+   */
+  app.get<{ Querystring: { practice_id?: string; q?: string } }>("/staff/patients", async (request, reply) => {
+    const member = staffMember(request, reply);
+    if ("statusCode" in member) return member;
+    const database = requireDb();
+    const doctorIds = await practiceDoctorIds(member.practiceId);
+    const scope = member.assignedDoctorId
+      ? eq(appointments.doctorId, member.assignedDoctorId)
+      : or(eq(appointments.practiceId, member.practiceId), doctorIds.length ? inArray(appointments.doctorId, doctorIds) : undefined);
+    const appts = await database
+      .select({ patientId: appointments.patientId, start: appointments.scheduledStart, status: appointments.status })
+      .from(appointments)
+      .where(scope)
+      .orderBy(asc(appointments.scheduledStart));
+    const ids = [...new Set(appts.map((a) => a.patientId))];
+    if (ids.length === 0) return [];
+    const rows = await database
+      .select({ id: patients.id, status: patients.status, identity: patientIdentity })
+      .from(patients)
+      .innerJoin(patientIdentity, eq(patientIdentity.patientId, patients.id))
+      .where(inArray(patients.id, ids));
+    const q = request.query.q?.trim().toLowerCase();
+    const now = Date.now();
+    const result = rows
+      .map((r) => {
+        const identity = decryptMinimal(r.identity);
+        const next = appts.find((a) => a.patientId === r.id && a.start.getTime() >= now && ["REQUESTED", "CONFIRMED"].includes(a.status));
+        return {
+          patient_id: r.id,
+          full_name: identity.full_name,
+          claim_status: r.status,
+          phone_hint: `\u2022\u2022\u2022 ${identity.phone.slice(-4)}`,
+          next_appointment_at: next?.start.toISOString() ?? null,
+        };
+      })
+      .filter((p) => !q || p.full_name.toLowerCase().includes(q))
+      .slice(0, 50);
+    for (const p of result) {
+      await logAccess(request, { patientId: p.patient_id, purpose: "Clinic operations patient list", resourceType: "patient_demographics", action: "READ" });
+    }
+    return result;
   });
 
   /** Intake state for one appointment; vitals are visible to assistants only. */

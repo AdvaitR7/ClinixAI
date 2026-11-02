@@ -1223,3 +1223,15 @@ export const doctorProfileUpdateSchema = z.object({
   accepting_appointments: z.boolean().optional(),
   directory_visible: z.boolean().optional(),
 });
+
+export const invitationAcceptSchema = z.object({
+  contact: z.string().trim().min(3).max(200),
+});
+
+export const staffBookAppointmentSchema = z.object({
+  patient_id: z.string().uuid(),
+  doctor_id: z.string().uuid(),
+  appointment_type: z.enum(["IN_PERSON", "ONLINE"]),
+  scheduled_start: z.string().datetime(),
+  reason: z.string().max(1000).optional(),
+});

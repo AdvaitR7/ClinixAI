@@ -18,6 +18,7 @@ function staffState(role: Role) {
     intake: null as string | null,
     vitals: [] as Record<string, unknown>[],
     followupOpen: true,
+    payment: "UNPAID",
     calls: [] as { method: string; path: string; body: Record<string, unknown> }[],
   };
 }
@@ -53,6 +54,19 @@ async function staffServices(page: Page, role: Role, startPath: string) {
         appointments: [{ id: apptId, patient_name: "Synthetic Patient", scheduled_start: "2026-10-27T04:30:00Z", reason: "Routine review", status: "CONFIRMED", payment_status: "UNPAID", appointment_type: "IN_PERSON", intake_status: state.intake }],
         assigned_followups: [{ id: "f1", patient_name: "Synthetic Patient", reason: "Confirm availability", due_at: "2026-10-27T10:00:00Z", contact_status: "UNREACHED" }],
       };
+    } else if (path === "/staff/doctors") json = [{ doctor_id: "d1", name: "Dr. Synthetic", speciality: "Medicine" }];
+    else if (path === "/doctors/d1/availability") json = { slots: [{ start: "2026-10-30T05:00:00Z" }] };
+    else if (path === "/staff/appointments" && method === "POST") { status = 201; json = { appointment: { id: "new", status: "REQUESTED" } }; }
+    else if (path === `/staff/appointments/${apptId}/receipt`) json = { appointment_id: apptId, patient_name: "Synthetic Patient", scheduled_start: "2026-10-27T04:30:00Z", payment_status: state.payment, fee_inr: 600, events: [] };
+    else if (path === `/staff/appointments/${apptId}/payment-status`) { state.payment = String(body.payment_status); json = { payment_status: state.payment }; }
+    else if (path === "/staff/claim-invitations") json = [{ patient_id: "p9", patient_name: "Synthetic Unclaimed", invited_at: null, state: "NONE" }];
+    else if (path === "/staff/patients/p9/claim-invites") { status = 201; json = { invite_token: "abc123claim" }; }
+    else if (path === "/staff/record-removal-requests") json = [{ id: "rr1", resource_type: "DOCUMENT", status: "OPEN", requested_at: "2026-10-27T00:00:00Z", target_doctor_id: "d0", target_doctor_name: "Dr. Other" }];
+    else if (/^\/record-removal-requests\/rr1\/route$/.test(path)) json = { ok: true };
+    else if (path === "/staff/schedule") {
+      json = { date: "2026-10-27", role: state.role, appointments: [{ id: apptId, patient_name: "Synthetic Patient", scheduled_start: "2026-10-27T04:30:00Z", reason: "Routine review", status: "CONFIRMED", payment_status: "UNPAID", appointment_type: "IN_PERSON", intake_status: state.intake }] };
+    } else if (path === "/staff/patients") {
+      json = [{ patient_id: "p1", full_name: "Synthetic Patient", claim_status: "UNCLAIMED", phone_hint: "\u2022\u2022\u2022 4321", next_appointment_at: "2026-10-28T06:30:00Z" }];
     } else if (path === `/staff/appointments/${apptId}/arrive`) { state.intake = "ARRIVED"; json = { intake_status: "ARRIVED" }; }
     else if (path === `/staff/appointments/${apptId}/intake`) {
       json = { appointment_id: apptId, patient_name: "Synthetic Patient", scheduled_start: "2026-10-27T04:30:00Z", reason: "Routine review", intake_status: state.intake, clinical_intake_locked: !assistant, vitals: assistant ? state.vitals : [] };
@@ -117,4 +131,53 @@ test("SCR-037 staff follow-up detail locks the clinical outcome", async ({ page 
   await expect(page.getByText("Locked. Only the doctor records the clinical outcome.")).toBeVisible();
   await page.getByRole("button", { name: "Mark task completed" }).click();
   await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-037-393.png", fullPage: true });
+});
+
+test("SCR-042 dock opens the restricted schedule, patient list and assistant-only intake queue", async ({ page }) => {
+  const state = await staffServices(page, "ASSISTANT", "/app/staff/schedule");
+  await page.setViewportSize({ width: 393, height: 1000 });
+  await expect(page.getByRole("navigation", { name: "Operational views" }).getByRole("link", { name: "Intake" })).toBeVisible();
+  await page.getByRole("button", { name: "Mark arrival" }).click();
+  await page.getByRole("link", { name: "Patients" }).first().click();
+  await expect(page).toHaveURL(/tab=patients/);
+  await expect(page.getByText("Synthetic Patient · UNCLAIMED · ••• 4321")).toBeVisible();
+  await expect(page.getByText(/diagnos|prescription/i).first()).toBeVisible(); // only the boundary note, never clinical data
+  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-023g-patients-393.png", fullPage: true });
+  await page.goto("/app/staff/schedule?tab=intake");
+  await expect(page.getByRole("link", { name: "Open intake" })).toBeVisible();
+  expect(state.calls.some((c) => c.path === "/staff/patients")).toBe(true);
+});
+
+test("receptionist has no intake tab", async ({ page }) => {
+  await staffServices(page, "RECEPTION", "/app/staff/schedule?tab=intake");
+  await expect(page.getByRole("navigation", { name: "Operational views" }).getByRole("link", { name: "Intake" })).toHaveCount(0);
+  await expect(page.getByText("Schedule · today")).toBeVisible();
+});
+
+test("SCR 23d staff books from published times; 23e receipt updates payment; 23f claim code shown once", async ({ page }) => {
+  const state = await staffServices(page, "RECEPTION", "/app/staff/book?practice_id=" + practiceId);
+  await page.setViewportSize({ width: 393, height: 1100 });
+  await page.getByLabel("Doctor", { exact: true }).selectOption("d1");
+  await expect(page.getByRole("group", { name: "Available times" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Request appointment" })).toBeDisabled();
+  await page.getByRole("group", { name: "Available times" }).getByRole("button").first().click();
+  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-023d-393.png", fullPage: true });
+  await page.goto(`/app/staff/receipt/${apptId}?practice_id=${practiceId}`);
+  await expect(page.getByText("Fee ₹600")).toBeVisible();
+  await page.getByRole("button", { name: "Paid", exact: true }).click();
+  expect(state.calls.some((c) => c.path.endsWith("/payment-status") && c.body.payment_status === "PAID")).toBe(true);
+  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-023e-393.png", fullPage: true });
+  await page.goto(`/app/staff/claims?practice_id=${practiceId}`);
+  await page.getByRole("button", { name: "Send invitation →" }).click();
+  await expect(page.getByText("Claim code (shown once): abc123claim")).toBeVisible();
+  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-023f-393.png", fullPage: true });
+});
+
+test("SCR-051 staff can route a request but have no decision controls", async ({ page }) => {
+  const state = await staffServices(page, "RECEPTION", "/app/staff/requests");
+  await expect(page.getByText("document request · open")).toBeVisible();
+  await expect(page.getByRole("button", { name: /APPROVE|RETAIN/i })).toHaveCount(0);
+  await page.getByLabel("Route to doctor").selectOption("d1");
+  await page.getByRole("button", { name: "Route request" }).click();
+  expect(state.calls.some((c) => c.path === "/record-removal-requests/rr1/route" && c.body.doctor_id === "d1")).toBe(true);
 });

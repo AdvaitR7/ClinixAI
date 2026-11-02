@@ -326,7 +326,7 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 - [x] 9 (Phase 4)
 - [x] 6, 7, 8 (Phase 5)
 - [~] 12, 13, 26 (Phase 6) — implemented in Batch 9 (see docs/architecture/15-privacy-implementation.md); not live-verified
-- [~] 21, 23, 24, 25, 27 (Phase 7) — implemented in Batch 10 (see docs/architecture/16-staff-practice-implementation.md); gate script written, not run live; migrations 0009–0013 unapplied
+- [~] 21, 23, 24, 25, 27 (Phase 7) — gate green live (62 checks, services/api/gate-phase7.mjs); migrations 0009–0013 applied 2026-10-27; screens partial, see docs/architecture/16-staff-practice-implementation.md
 - [ ] PWA shell + install (Phase 8)
 
 Checked boxes mean the phase gate passed, not that screens match the designs. Per-screen fidelity and defects of completed phases are tracked in `docs/architecture/05-implementation-gap-analysis.md`.

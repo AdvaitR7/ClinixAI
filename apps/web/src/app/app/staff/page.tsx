@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useApiData, useMe } from "@/lib/api";
 import { StaffShell } from "@/components/staff-shell";
 import { StatusBadge } from "@/components/status-badge";
-import { clinicDate, clinicTime, useApiWrite, type StaffDashboard } from "@/lib/staff";
+import { clinicDate, clinicTime, pickPractice, rememberPractice, useApiWrite, type StaffDashboard } from "@/lib/staff";
 
 const card = "rounded-[18px] border border-copper bg-graphite p-4";
 const label = "text-[9px] uppercase text-copper";
@@ -17,13 +17,13 @@ export default function StaffDashboardPage() {
   const me = useMe();
   const memberships = me.status === "ready" ? (me.me.memberships ?? []).filter((m) => m.role === "RECEPTION" || m.role === "ASSISTANT") : [];
   const [practiceId, setPracticeId] = useState<string | null>(null);
-  const activePractice = practiceId ?? memberships[0]?.practice_id ?? null;
+  const activePractice = pickPractice(practiceId, memberships.map((m) => m.practice_id));
   const dashboard = useApiData<StaffDashboard>(activePractice ? `/staff/dashboard?practice_id=${activePractice}` : null);
   const write = useApiWrite();
   const [error, setError] = useState<string | null>(null);
 
   /** Records arrival or waiting, then refreshes the schedule. */
-  async function mark(appointmentId: string, action: "arrive" | "waiting") {
+  async function mark(appointmentId: string, action: "arrive" | "waiting" | "confirm") {
     setError(null);
     try {
       await write(`/staff/appointments/${appointmentId}/${action}?practice_id=${activePractice}`, "POST");
@@ -51,7 +51,7 @@ export default function StaffDashboardPage() {
           <p className={label}>Active practice</p>
           <div className="mt-2 flex items-center justify-between gap-2">
             {memberships.length > 1 ? (
-              <select aria-label="Active practice" value={activePractice ?? ""} onChange={(e) => setPracticeId(e.target.value)} className="min-h-11 w-full rounded-2xl border border-copper bg-graphite px-3 text-sm">
+              <select aria-label="Active practice" value={activePractice ?? ""} onChange={(e) => { setPracticeId(e.target.value); rememberPractice(e.target.value); }} className="min-h-11 w-full rounded-2xl border border-copper bg-graphite px-3 text-sm">
                 {memberships.map((m) => <option key={m.member_id} value={m.practice_id}>{m.practice_name}</option>)}
               </select>
             ) : (
@@ -79,6 +79,11 @@ export default function StaffDashboardPage() {
             ))}
           </div>
 
+          <section aria-label="Quick actions" className="grid grid-cols-2 gap-3">
+            <Link href={`/app/staff/book?practice_id=${data.practice.id}`} className={`${card} min-h-14 text-sm font-semibold`}>Book appointment</Link>
+            <Link href={`/app/staff/claims?practice_id=${data.practice.id}`} className={`${card} min-h-14 text-sm font-semibold`}>Claim invitations</Link>
+          </section>
+
           <section id="schedule" aria-labelledby="flow">
             <p className={label}>Today&apos;s schedule</p>
             <h2 id="flow" className="mt-1 text-[22px]">Patient flow</h2>
@@ -96,6 +101,10 @@ export default function StaffDashboardPage() {
                   </div>
                   <p className="mt-2 text-[10px] text-surface/70">Payment · {a.payment_status.toLowerCase()}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {a.status === "REQUESTED" && (
+                      <button type="button" onClick={() => void mark(a.id, "confirm")} className="min-h-11 rounded-full border border-copper px-4 text-xs">Confirm</button>
+                    )}
+                    <Link href={`/app/staff/receipt/${a.id}?practice_id=${data.practice.id}`} className="inline-flex min-h-11 items-center rounded-full border border-copper px-4 text-xs">Payment</Link>
                     {!a.intake_status && ["REQUESTED", "CONFIRMED"].includes(a.status) && (
                       <button type="button" onClick={() => void mark(a.id, "arrive")} className="min-h-11 rounded-full border border-copper px-4 text-xs">Mark arrival</button>
                     )}
