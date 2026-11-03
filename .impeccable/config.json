@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "apps/mobile/www/offline.html"
+        ],
+        "createdAt": "2026-11-03T17:51:52.341Z",
+        "reason": "project design system: docs/DESIGN.md defines Warm Alabaster Canvas #F7F2E9 as the app background; offline page mirrors it and the PWA manifest background_color. Not user-confirmed."
+      }
+    ]
+  }
+}
