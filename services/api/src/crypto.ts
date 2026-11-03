@@ -1,15 +1,19 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes } from "node:crypto";
 
-const keyHex = process.env.IDENTITY_ENCRYPTION_KEY ?? "";
-
+/** Reads and validates the identity key lazily, so .env loading order never leaves it empty. */
 function key(): Buffer {
-  const buf = Buffer.from(keyHex, "hex");
+  const buf = Buffer.from(process.env.IDENTITY_ENCRYPTION_KEY ?? "", "hex");
   if (buf.length !== 32) {
     throw new Error(
       "IDENTITY_ENCRYPTION_KEY must be 32 bytes as 64 hex chars (openssl rand -hex 32)",
     );
   }
   return buf;
+}
+
+/** Throws at startup when the identity key is missing or malformed, instead of a 500 on every patient route. */
+export function assertIdentityKey(): void {
+  key();
 }
 
 // ponytail: one key reused for AES-GCM + HMAC; split into IDENTITY_HASH_KEY

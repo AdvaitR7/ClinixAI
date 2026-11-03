@@ -103,7 +103,7 @@ async function main() {
     if (missing.length) throw new Error(`${file}: missing ${missing.join(", ")}`);
     return env;
   }
-  const apiEnv = configuration("services/api/.env", ["DATABASE_URL", "SUPABASE_URL", "SUPABASE_JWT_VERIFICATION_MODE"]);
+  const apiEnv = configuration("services/api/.env", ["DATABASE_URL", "SUPABASE_URL", "SUPABASE_JWT_VERIFICATION_MODE", "IDENTITY_ENCRYPTION_KEY"]);
   const workerEnv = configuration("services/worker/.env", ["DATABASE_URL", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
   const webEnv = configuration("apps/web/.env.local", ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]);
   await checkPort(12455);

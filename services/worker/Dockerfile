@@ -21,4 +21,8 @@ COPY services/api ./services/api
 COPY --chown=node:node services/worker ./services/worker
 USER node
 WORKDIR /repo/services/worker
-CMD ["npm", "run", "start"]
+# The worker refreshes /tmp/worker-heartbeat every 15s while the database answers.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD node -e "try{process.exit(Date.now()-require('fs').statSync('/tmp/worker-heartbeat').mtimeMs<60000?0:1)}catch{process.exit(1)}"
+# Run node directly (not via npm) so SIGTERM reaches the process and it can stop gracefully.
+CMD ["node", "--import", "tsx", "src/index.ts"]

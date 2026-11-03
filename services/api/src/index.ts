@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { corsOrigin } from "./cors.js";
+import { CORS_METHODS, corsOrigin } from "./cors.js";
 import authPlugin from "./auth/context.js";
 import { meRoutes } from "./auth/me.js";
 import { doctorRoutes } from "./doctors/routes.js";
@@ -26,20 +26,34 @@ import { staffOperationsRoutes } from "./staff/operations-routes.js";
 import { followupRoutes } from "./followups/routes.js";
 import { notificationRoutes } from "./notifications/routes.js";
 import { doctorProfileRoutes } from "./doctors/profile-routes.js";
-import { startQueue } from "./queue.js";
-import { checkDb } from "./db";
+import { startQueue, stopQueue } from "./queue.js";
+import { checkDb, sql } from "./db";
+import { assertIdentityKey } from "./crypto.js";
+
+// Fail at boot, not with a 500 on every patient route, when the identity key is missing or malformed.
+assertIdentityKey();
 
 const app = Fastify({ logger: true, genReqId: () => crypto.randomUUID() });
 
 // The web app calls the API cross-origin. CORS_ORIGINS is the allowlist; unset keeps the open dev default.
-await app.register(cors, { origin: corsOrigin() });
+await app.register(cors, { origin: corsOrigin(), methods: CORS_METHODS });
+
+/** Maps an HTTP status to the API error code so framework 401/404/415 errors are not reported as internal. */
+function errorCode(status: number): string {
+  if (status === 400) return "VALIDATION_ERROR";
+  if (status === 401) return "UNAUTHORIZED";
+  if (status === 403) return "FORBIDDEN";
+  if (status === 404) return "NOT_FOUND";
+  if (status === 415) return "UNSUPPORTED_MEDIA_TYPE";
+  return "INTERNAL_ERROR";
+}
 
 // Consistent error envelope (API spec §1).
 app.setErrorHandler((err: unknown, request, reply) => {
   const statusCode = (err as { statusCode?: unknown } | null)?.statusCode;
   const message = err instanceof Error ? err.message : "Internal error";
   const status = typeof statusCode === "number" ? statusCode : 500;
-  const code = status === 400 ? "VALIDATION_ERROR" : "INTERNAL_ERROR";
+  const code = errorCode(status);
   reply.code(status).send({
     error: { code, message: status === 500 ? "Internal error" : message, request_id: request.id },
   });
@@ -95,3 +109,19 @@ try {
   app.log.error(err);
   process.exit(1);
 }
+
+/** Stops accepting requests, drains the job queue and closes the database pool before exiting. */
+async function stopGracefully(signal: string) {
+  app.log.info({ signal }, "stopping");
+  try {
+    await app.close();
+    await stopQueue();
+    await sql?.end({ timeout: 5 });
+    process.exit(0);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+}
+process.once("SIGTERM", () => void stopGracefully("SIGTERM"));
+process.once("SIGINT", () => void stopGracefully("SIGINT"));

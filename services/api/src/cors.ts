@@ -1,4 +1,10 @@
 /**
+ * HTTP methods browsers may use cross-origin. @fastify/cors defaults to GET,HEAD,POST only,
+ * which makes the browser block every PUT/PATCH/DELETE preflight the web app sends.
+ */
+export const CORS_METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
+
+/**
  * Resolves the CORS origin policy from the environment.
  *
  * `CORS_ORIGINS` is a comma-separated allowlist of exact origins. When it is unset, development keeps

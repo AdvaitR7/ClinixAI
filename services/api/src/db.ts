@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 const url = process.env.DATABASE_URL;
 
 // `sql` is null until DATABASE_URL is provided (Supabase human gate).
-export const sql = url ? postgres(url, { max: 5 }) : null;
+export const sql = url ? postgres(url, { max: Number(process.env.DB_POOL_MAX ?? 4) }) : null;
 
 // ORM client for later phases — no tables exist in Phase 0 yet.
 export const db = sql ? drizzle(sql) : null;
