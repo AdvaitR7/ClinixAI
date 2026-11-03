@@ -14,6 +14,7 @@ const nav = [
   { label: "Vault", href: "/app/patient/vault" },
   { label: "Visits", href: "/app/patient/appointments" },
   { label: "Care", href: "/app/patient/care" },
+  { label: "You", href: "/settings" },
 ];
 
 const day = new Intl.DateTimeFormat("en-IN", {

@@ -6,6 +6,7 @@ import {
   removalRequestCreateSchema,
   removalResolveSchema,
   removalRouteSchema,
+  type AccessReceipt,
   type ConsentView,
   type LedgerCategory,
   type RemovalRequestView,
@@ -32,6 +33,15 @@ import { actionLabel, categoryOf, resourceLabel } from "./ledger.js";
 /** Patient-authored ledger actions that stay visible; routine patient self-reads are hidden. */
 const PATIENT_VISIBLE_ACTIONS = ["SHARE", "REVOKE_ACCESS", "REMOVAL_REQUEST"];
 const LEDGER_PAGE_SIZE = 20;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ACTOR_ROLE_LABELS: Record<string, string> = {
+  PATIENT: "You",
+  DOCTOR: "Doctor",
+  CLINIC_STAFF: "Clinic staff",
+  ADMIN: "CliniX administrator",
+  AI_SERVICE: "AI service",
+  SYSTEM: "CliniX system",
+};
 const REMOVAL_RESOURCE_TYPES = ["DOCUMENT", "ENCOUNTER", "PRESCRIPTION"];
 
 /** Record groups offered in the scope picker; the last two have no data source yet. */
@@ -301,6 +311,71 @@ export async function privacyRoutes(app: FastifyInstance) {
       };
     },
   );
+
+  /**
+   * One ledger row as a receipt (Page 13a). Owner-only and limited to the same rows the ledger shows,
+   * so a hidden patient self-read can never be fetched by id. Only structured fields are returned.
+   */
+  app.get<{ Params: { id: string } }>("/patients/self/access-events/:id", async (request, reply) => {
+    const patientId = requirePatient(request, reply);
+    if (typeof patientId !== "string") return patientId;
+    if (!UUID_RE.test(request.params.id)) return error(request, reply, 404, "NOT_FOUND", "Access event not found");
+    const database = requireDb();
+    const [row] = await database
+      .select({
+        id: accessEvents.id,
+        createdAt: accessEvents.createdAt,
+        actorType: accessEvents.actorType,
+        actorName: profiles.displayName,
+        action: accessEvents.action,
+        purpose: accessEvents.purpose,
+        resourceType: accessEvents.resourceType,
+        consentId: accessEvents.consentId,
+      })
+      .from(accessEvents)
+      .leftJoin(profiles, eq(profiles.id, accessEvents.actorId))
+      .where(
+        and(
+          eq(accessEvents.id, request.params.id),
+          eq(accessEvents.patientId, patientId),
+          or(sql`${accessEvents.actorType} <> 'PATIENT'`, inArray(accessEvents.action, PATIENT_VISIBLE_ACTIONS)),
+        ),
+      )
+      .limit(1);
+    if (!row) return error(request, reply, 404, "NOT_FOUND", "Access event not found");
+
+    let consent: AccessReceipt["consent"] = null;
+    if (row.consentId) {
+      const [grant] = await database
+        .select({ id: consents.id, purpose: consents.purpose })
+        .from(consents)
+        .where(and(eq(consents.id, row.consentId), eq(consents.patientId, patientId)))
+        .limit(1);
+      if (grant) {
+        const scopes = await database
+          .select({ resourceType: consentScopes.resourceType })
+          .from(consentScopes)
+          .where(eq(consentScopes.consentId, grant.id));
+        consent = { id: grant.id, purpose: grant.purpose, scopes: [...new Set(scopes.map((s) => resourceLabel(s.resourceType)))] };
+      }
+    }
+    const receipt: AccessReceipt = {
+      id: row.id,
+      timestamp: row.createdAt.toISOString(),
+      category: categoryOf(row),
+      actor: {
+        type: row.actorType,
+        role_label: ACTOR_ROLE_LABELS[row.actorType] ?? "CliniX",
+        display_name: row.actorType === "AI_SERVICE" ? "ClinixAI" : (row.actorName ?? "CliniX staff"),
+      },
+      action: actionLabel(row.action),
+      resource_label: resourceLabel(row.resourceType),
+      purpose: row.purpose,
+      legal_basis: consent ? "Your consent" : null,
+      consent,
+    };
+    return receipt;
+  });
 
   // --- Record removal (API §29) ---
 

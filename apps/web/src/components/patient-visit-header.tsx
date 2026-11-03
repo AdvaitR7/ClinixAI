@@ -24,7 +24,7 @@ export function PatientVisitHeader({
           aria-label="Back to edit booking"
           onClick={onBack}
           disabled={busy}
-          className="grid size-10 shrink-0 place-items-center text-2xl text-botanical disabled:opacity-50"
+          className="grid size-11 shrink-0 place-items-center text-2xl text-botanical disabled:opacity-50"
         >
           ←
         </button>
@@ -32,7 +32,7 @@ export function PatientVisitHeader({
         <Link
           href={backHref}
           aria-label="Back"
-          className="grid size-10 shrink-0 place-items-center text-2xl text-botanical"
+          className="grid size-11 shrink-0 place-items-center text-2xl text-botanical"
         >
           ←
         </Link>
@@ -49,4 +49,5 @@ export const patientVisitNav = [
   { label: "Reports", href: "/app/patient/vault" },
   { label: "Visits", href: "/app/patient/appointments" },
   { label: "Medications", href: "/app/patient/medications" },
+  { label: "You", href: "/settings" },
 ];

@@ -4,6 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ClinixBrand } from "@/components/clinix-brand";
+import { ConnectionStatus } from "@/components/connection-status";
+import { useInstallState } from "@/components/install-app";
+import { NotificationBell } from "@/components/notification-bell";
 import { useAuth } from "@/lib/auth";
 
 type NavItem = {
@@ -16,6 +19,7 @@ type NavItem = {
 /** Provides account access and sign-out in the original workspace header. */
 export function AccountMenu() {
   const { user, signOut } = useAuth();
+  const install = useInstallState();
   const [error, setError] = useState<string | null>(null);
   const initial = user?.email?.slice(0, 1).toUpperCase() ?? "•";
 
@@ -30,12 +34,13 @@ export function AccountMenu() {
 
   return (
     <details className="relative">
-      <summary aria-label="Account options" className="grid size-[38px] cursor-pointer list-none place-items-center rounded-full font-sans text-sm font-bold text-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evidence">
+      <summary aria-label="Account options" className="grid size-11 cursor-pointer list-none place-items-center rounded-full font-sans text-sm font-bold text-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evidence">
         {initial}
       </summary>
       <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-sage bg-surface p-4 text-ink shadow-xl">
         <p className="truncate font-sans text-xs text-graphite">{user?.email ?? "Signed in"}</p>
         <Link href="/settings" className="mt-4 block rounded-xl px-3 py-2 font-sans text-sm font-medium hover:bg-canvas">Account settings</Link>
+        {install.available && <Link href="/settings#install" className="block rounded-xl px-3 py-2 font-sans text-sm font-medium hover:bg-canvas">Install CliniX</Link>}
         <Link href="/forgot-password" className="block rounded-xl px-3 py-2 font-sans text-sm font-medium hover:bg-canvas">Change password</Link>
         {error && <p role="alert" className="mt-2 font-sans text-xs text-critical">{error}</p>}
         <button type="button" onClick={() => void handleSignOut()} className="mt-2 w-full rounded-xl px-3 py-2 text-left font-sans text-sm font-semibold text-critical hover:bg-canvas">Sign out</button>
@@ -127,32 +132,22 @@ export function WorkspaceShell({
   return (
     <div className={`min-h-dvh ${doctor ? "bg-ink text-surface" : "bg-canvas text-ink"}`}>
       <header
-        className={`mx-auto flex w-full ${width} items-center justify-between px-6 pb-3 pt-5 ${
+        className={`mx-auto flex w-full ${width} items-center justify-between px-6 pb-3 pt-[max(1.25rem,env(safe-area-inset-top))] ${
           doctor ? "bg-ink" : "bg-canvas"
         }`}
       >
         {headerContent ?? <>
         <ClinixBrand inverted={doctor} monogram={focused} />
         {headerAction ?? <div className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className={`grid size-[38px] place-items-center rounded-full border ${
-              doctor
-                ? "border-copper text-copper"
-                : "border-sage bg-surface text-botanical"
-            }`}
-          >
-            <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 8h18c0-1-3-1-3-8Z" />
-              <path d="M10 21h4" />
-            </svg>
-          </span>
-          <span className={`grid size-[38px] place-items-center rounded-full ${doctor ? "bg-copper" : "bg-botanical"}`}>
+          <NotificationBell doctor={doctor} />
+          <span className={`grid size-11 place-items-center rounded-full ${doctor ? "bg-copper" : "bg-botanical"}`}>
             <AccountMenu />
           </span>
         </div>}
         </>}
       </header>
+
+      <ConnectionStatus className={`mx-auto w-full ${width}`} />
 
       {!hideHeading && <div className={`mx-auto w-full ${width} px-6 pt-2`}>
         <p className={`clinix-label ${doctor ? "text-copper" : "text-graphite"}`}>

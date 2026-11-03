@@ -55,3 +55,12 @@ export async function sessionTokenFor(userId) {
   if (error || !data.session) throw error ?? new Error("Gate account did not return a session");
   return data.session.access_token;
 }
+
+/** Signs in a seeded demo persona (password from SEED_DEMO_PASSWORD) and returns its access token. */
+export async function demoSessionToken(email) {
+  const password = process.env.SEED_DEMO_PASSWORD;
+  if (!password) throw new Error("Configure SEED_DEMO_PASSWORD (and run `npm run seed`) for the Phase 8 gate");
+  const { data, error } = await publicClient().auth.signInWithPassword({ email, password });
+  if (error || !data.session) throw error ?? new Error(`Demo account ${email} did not return a session`);
+  return data.session.access_token;
+}

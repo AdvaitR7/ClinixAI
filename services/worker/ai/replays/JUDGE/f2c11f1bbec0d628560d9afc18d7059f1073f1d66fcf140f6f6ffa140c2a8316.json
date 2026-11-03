@@ -1,0 +1,26 @@
+{
+  "agreements": [
+    "Patient presents with a two-week history of mild increased thirst, tiredness, and body aches while taking Metformin 500 mg twice daily for Type 2 diabetes.",
+    "Serial HbA1c values demonstrate an improving trajectory from 8.4% in June 2026 to 7.0% in October 2026, though still elevated above normal baseline.",
+    "The historical encounter from June 2026 is partially similar as it addressed routine diabetes management, whereas current presentation involves new active symptoms.",
+    "Critical missing data includes recent home blood glucose readings, presence of polyuria/nocturia, medication adherence, and assessment for metabolic warning signs.",
+    "Both models identify the potential risk of worsening hyperglycemia, dehydration, and the need to monitor for signs of acute metabolic decompensation."
+  ],
+  "material_disagreements": [],
+  "unsupported_claims": [],
+  "questions_to_ask_next": [
+    "Have you checked your fingerstick blood glucose at home recently, and what were the values?",
+    "Have you noticed an increase in how often or how much you urinate, especially during the night?",
+    "Have you been taking your Metformin consistently as prescribed without missing doses?",
+    "Are you having any nausea, vomiting, abdominal pain, blurred vision, or unexpected weight loss?"
+  ],
+  "safe_consensus": [
+    "Stay hydrated by drinking plenty of water and avoiding sugar-sweetened beverages.",
+    "Continue taking your Metformin exactly as prescribed; do not stop or adjust the dose without clinical guidance.",
+    "Log your daily fluid consumption, urination patterns, and any home blood glucose measurements to share with your healthcare provider.",
+    "Schedule an outpatient medical review to evaluate your symptoms and current diabetes management plan.",
+    "Seek emergency medical evaluation immediately if you develop red flag symptoms such as persistent vomiting, severe abdominal pain, rapid or deep breathing, severe dizziness, or confusion."
+  ],
+  "requires_doctor_review": true,
+  "requires_urgent_escalation": false
+}

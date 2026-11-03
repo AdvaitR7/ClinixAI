@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import { corsOrigin } from "./cors.js";
 import authPlugin from "./auth/context.js";
 import { meRoutes } from "./auth/me.js";
 import { doctorRoutes } from "./doctors/routes.js";
@@ -30,8 +31,8 @@ import { checkDb } from "./db";
 
 const app = Fastify({ logger: true, genReqId: () => crypto.randomUUID() });
 
-// Web (localhost:3000) calls the API cross-origin; allow it for dev.
-await app.register(cors, { origin: true });
+// The web app calls the API cross-origin. CORS_ORIGINS is the allowlist; unset keeps the open dev default.
+await app.register(cors, { origin: corsOrigin() });
 
 // Consistent error envelope (API spec §1).
 app.setErrorHandler((err: unknown, request, reply) => {

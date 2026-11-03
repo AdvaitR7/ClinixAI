@@ -13,6 +13,7 @@ const nav = [
   { label: "Vault", href: "/app/patient/vault" },
   { label: "Visits", href: "/app/patient/appointments" },
   { label: "Care", href: "/app/patient/care" },
+  { label: "You", href: "/settings" },
 ];
 
 const FILTER_OPTIONS: Array<{ label: string; value: TimelineFilter }> = [

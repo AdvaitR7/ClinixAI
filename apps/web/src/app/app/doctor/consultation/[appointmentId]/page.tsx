@@ -209,7 +209,7 @@ export default function ConsultationPage() {
             <select
               value={ctx.appointment.payment_status}
               onChange={(e) => setPayment(e.target.value)}
-              className="h-8 rounded-lg border border-white/10 bg-doctor-panel px-2 font-sans text-xs text-surface outline-none"
+              className="h-11 rounded-lg border border-white/10 bg-doctor-panel px-2 font-sans text-xs text-surface outline-none"
             >
               {PAYMENT_OPTIONS.map((p) => (
                 <option key={p} value={p}>

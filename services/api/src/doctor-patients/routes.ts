@@ -3,9 +3,10 @@ import { and, asc, desc, eq, gte, inArray, isNull, max, or, type SQL } from "dri
 import { doctorCreatePatientSchema } from "@clinix/schemas";
 import { authorizePatientAccess, requireDoctor } from "../auth/guards.js";
 import { hashIdentity } from "../crypto.js";
+import { createPatientFailure, createUnclaimedPatient } from "../patients/create.js";
 import { logAccess } from "../audit/log.js";
 import { error, requireDb } from "../http.js";
-import { decryptMinimal, encryptPatientIdentity, isAdult } from "../patients/identity.js";
+import { decryptMinimal } from "../patients/identity.js";
 import {
   appointments,
   encounters,
@@ -34,51 +35,13 @@ export async function doctorPatientRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return error(request, reply, 400, "VALIDATION_ERROR", "Invalid patient payload");
     }
-    const body = parsed.data;
-    if (!isAdult(body.date_of_birth)) {
-      return error(request, reply, 403, "AGE_REQUIREMENT", "CliniX is for adults aged 18 and over");
-    }
-
-    const database = requireDb();
-
-    // Duplicate check: deterministic phone_hash lookup, never decrypts (Screen 22).
-    const phoneHash = hashIdentity(body.mobile);
-    const dup = await database
-      .select({ patientId: patientIdentity.patientId })
-      .from(patientIdentity)
-      .where(eq(patientIdentity.phoneHash, phoneHash))
-      .limit(1);
-    if (dup.length > 0) {
-      return error(request, reply, 409, "DUPLICATE_PATIENT", "A patient with this mobile number already exists");
-    }
-
-    const inserted = await database
-      .insert(patients)
-      .values({
-        status: "UNCLAIMED",
-        createdByActorType: "DOCTOR",
-        createdByActorId: doctorId,
-      })
-      .returning({ id: patients.id });
-    const patientId = inserted[0].id;
-
-    await database.insert(patientIdentity).values({
-      patientId,
-      ...encryptPatientIdentity({
-        full_name: body.full_name,
-        phone: body.mobile,
-        date_of_birth: body.date_of_birth,
-        sex_at_registration: body.sex_at_registration,
-      }),
-    });
-
-    // Claim invitation deferred to Phase 3 (claim loop).
-    await database.insert(patientDoctorRelationships).values({
-      patientId,
+    const created = await createUnclaimedPatient({
+      body: parsed.data,
       doctorId,
-      relationshipType: body.relationship_type ?? "PRIMARY_PHYSICIAN",
-      isPreferred: body.preferred ?? false,
+      createdBy: { actorType: "DOCTOR", actorId: doctorId },
     });
+    if (!created.ok) return createPatientFailure(request, reply, created.code);
+    const patientId = created.patientId;
 
     return reply.code(201).send({ patient_id: patientId });
   });

@@ -42,7 +42,7 @@ export function FollowupWorklist({ base, practiceId }: { base: string; practiceI
       </div>
       <div className="flex gap-2" role="group" aria-label="Follow-up filter">
         {(["OPEN", "COMPLETED"] as const).map((s) => (
-          <button key={s} type="button" aria-pressed={status === s} onClick={() => setStatus(s)} className={`min-h-9 rounded-full border px-3 text-[10px] ${status === s ? "border-copper bg-copper text-ink" : "border-copper/60"}`}>{s === "OPEN" ? "Open" : "Completed"}</button>
+          <button key={s} type="button" aria-pressed={status === s} onClick={() => setStatus(s)} className={`min-h-11 rounded-full border px-3 text-[10px] ${status === s ? "border-copper bg-copper text-ink" : "border-copper/60"}`}>{s === "OPEN" ? "Open" : "Completed"}</button>
         ))}
       </div>
       {list.status === "loading" && <p role="status" className="text-sm">Loading follow-ups…</p>}

@@ -1,6 +1,7 @@
 import { PgBoss } from "pg-boss";
 
 let boss: PgBoss | null = null;
+let starting: Promise<PgBoss | null> | null = null;
 
 /**
  * pg-boss on the same Supabase session-pooler Postgres (no Redis). Uses
@@ -11,19 +12,36 @@ export async function startQueue(): Promise<PgBoss | null> {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
   if (boss) return boss;
+  if (starting) return starting;
+  starting = initializeQueue(url);
   try {
-    boss = new PgBoss({ connectionString: url });
-    await boss.start();
-    await boss.createQueue("document.extract");
-    await boss.createQueue("ai.analyze");
+    return await starting;
+  } finally {
+    starting = null;
+  }
+}
+
+/** Publishes the queue only after startup succeeds and contains background errors. */
+async function initializeQueue(url: string): Promise<PgBoss | null> {
+  const candidate = new PgBoss({ connectionString: url, max: 2 });
+  // EventEmitter errors happen outside start()'s promise; without a listener they kill the API.
+  candidate.on("error", (err) => console.error("pg-boss background error", err));
+  try {
+    await candidate.start();
+    await candidate.createQueue("document.extract");
+    await candidate.createQueue("ai.analyze");
+    boss = candidate;
     return boss;
   } catch (err) {
     console.error("pg-boss failed to start; job queue disabled", err);
-    boss = null;
+    await candidate.stop({ graceful: false }).catch((stopError) => {
+      console.error("pg-boss cleanup failed", stopError);
+    });
     return null;
   }
 }
 
+/** Reports readiness only after both application queues have been created. */
 export function queueReady(): boolean {
   return boss !== null;
 }

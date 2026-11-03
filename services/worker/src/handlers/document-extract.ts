@@ -15,7 +15,7 @@ import {
   prescriptionDrafts,
 } from "@clinix/api/schema";
 import { requireDb } from "../db.js";
-import { generateStructured } from "../gateway.js";
+import { generateStructuredTracked, replayKeyOf } from "../gateway.js";
 
 const BUCKET = "clinix-documents";
 
@@ -134,16 +134,20 @@ async function extractDocument(documentId: string): Promise<void> {
   try {
     const bytes = await downloadObject(doc.storageObjectKey);
     const dataUrl = `data:${doc.mimeType};base64,${bytes.toString("base64")}`;
+    // Stable for the synthetic fixtures: the same file bytes always map to the same canned output.
+    const replayKey = replayKeyOf(bytes);
 
     if (doc.documentType === "LAB_REPORT") {
-      const extraction = await generateStructured({
+      const run = await generateStructuredTracked({
         role: "OCR",
         schema: ocrLabReportSchema,
         messages: visionMessages(LAB_PROMPT, dataUrl),
+        replayKey,
       });
+      const extraction = run.value;
       await database.insert(documentExtractions).values({
         documentId,
-        extractorType: "ninerouter-gemini-flash",
+        extractorType: run.source === "replay" ? "replay:ninerouter-gemini-flash" : "ninerouter-gemini-flash",
         rawText: extraction.raw_text,
         structuredPayload: extraction,
         confidence: null,
@@ -192,14 +196,16 @@ async function extractDocument(documentId: string): Promise<void> {
         .where(eq(documents.id, documentId));
     } else {
       // PRESCRIPTION — paper Rx photo.
-      const extraction = await generateStructured({
+      const run = await generateStructuredTracked({
         role: "OCR",
         schema: ocrPrescriptionSchema,
         messages: visionMessages(PRESCRIPTION_PROMPT, dataUrl),
+        replayKey,
       });
+      const extraction = run.value;
       await database.insert(documentExtractions).values({
         documentId,
-        extractorType: "ninerouter-gemini-flash",
+        extractorType: run.source === "replay" ? "replay:ninerouter-gemini-flash" : "ninerouter-gemini-flash",
         rawText: extraction.raw_text,
         structuredPayload: extraction,
         confidence: str(extraction.overall_confidence),

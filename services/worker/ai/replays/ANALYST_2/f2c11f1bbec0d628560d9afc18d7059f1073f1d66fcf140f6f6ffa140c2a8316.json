@@ -1,0 +1,48 @@
+{
+  "important_findings": [
+    "Patient reports mild increased thirst and unusual tiredness/body aches lasting for two weeks.",
+    "Current active medication is Metformin 500 mg (1 tablet twice daily).",
+    "Serial HbA1c tests show an improving trend from 8.4% (2026-06-05) down to 7.0% (2026-10-03), though values remain flagged as HIGH.",
+    "Prior in-person encounter on 2026-06-05 was for Type 2 diabetes follow-up."
+  ],
+  "historical_matches": [
+    {
+      "encounter_id": "bd6cfb1e-4a23-4ef3-93a6-eb79d348fce5",
+      "similarity_label": "PARTIALLY_SIMILAR",
+      "supporting_features": [
+        "Involves ongoing diabetes management",
+        "Patient remains on Metformin prescribed around that encounter"
+      ],
+      "differences": [
+        "Prior encounter was a routine Type 2 diabetes follow-up",
+        "Current encounter presents with new or exacerbated symptomatic complaints of polydipsia, fatigue, and body aches"
+      ]
+    }
+  ],
+  "missing_information": [
+    "Recent point-of-care or fingerstick blood glucose measurements",
+    "Presence of other osmotic symptoms such as polyuria, nocturia, or blurred vision",
+    "Adherence to Metformin therapy",
+    "Recent changes in diet, fluid intake, or lifestyle",
+    "Presence of red flag symptoms such as nausea, vomiting, abdominal pain, or shortness of breath",
+    "Recent renal function tests (serum creatinine, eGFR) given Metformin use"
+  ],
+  "safety_concerns": [
+    "Risk of worsening hyperglycemia or acute glycemic decompensation manifesting as polydipsia and fatigue",
+    "Potential risk of dehydration or electrolyte imbalance",
+    "Need to monitor for adverse effects or toxicity associated with Metformin (e.g., lactic acidosis) if body aches and fatigue worsen or if dehydration/renal impairment occurs"
+  ],
+  "supported_guidance": [
+    "Evaluate current glycemic control via blood glucose monitoring",
+    "Assess adherence and tolerance to the current Metformin regimen",
+    "Screen for symptoms of acute metabolic complications or intercurrent illness",
+    "Advise patient to seek urgent medical attention if experiencing severe vomiting, abdominal pain, deep/rapid breathing, or severe lethargy"
+  ],
+  "doctor_questions": [
+    "Have you checked your blood sugar levels recently at home, and what were the readings?",
+    "Have you noticed an increase in how frequently or how much you urinate, especially at night?",
+    "Have you missed any doses of your Metformin, or have there been recent changes to your medication schedule?",
+    "Are you experiencing any nausea, vomiting, abdominal pain, or unexplained weight loss?"
+  ],
+  "confidence": "high"
+}

@@ -14,6 +14,7 @@ import {
   doctorProfiles,
   doctors,
   patientClaimInvites,
+  patientDoctorRelationships,
   patients,
   paymentEvents,
   profiles,
@@ -23,7 +24,10 @@ import {
 const STAFF_ROLES = ["RECEPTION", "ASSISTANT"] as const;
 const CLAIM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Patient ids the practice already serves, via appointments with its doctors. */
+/**
+ * Patient ids the practice already serves: appointments with its doctors, or an active
+ * care relationship with one of them (so a patient staff just registered is bookable).
+ */
 async function practicePatientIds(practiceId: string): Promise<{ doctorIds: string[]; patientIds: Set<string> }> {
   const doctorIds = await practiceDoctorIds(practiceId);
   if (doctorIds.length === 0) return { doctorIds, patientIds: new Set() };
@@ -31,7 +35,11 @@ async function practicePatientIds(practiceId: string): Promise<{ doctorIds: stri
     .select({ patientId: appointments.patientId })
     .from(appointments)
     .where(or(eq(appointments.practiceId, practiceId), inArray(appointments.doctorId, doctorIds)));
-  return { doctorIds, patientIds: new Set(rows.map((r) => r.patientId)) };
+  const related = await requireDb()
+    .select({ patientId: patientDoctorRelationships.patientId })
+    .from(patientDoctorRelationships)
+    .where(and(inArray(patientDoctorRelationships.doctorId, doctorIds), eq(patientDoctorRelationships.status, "ACTIVE")));
+  return { doctorIds, patientIds: new Set([...rows, ...related].map((r) => r.patientId)) };
 }
 
 /** Staff operations beyond intake: booking, manual payment, claim invitations, request routing (Pages 23d–23f, 26). */

@@ -14,12 +14,16 @@ apps/web/.env.local
 node_modules/
 .next/
 .next-browser-tests/
+.next-pwa-tests/
 .next-verification/
 dist/
 .turbo/
 *.tsbuildinfo
 test-results/
 playwright-report/
+
+# Serwist-generated service worker
+apps/web/public/sw*
 
 # Misc
 .DS_Store

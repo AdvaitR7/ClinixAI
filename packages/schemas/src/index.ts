@@ -1235,3 +1235,45 @@ export const staffBookAppointmentSchema = z.object({
   scheduled_start: z.string().datetime(),
   reason: z.string().max(1000).optional(),
 });
+
+export const notificationViewSchema = z.object({
+  id: z.string().uuid(),
+  type: z.string(),
+  title: z.string(),
+  body: z.string(),
+  read: z.boolean(),
+  related_resource_type: z.string().nullable(),
+  related_resource_id: z.string().uuid().nullable(),
+  created_at: z.string().datetime(),
+});
+export type NotificationView = z.infer<typeof notificationViewSchema>;
+
+/** GET /patients/self/access-events/{id}: structured receipt for one ledger row (no free-text content). */
+export const accessReceiptSchema = z.object({
+  id: z.string().uuid(),
+  timestamp: z.string().datetime(),
+  category: ledgerCategorySchema,
+  actor: z.object({
+    type: z.string(),
+    role_label: z.string(),
+    display_name: z.string(),
+  }),
+  action: z.string(),
+  resource_label: z.string(),
+  purpose: z.string().nullable(),
+  legal_basis: z.string().nullable(),
+  consent: z
+    .object({
+      id: z.string().uuid(),
+      purpose: z.string(),
+      scopes: z.array(z.string()),
+    })
+    .nullable(),
+});
+export type AccessReceipt = z.infer<typeof accessReceiptSchema>;
+
+/** POST /staff/patients: staff-created unclaimed patient linked to one doctor of the practice. */
+export const staffCreatePatientSchema = doctorCreatePatientSchema.extend({
+  doctor_id: z.string().uuid(),
+});
+export type StaffCreatePatient = z.infer<typeof staffCreatePatientSchema>;

@@ -15,7 +15,7 @@ import {
   type JudgeOutput,
 } from "@clinix/schemas";
 import { requireDb } from "../db.js";
-import { generateStructured } from "../gateway.js";
+import { generateStructuredTracked, replayKeyOf } from "../gateway.js";
 import { buildEvidenceBundle } from "../pipeline/evidence-bundle.js";
 import {
   ANALYST_1_PROMPT,
@@ -81,9 +81,12 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
     const routeA2 = process.env.MODEL_ROUTE_ANALYST_2 ?? "default-analyst-2";
     const routeJudge = process.env.MODEL_ROUTE_JUDGE ?? "default-judge";
 
-    const [a1Result, a2Result] = await Promise.all([
-      generateStructured<AnalystOutput>({
+    // Stable across runs of the same scripted answers: question titles and answers, in order.
+    const replayKey = replayKeyOf(payload.current_concern.responses.map((r) => [r.question_title, r.selected_options, r.free_text]));
+    const [a1Run, a2Run] = await Promise.all([
+      generateStructuredTracked<AnalystOutput>({
         role: "ANALYST_1",
+        replayKey,
         schema: analystOutputSchema,
         messages: [
           { role: "system", content: ANALYST_1_PROMPT },
@@ -93,8 +96,9 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
           },
         ],
       }),
-      generateStructured<AnalystOutput>({
+      generateStructuredTracked<AnalystOutput>({
         role: "ANALYST_2",
+        replayKey,
         schema: analystOutputSchema,
         messages: [
           { role: "system", content: ANALYST_2_PROMPT },
@@ -106,13 +110,19 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
       }),
     ]);
 
+    const a1Result = a1Run.value;
+    const a2Result = a2Run.value;
+    // Replayed outputs are labelled so the audit trail never presents canned output as a live model run.
+    const labelA1 = a1Run.source === "replay" ? `replay:${routeA1}` : routeA1;
+    const labelA2 = a2Run.source === "replay" ? `replay:${routeA2}` : routeA2;
+
     // 4. Record Analyst runs in ai_model_runs
     await database.insert(aiModelRuns).values([
       {
         aiSessionId: session.id,
         role: "ANALYST_1",
-        providerRoute: routeA1,
-        modelName: routeA1,
+        providerRoute: labelA1,
+        modelName: labelA1,
         inputHash: payloadHash,
         outputPayload: a1Result as any,
         outputHash: hashJson(a1Result),
@@ -122,8 +132,8 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
       {
         aiSessionId: session.id,
         role: "ANALYST_2",
-        providerRoute: routeA2,
-        modelName: routeA2,
+        providerRoute: labelA2,
+        modelName: labelA2,
         inputHash: payloadHash,
         outputPayload: a2Result as any,
         outputHash: hashJson(a2Result),
@@ -140,8 +150,9 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
     };
     const judgeInputHash = hashJson(judgeInput);
 
-    const judgeResult = await generateStructured<JudgeOutput>({
+    const judgeRun = await generateStructuredTracked<JudgeOutput>({
       role: "JUDGE",
+      replayKey,
       schema: judgeOutputSchema,
       messages: [
         { role: "system", content: JUDGE_PROMPT },
@@ -152,12 +163,15 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
       ],
     });
 
+    const judgeResult = judgeRun.value;
+    const labelJudge = judgeRun.source === "replay" ? `replay:${routeJudge}` : routeJudge;
+
     // 6. Record Judge run
     await database.insert(aiModelRuns).values({
       aiSessionId: session.id,
       role: "JUDGE",
-      providerRoute: routeJudge,
-      modelName: routeJudge,
+      providerRoute: labelJudge,
+      modelName: labelJudge,
       inputHash: judgeInputHash,
       outputPayload: judgeResult as any,
       outputHash: hashJson(judgeResult),
@@ -235,9 +249,9 @@ export async function processAiAnalyze(data: AiAnalyzeJobData): Promise<void> {
       resourceId: session.id,
       metadata: {
         encounter_id: session.encounterId,
-        analyst_1_route: routeA1,
-        analyst_2_route: routeA2,
-        judge_route: routeJudge,
+        analyst_1_route: labelA1,
+        analyst_2_route: labelA2,
+        judge_route: labelJudge,
         matches_found: historicalMatches.length,
       },
     });

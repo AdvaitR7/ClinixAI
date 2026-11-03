@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthShell } from "@/components/auth-shell";
+import { InstallApp } from "@/components/install-app";
 import { useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/skeleton";
 import { useMe } from "@/lib/api";
@@ -79,6 +80,8 @@ export default function SettingsPage() {
             <p className="mt-2 font-sans text-sm font-semibold text-ink">{user?.email ?? "Email unavailable"}</p>
             <Link href="/forgot-password" className="mt-4 inline-block font-sans text-xs font-semibold uppercase text-evidence">Reset password</Link>
           </section>
+
+          <InstallApp />
 
           <section>
             <div className="mb-3 flex items-center justify-between">

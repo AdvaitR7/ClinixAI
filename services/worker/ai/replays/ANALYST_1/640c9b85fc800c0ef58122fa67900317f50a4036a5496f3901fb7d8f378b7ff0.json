@@ -1,0 +1,46 @@
+{
+  "important_findings": [
+    "Adult female presenting with a recurring dry cough of 4–7 days' duration, rated as moderate severity interfering with daily routine.",
+    "Associated upper respiratory symptoms include sore throat and nasal congestion.",
+    "Documented suspected amoxicillin allergy manifested as a skin rash on day three of treatment.",
+    "Historical laboratory results from July 2026 indicated mild leukocytosis (WBC 11.8 10^3/uL) and elevated C-reactive protein (14 mg/L)."
+  ],
+  "historical_matches": [
+    {
+      "encounter_id": "983c1d5f-b395-4bce-ab8c-0f47d322379f",
+      "similarity_label": "PARTIALLY_SIMILAR",
+      "supporting_features": [
+        "Presentation centered on cough of similar duration (4–5 days).",
+        "Respiratory tract focus in both episodes."
+      ],
+      "differences": [
+        "Prior encounter included low-grade fever, whereas current symptoms highlight sore throat and nasal congestion without reported fever.",
+        "Current cough is specifically characterized as recurring and dry."
+      ]
+    }
+  ],
+  "missing_information": [
+    "Current vital signs, including body temperature, heart rate, and oxygen saturation.",
+    "Presence of lower respiratory red flags such as dyspnea, wheezing, pleuritic chest pain, or hemoptysis.",
+    "Specific characteristics of the reported rash (e.g., urticarial vs. maculopapular, facial swelling, or respiratory distress).",
+    "Current smoking history, environmental exposures, or history of reactive airway disease."
+  ],
+  "safety_concerns": [
+    "Documented adverse reaction (suspected allergy) to amoxicillin poses a risk of recurrence or more severe hypersensitivity if beta-lactam antibiotics are considered.",
+    "Risk of progression to lower respiratory tract infection or pneumonia given prior elevated inflammatory markers (CRP, WBC) and recurring respiratory symptoms."
+  ],
+  "supported_guidance": [
+    "Maintain adequate oral hydration with water, broths, or warm liquids to soothe mucosal irritation.",
+    "Consider non-pharmacologic cough relief such as warm fluids with honey or throat lozenges.",
+    "Use a cool-mist humidifier or steam inhalation to help ease nasal congestion and airway dryness.",
+    "Get sufficient rest to support recovery.",
+    "Seek prompt in-person medical evaluation if experiencing shortness of breath, high or persistent fever, chest pain, or difficulty swallowing."
+  ],
+  "doctor_questions": [
+    "Have you measured your temperature recently or felt feverish or chilled?",
+    "Do you have any difficulty breathing, wheezing, or chest tightness when coughing?",
+    "Could you provide more detail on the rash you had with amoxicillin, such as whether it involved hives, itching, or swelling of the face or lips?",
+    "Does anything specific trigger the cough, such as cold air, lying flat, or exercise?"
+  ],
+  "confidence": "medium"
+}

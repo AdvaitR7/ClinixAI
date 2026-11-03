@@ -107,6 +107,7 @@ function PatientsTab({ practiceId }: { practiceId: string }) {
   return (
     <section aria-labelledby="pts">
       <h2 id="pts" className="text-[10px] font-semibold uppercase text-copper">Patients · operational view</h2>
+      <Link href={`/app/staff/patients/new?practice_id=${practiceId}`} className="mt-3 flex min-h-11 items-center justify-center rounded-2xl border border-copper px-4 text-sm font-semibold text-copper">Add patient</Link>
       <input aria-label="Search by name" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name" className="mt-3 min-h-11 w-full rounded-2xl border border-evidence bg-graphite px-4 text-sm" />
       {patients.status === "loading" && <p role="status" className="mt-3 text-sm">Loading patients…</p>}
       {patients.status === "error" && <div role="alert" className={`${card} mt-3`}><p className="text-sm">{patients.error}</p></div>}
