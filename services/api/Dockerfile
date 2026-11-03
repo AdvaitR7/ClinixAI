@@ -4,6 +4,7 @@ FROM node:24-slim AS deps
 WORKDIR /repo
 COPY package.json package-lock.json ./
 COPY apps/web/package.json apps/web/package.json
+COPY apps/mobile/package.json apps/mobile/package.json
 COPY services/api/package.json services/api/package.json
 COPY services/worker/package.json services/worker/package.json
 COPY packages/config/package.json packages/config/package.json

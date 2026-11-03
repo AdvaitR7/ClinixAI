@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { InstallPromptCapture } from "@/components/install-app";
+import { NativeShell } from "@/components/native-shell";
 import { AuthProvider } from "@/lib/auth";
 import { SerwistProvider } from "./serwist";
 import "./globals.css";
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-dvh bg-canvas font-sans text-ink antialiased">
         <SerwistProvider swUrl="/sw.js" disable={process.env.NODE_ENV === "development"}>
           <InstallPromptCapture />
+          <NativeShell />
           <AuthProvider>
             {children}
           </AuthProvider>

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { MedicineEditor } from "@/components/medicine-editor";
 import { fetchApi, fetchApiBlob, useApiData } from "@/lib/api";
+import { openOrSharePdf } from "@/lib/native";
 
 const nav = [
   { label: "Desk", href: "/app/doctor" },
@@ -105,7 +106,7 @@ export default function PrescriptionPage() {
       );
       const url = createIdentityObjectUrl(blob);
       pdfUrls.current.add(url);
-      window.open(url, "_blank", "noopener,noreferrer");
+      await openOrSharePdf(blob, url, `prescription-${params.prescriptionId}.pdf`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not render PDF");
     }
