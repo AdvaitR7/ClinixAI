@@ -1,28 +1,48 @@
-# CliniX production stack for Dokploy (or a local production run). Supabase stays in the cloud.
+# CliniX production stack for Dokploy (Docker Compose type). Supabase stays in the cloud.
 #
-# Variables are referenced by name only. Set them in Dokploy's environment, or locally with:
-#   docker compose --env-file apps/web/.env.local -f infra/dokploy/docker-compose.yml up --build
-# NEXT_PUBLIC_* values are build-time inputs for the web image; the API and worker read their
-# runtime configuration from services/api/.env and services/worker/.env when those files exist.
+# Variables are referenced by name only; set them in Dokploy's Environment tab (see docs/DEPLOYMENT.md).
+# Domains are assigned in Dokploy's Domains tab: app.<domain> -> web:3000, api.<domain> -> api:4000.
+# Traefik terminates HTTPS, so no host ports are published here.
+#
+# Local run (needs the proxy network once: `docker network create dokploy-network`):
+#   docker compose --env-file <your env file> -f infra/dokploy/docker-compose.yml up --build
 name: clinix
 
+x-api-environment: &api-environment
+  NODE_ENV: production
+  DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+  DB_POOL_MAX: ${DB_POOL_MAX:-4}
+  QUEUE_POOL_MAX: ${QUEUE_POOL_MAX:-1}
+
 services:
+  # One-shot: applies pending Drizzle migrations, then exits 0. api and worker wait for it.
+  migrate:
+    build:
+      context: ../..
+      dockerfile: services/api/Dockerfile
+    image: ${CLINIX_IMAGE_PREFIX:-clinix}-api:${CLINIX_IMAGE_TAG:-latest}
+    restart: "no"
+    command: ["node", "--import", "tsx", "src/migrate.ts"]
+    environment:
+      <<: *api-environment
+    healthcheck:
+      disable: true
+
   web:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?set NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?set NEXT_PUBLIC_API_BASE_URL (https://api.<domain>/api/v1)}
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?set NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
-        NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL: ${NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL:?set NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL}
-    image: clinix-web
+        NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL: ${NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL:?set NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL (https://app.<domain>)}
+    image: ${CLINIX_IMAGE_PREFIX:-clinix}-web:${CLINIX_IMAGE_TAG:-latest}
     restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
+    networks:
+      - dokploy-network
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/sign-in').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -34,18 +54,30 @@ services:
     build:
       context: ../..
       dockerfile: services/api/Dockerfile
-    image: clinix-api
+    image: ${CLINIX_IMAGE_PREFIX:-clinix}-api:${CLINIX_IMAGE_TAG:-latest}
     restart: unless-stopped
-    env_file:
-      - path: ../../services/api/.env
-        required: false
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     environment:
-      NODE_ENV: production
+      <<: *api-environment
       PORT: "4000"
-      # Comma-separated web origins allowed to call the API; production refuses to start without it.
-      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS to the deployed web origin}
-    ports:
-      - "4000:4000"
+      # Exact web origins allowed to call the API; production refuses to start without it.
+      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS to https://app.<domain>}
+      IDENTITY_ENCRYPTION_KEY: ${IDENTITY_ENCRYPTION_KEY:?set IDENTITY_ENCRYPTION_KEY (64 hex chars)}
+      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:?set SUPABASE_PUBLISHABLE_KEY}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?set SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_JWT_VERIFICATION_MODE: ${SUPABASE_JWT_VERIFICATION_MODE:?set SUPABASE_JWT_VERIFICATION_MODE}
+      SUPABASE_JWT_ISSUER: ${SUPABASE_JWT_ISSUER:?set SUPABASE_JWT_ISSUER}
+      SUPABASE_JWT_ALLOWED_ALGORITHMS: ${SUPABASE_JWT_ALLOWED_ALGORITHMS:?set SUPABASE_JWT_ALLOWED_ALGORITHMS}
+    expose:
+      - "4000"
+    networks:
+      - dokploy-network
+    # Give the api time to drain requests and stop the job queue on redeploy.
+    stop_grace_period: 20s
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r=>r.json()).then(b=>process.exit(b.db==='up'?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -57,13 +89,29 @@ services:
     build:
       context: ../..
       dockerfile: services/worker/Dockerfile
-    image: clinix-worker
+    image: ${CLINIX_IMAGE_PREFIX:-clinix}-worker:${CLINIX_IMAGE_TAG:-latest}
     restart: unless-stopped
-    env_file:
-      - path: ../../services/worker/.env
-        required: false
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     environment:
       NODE_ENV: production
-    depends_on:
-      api:
-        condition: service_healthy
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      DB_POOL_MAX: ${WORKER_DB_POOL_MAX:-2}
+      QUEUE_POOL_MAX: ${WORKER_QUEUE_POOL_MAX:-1}
+      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?set SUPABASE_SERVICE_ROLE_KEY}
+      IDENTITY_ENCRYPTION_KEY: ${IDENTITY_ENCRYPTION_KEY:?set IDENTITY_ENCRYPTION_KEY (64 hex chars)}
+      NINEROUTER_BASE_URL: ${NINEROUTER_BASE_URL:-}
+      NINEROUTER_API_KEY: ${NINEROUTER_API_KEY:-}
+      MODEL_ROUTE_ANALYST_1: ${MODEL_ROUTE_ANALYST_1:-}
+      MODEL_ROUTE_ANALYST_2: ${MODEL_ROUTE_ANALYST_2:-}
+      MODEL_ROUTE_JUDGE: ${MODEL_ROUTE_JUDGE:-}
+      MODEL_ROUTE_OCR: ${MODEL_ROUTE_OCR:-}
+      MODEL_ROUTE_STT: ${MODEL_ROUTE_STT:-}
+      DEMO_REPLAY: ${DEMO_REPLAY:-}
+    stop_grace_period: 20s
+
+networks:
+  dokploy-network:
+    external: true

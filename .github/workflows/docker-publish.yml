@@ -1,0 +1,75 @@
+name: Build and publish images
+
+# Builds the web, api and worker images in CI (not on the Dokploy VPS), pushes them to GHCR,
+# then pings the Dokploy deploy webhook. Follows Dokploy's "Going Production" guidance.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: web
+            dockerfile: apps/web/Dockerfile
+          - name: api
+            dockerfile: services/api/Dockerfile
+          - name: worker
+            dockerfile: services/worker/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lowercase image prefix
+        run: echo "PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/clinix" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.PREFIX }}-${{ matrix.name }}:latest
+            ${{ env.PREFIX }}-${{ matrix.name }}:${{ github.sha }}
+          # NEXT_PUBLIC_* values are public by design (inlined into the browser bundle); set them as repository variables.
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+            NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+            NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL=${{ vars.NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Dokploy deployment
+        env:
+          DOKPLOY_DEPLOY_WEBHOOK: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK }}
+        run: |
+          if [ -z "$DOKPLOY_DEPLOY_WEBHOOK" ]; then echo "DOKPLOY_DEPLOY_WEBHOOK is not set; skipping deploy"; exit 0; fi
+          curl --fail --silent --show-error -X POST "$DOKPLOY_DEPLOY_WEBHOOK"

@@ -37,13 +37,19 @@ export default function DraftsPage() {
   const [filter, setFilter] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  /** Deletes a draft and surfaces a failure inline instead of an unhandled rejection. */
   async function del(id: string) {
     setBusy(id);
+    setDeleteError(null);
     try {
       const token = await getToken();
       if (!token) throw new Error("Not signed in");
       await fetchApi(token, `/doctor/prescription-drafts/${id}`, { method: "DELETE" });
       await state.refresh();
+    } catch (cause) {
+      setDeleteError(cause instanceof Error ? cause.message : "The draft could not be deleted.");
     } finally {
       setBusy(null);
     }
@@ -98,6 +104,8 @@ export default function DraftsPage() {
           <Skeleton className="h-32 rounded-2xl" />
         </div>
       )}
+
+      {deleteError && <p role="alert" className="font-sans text-sm text-critical">{deleteError}</p>}
 
       {state.status === "error" && <p role="alert" className="font-sans text-sm text-critical">{state.error}</p>}
 

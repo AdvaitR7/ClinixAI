@@ -23,7 +23,7 @@ export async function startQueue(): Promise<PgBoss | null> {
 
 /** Publishes the queue only after startup succeeds and contains background errors. */
 async function initializeQueue(url: string): Promise<PgBoss | null> {
-  const candidate = new PgBoss({ connectionString: url, max: 2 });
+  const candidate = new PgBoss({ connectionString: url, max: Number(process.env.QUEUE_POOL_MAX ?? 1) });
   // EventEmitter errors happen outside start()'s promise; without a listener they kill the API.
   candidate.on("error", (err) => console.error("pg-boss background error", err));
   try {
@@ -39,6 +39,14 @@ async function initializeQueue(url: string): Promise<PgBoss | null> {
     });
     return null;
   }
+}
+
+/** Gracefully stops pg-boss so in-flight sends finish before the process exits. */
+export async function stopQueue(): Promise<void> {
+  if (!boss) return;
+  const current = boss;
+  boss = null;
+  await current.stop({ graceful: true, timeout: 5000 });
 }
 
 /** Reports readiness only after both application queues have been created. */

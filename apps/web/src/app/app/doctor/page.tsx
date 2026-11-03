@@ -31,13 +31,19 @@ export default function DoctorPage() {
   const state = useApiData<DoctorDashboard>("/doctor/dashboard");
   const [busy, setBusy] = useState<string | null>(null);
 
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  /** Runs a confirm/cancel action and surfaces a failure inline instead of an unhandled rejection. */
   async function act(path: string, id: string) {
     setBusy(id);
+    setActionError(null);
     try {
       const token = await getToken();
       if (!token) throw new Error("Not signed in");
       await fetchApi(token, path, { method: "POST", body: "{}" });
       await state.refresh();
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "The action failed.");
     } finally {
       setBusy(null);
     }
@@ -50,6 +56,12 @@ export default function DoctorPage() {
           <Skeleton className="h-20 rounded-2xl" />
           <Skeleton className="h-72 rounded-2xl" />
         </div>
+      )}
+
+      {actionError && (
+        <p role="alert" className="mb-3 font-sans text-xs text-critical">
+          {actionError}
+        </p>
       )}
 
       {state.status === "error" && (
