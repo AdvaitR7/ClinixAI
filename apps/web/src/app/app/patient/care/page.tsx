@@ -28,7 +28,7 @@ export default function CarePage() {
       focused
       flowNavigation
       hideHeading
-      headerContent={<PatientVisitHeader backHref="/app/patient" action={<Link href="/app/patient/privacy" className="inline-flex min-h-9 items-center rounded-full border border-botanical px-3 text-[10px] text-botanical">Privacy</Link>} />}
+      headerContent={<PatientVisitHeader backHref="/app/patient" action={<Link href="/app/patient/privacy" className="inline-flex min-h-11 items-center rounded-full border border-botanical px-3 text-[10px] text-botanical">Privacy</Link>} />}
     >
       <div>
         <p className={privacyLabel}>Patient record · care circle</p>
@@ -161,7 +161,7 @@ function Discover({ circle, onAdded }: { circle: RelationshipView[]; onAdded: ()
       {specialities.length > 0 && (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by speciality">
           {[null, ...specialities].map((item) => (
-            <button key={item ?? "all"} type="button" aria-pressed={speciality === item} onClick={() => setSpeciality(item)} className={`min-h-9 rounded-full border px-3 text-[10px] ${speciality === item ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{item ?? "All"}</button>
+            <button key={item ?? "all"} type="button" aria-pressed={speciality === item} onClick={() => setSpeciality(item)} className={`min-h-11 rounded-full border px-3 text-[10px] ${speciality === item ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{item ?? "All"}</button>
           ))}
         </div>
       )}

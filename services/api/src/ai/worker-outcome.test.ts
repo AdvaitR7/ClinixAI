@@ -12,7 +12,8 @@ vi.mock("../../../worker/src/db.js", () => ({
   requireDb: () => mocks.database,
 }));
 vi.mock("../../../worker/src/gateway.js", () => ({
-  generateStructured: mocks.generate,
+  generateStructuredTracked: async (args: unknown) => ({ value: await mocks.generate(args), source: "live" }),
+  replayKeyOf: () => "synthetic-replay-key",
 }));
 vi.mock("../../../worker/src/pipeline/evidence-bundle.js", () => ({
   buildEvidenceBundle: mocks.evidence,
@@ -55,7 +56,7 @@ describe("worker checked outcome publication", () => {
       payloadHash: "synthetic-hash",
       payload: {
         historical_encounters: [],
-        current_concern: { chief_concern: "Synthetic concern" },
+        current_concern: { chief_concern: "Synthetic concern", responses: [] },
       },
     });
     mocks.generate

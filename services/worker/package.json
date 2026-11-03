@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,11 +17,11 @@
     "openai": "^7.30.0",
     "pg-boss": "^12.37.0",
     "postgres": "^3.4.7",
+    "tsx": "^4.23.15",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

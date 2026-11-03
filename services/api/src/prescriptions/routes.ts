@@ -32,7 +32,7 @@ import {
 import { renderPrescriptionPdf } from "./pdf.js";
 
 /** Hashes ordered clinical fields so a review cannot finalize different content. */
-function contentHash(items: (PrescriptionItemInput | PrescriptionItemView)[]): string {
+export function contentHash(items: (PrescriptionItemInput | PrescriptionItemView)[]): string {
   const canonical = items.map((it) => [
     it.medicine_name,
     it.strength ?? "",

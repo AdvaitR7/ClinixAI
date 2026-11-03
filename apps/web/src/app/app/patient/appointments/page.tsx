@@ -154,7 +154,7 @@ function Appointments() {
           action={
             <Link
               href="/app/patient/book"
-              className="inline-flex min-h-9 items-center rounded-full border border-botanical px-3 text-[10px] text-botanical"
+              className="inline-flex min-h-11 items-center rounded-full border border-botanical px-3 text-[10px] text-botanical"
             >
               + Book
             </Link>
@@ -202,7 +202,7 @@ function Appointments() {
             aria-controls="visits-panel"
             aria-selected={tab === item}
             onClick={() => setTab(item)}
-            className={`min-h-10 rounded-full text-[10px] ${tab === item ? "bg-botanical text-surface" : "text-graphite"}`}
+            className={`min-h-11 rounded-full text-[10px] ${tab === item ? "bg-botanical text-surface" : "text-graphite"}`}
           >
             {item} · {rows.filter((row) => bucket(row) === item).length}
           </button>

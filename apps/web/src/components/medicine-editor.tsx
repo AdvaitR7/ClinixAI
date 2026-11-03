@@ -65,7 +65,7 @@ export function MedicineEditor({
                 onClick={() => move(i, -1)}
                 disabled={i === 0}
                 aria-label={`Move medication ${i + 1} up`}
-                className="grid size-7 place-items-center rounded-lg border border-white/10 bg-doctor-panel text-surface disabled:opacity-30"
+                className="grid size-11 place-items-center rounded-lg border border-white/10 bg-doctor-panel text-surface disabled:opacity-30"
               >
                 <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 12l5-5 5 5" />
@@ -76,7 +76,7 @@ export function MedicineEditor({
                 onClick={() => move(i, 1)}
                 disabled={i === items.length - 1}
                 aria-label={`Move medication ${i + 1} down`}
-                className="grid size-7 place-items-center rounded-lg border border-white/10 bg-doctor-panel text-surface disabled:opacity-30"
+                className="grid size-11 place-items-center rounded-lg border border-white/10 bg-doctor-panel text-surface disabled:opacity-30"
               >
                 <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M5 8l5 5 5-5" />
@@ -86,7 +86,7 @@ export function MedicineEditor({
                 type="button"
                 onClick={() => remove(i)}
                 aria-label={`Remove medication ${i + 1}`}
-                className="grid size-7 place-items-center rounded-lg border border-critical/30 bg-critical/10 text-critical"
+                className="grid size-11 place-items-center rounded-lg border border-critical/30 bg-critical/10 text-critical"
               >
                 <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M6 6l8 8M6 14L14 6" />

@@ -50,7 +50,7 @@ function CheckinTimeline({ sessionId }: { sessionId: string }) {
           <Link
             aria-label="Back to timeline"
             href="/app/patient/timeline"
-            className="grid size-8 place-items-center text-2xl"
+            className="grid size-11 place-items-center text-2xl"
           >
             ←
           </Link>

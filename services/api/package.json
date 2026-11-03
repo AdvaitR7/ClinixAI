@@ -10,6 +10,8 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "seed": "tsx src/seed/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:auth:live": "node gate-supabase-auth.mjs",
@@ -29,12 +31,12 @@
     "jose": "^6.2.13",
     "pg-boss": "^12.37.0",
     "postgres": "^3.4.7",
+    "tsx": "^4.23.15",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "drizzle-kit": "^0.31.11",
-    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }

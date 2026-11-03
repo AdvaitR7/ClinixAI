@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { error, requireDb } from "../http.js";
 import { notifications } from "../schema.js";
 
@@ -19,8 +19,20 @@ export async function notificationRoutes(app: FastifyInstance) {
       title: n.title,
       body: n.body,
       read: n.readAt !== null,
+      related_resource_type: n.relatedResourceType,
+      related_resource_id: n.relatedResourceId,
       created_at: n.createdAt.toISOString(),
     }));
+  });
+
+  /** Marks every unread notification of the caller as read and reports how many changed. */
+  app.post("/notifications/read-all", async (request) => {
+    const rows = await requireDb()
+      .update(notifications)
+      .set({ readAt: new Date() })
+      .where(and(eq(notifications.recipientProfileId, request.auth.profileId), isNull(notifications.readAt)))
+      .returning({ id: notifications.id });
+    return { updated: rows.length };
   });
 
   /** Marks one of the caller's own notifications as read. */

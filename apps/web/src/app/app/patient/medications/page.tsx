@@ -35,7 +35,7 @@ function MedicationStatus({ status }: { status: MedicationView["status"] }) {
 /** Uses the source brand/back/close positions without changing another module's header contract. */
 function MedicationHeader({ onBack, onClose }: { onBack?: () => void; onClose?: () => void }) {
   return <div className={`flex w-full items-center gap-3 [&>span>span:last-child]:text-2xl [&>span>span:last-child]:font-normal ${onClose ? "justify-between" : ""}`}>
-    {onBack ? <button type="button" onClick={onBack} aria-label="Back to medication record" className="grid size-8 shrink-0 place-items-center text-[29px] text-botanical">←</button> : <Link href="/app/patient/vault" aria-label="Back to reports" className="grid size-8 shrink-0 place-items-center text-[29px] text-botanical">←</Link>}
+    {onBack ? <button type="button" onClick={onBack} aria-label="Back to medication record" className="grid size-11 shrink-0 place-items-center text-[29px] text-botanical">←</button> : <Link href="/app/patient/vault" aria-label="Back to reports" className="grid size-11 shrink-0 place-items-center text-[29px] text-botanical">←</Link>}
     <ClinixBrand monogram />
     {onClose && <button type="button" onClick={onClose} className="min-h-11 text-xs text-evidence">Close</button>}
   </div>;
@@ -69,7 +69,7 @@ function MedicationRegistry() {
     {state.status === "error" && <div role="alert" className="clinix-card p-5 text-sm text-critical"><p>{state.error}</p><button type="button" onClick={() => void state.refresh()} className="mt-3 min-h-11 underline">Retry medications</button></div>}
     {state.status === "ready" && <>
       <section className="clinix-card p-[18px]" aria-label="Medication record summary"><div className="flex items-center justify-between gap-3"><p className="text-[9px] tracking-wider text-botanical">MEDICATION RECORD</p><span className="rounded-full bg-botanical px-3 py-1.5 text-[10px] text-surface">{list.filter((item) => item.status === "CURRENT").length} ACTIVE</span></div><p className="mt-4 text-[22px]">{list.length} medication records</p><p className="mt-3 text-xs leading-[18px] text-graphite">Prescription source is doctor-authored. Reaction notes keep their own provenance.</p></section>
-      <div><p className="mb-2 text-[10px] tracking-wider text-graphite">FILTER</p><div aria-label="Filter medications by status" className="flex flex-wrap gap-2">{filters.map((item) => <button key={item.label} type="button" aria-pressed={filter === item.key} onClick={() => setFilter(item.key)} className={`min-h-9 rounded-full border px-3 text-[10px] ${filter === item.key ? "border-botanical bg-botanical text-surface" : "border-hairline bg-surface text-graphite"}`}>{item.label}</button>)}</div></div>
+      <div><p className="mb-2 text-[10px] tracking-wider text-graphite">FILTER</p><div aria-label="Filter medications by status" className="flex flex-wrap gap-2">{filters.map((item) => <button key={item.label} type="button" aria-pressed={filter === item.key} onClick={() => setFilter(item.key)} className={`min-h-11 rounded-full border px-3 text-[10px] ${filter === item.key ? "border-botanical bg-botanical text-surface" : "border-hairline bg-surface text-graphite"}`}>{item.label}</button>)}</div></div>
       {!visible.length && <p className="clinix-card p-5 text-sm">{list.length ? "No medications match this filter." : "No medications recorded."}</p>}
       {groups.map((group) => {
         const entries = visible.filter((item) => group.statuses.includes(item.status));

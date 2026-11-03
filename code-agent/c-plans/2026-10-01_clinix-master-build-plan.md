@@ -11,8 +11,8 @@ todos:
     content: Phase 0 — monorepo scaffold, design tokens, Supabase Cloud project + pgvector, Fastify+Drizzle, Next.js shell
     status: completed
   - id: auth-onboarding
-    content: Phase 1 — Clerk auth, role onboarding, workspace switching (Screens 1,2,2a,2b,2c,5)
-    status: pending
+    content: Phase 1 — Supabase auth (replaced Clerk), role onboarding, workspace switching (Screens 1,2,2a,2b,2c,5)
+    status: completed
   - id: core-workspaces
     content: Phase 2 — patient/doctor dossiers, schedule, directory (Screens 3,4,15,16,17,22)
     status: completed
@@ -27,10 +27,10 @@ todos:
     status: completed
   - id: privacy-ledger
     content: Phase 6 — consent scoping, access ledger, record removal (Screens 12,13,26)
-    status: pending
+    status: completed
   - id: staff-pwa-rehearsal
-    content: Phase 7+8 — clinic staff/practice OS (21,23,24,25,27) then PWA + synthetic seed + jury rehearsal
-    status: pending
+    content: Phase 7+8 — clinic staff/practice OS (21,23,24,25,27) then PWA + synthetic seed + jury rehearsal. Code delivered; outstanding human steps are the Dokploy HTTPS deploy, real-phone install and the rehearsal recording (docs/architecture/17-pwa-release-implementation.md)
+    status: in_progress
 isProject: true
 ---
 
@@ -325,9 +325,9 @@ Tables (DB spec §7, §22–24): `practices`, `practice_members`, `followups`, `
 - [x] 10, 11, 14, 18, 19, 20 (Phase 3)
 - [x] 9 (Phase 4)
 - [x] 6, 7, 8 (Phase 5)
-- [~] 12, 13, 26 (Phase 6) — implemented in Batch 9 (see docs/architecture/15-privacy-implementation.md); not live-verified
+- [x] 12, 13, 26 (Phase 6) — gate-phase6.mjs green live 2026-11-02 (20 checks); see docs/architecture/15-privacy-implementation.md
 - [~] 21, 23, 24, 25, 27 (Phase 7) — gate green live (62 checks, services/api/gate-phase7.mjs); migrations 0009–0013 applied 2026-10-27; screens partial, see docs/architecture/16-staff-practice-implementation.md
-- [ ] PWA shell + install (Phase 8)
+- [~] PWA shell + install (Phase 8) — delivered and verified locally (see docs/architecture/17-pwa-release-implementation.md); pending human steps: Dokploy HTTPS deploy, real-phone install, A+B+C rehearsal and recording
 
 Checked boxes mean the phase gate passed, not that screens match the designs. Per-screen fidelity and defects of completed phases are tracked in `docs/architecture/05-implementation-gap-analysis.md`.
 

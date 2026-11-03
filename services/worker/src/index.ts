@@ -6,6 +6,7 @@ import { handleAiAnalyze } from "./handlers/ai-analyze.js";
 // Worker process for pg-boss jobs (ARCHITECTURE_SPEC §35). Lives in
 // services/worker per CLAUDE.md + the master plan; the ARCHITECTURE_SPEC §4
 // diagram's services/api/src/worker is the older layout.
+/** Starts queue consumers with a bounded pool and handles recoverable database errors. */
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) {
@@ -13,7 +14,8 @@ async function main() {
     process.exit(1);
   }
 
-  const boss = new PgBoss({ connectionString: url });
+  const boss = new PgBoss({ connectionString: url, max: 2 });
+  boss.on("error", (err) => console.error("worker queue error", err));
   await boss.start();
   await boss.createQueue("document.extract");
   await boss.createQueue("ai.analyze");

@@ -1,0 +1,32 @@
+{
+  "raw_text": "Sinha Diagnostics - Lab Report\nHbA1c 6.1 % (ref 4.0 - 5.6)\nFasting Glucose 105 mg/dL (ref 70 - 100)\nTotal Cholesterol 190 mg/dL (ref < 200)\nCollected: 2026-09-01",
+  "laboratory_name": "Sinha Diagnostics",
+  "collection_date": "2026-09-01",
+  "report_date": null,
+  "observations": [
+    {
+      "test_name": "HbA1c",
+      "value_numeric": 6.1,
+      "value_text": null,
+      "unit": "%",
+      "reference_text": "4.0 - 5.6",
+      "confidence": 0.99
+    },
+    {
+      "test_name": "Fasting Glucose",
+      "value_numeric": 105,
+      "value_text": null,
+      "unit": "mg/dL",
+      "reference_text": "70 - 100",
+      "confidence": 0.99
+    },
+    {
+      "test_name": "Total Cholesterol",
+      "value_numeric": 190,
+      "value_text": null,
+      "unit": "mg/dL",
+      "reference_text": "< 200",
+      "confidence": 0.99
+    }
+  ]
+}

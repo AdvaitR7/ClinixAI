@@ -218,7 +218,7 @@ function VaultWorkspace() {
   }
 
   return <WorkspaceShell workspace="Patient" title="Health Vault" nav={nav} focused flowNavigation hideHeading
-    headerContent={<PatientVisitHeader backHref="/app/patient" action={<button type="button" onClick={(event) => open("upload", event.currentTarget)} className="min-h-9 rounded-full border border-sage bg-surface px-3 text-[10px] text-evidence">＋ Upload</button>} />}>
+    headerContent={<PatientVisitHeader backHref="/app/patient" action={<button type="button" onClick={(event) => open("upload", event.currentTarget)} className="min-h-11 rounded-full border border-sage bg-surface px-3 text-[10px] text-evidence">＋ Upload</button>} />}>
     <div>
       <p className="text-[10px] tracking-[0.12em] text-graphite">PATIENT RECORD · SOURCE DOCUMENTS</p>
       <h1 className="mt-3 text-[30px] font-normal leading-tight text-botanical">Health Vault</h1>
@@ -255,7 +255,7 @@ function VaultWorkspace() {
         {!queue.length && <p className="mt-4 text-xs text-graphite">No documents awaiting processing or review.</p>}
         <ul className="divide-y divide-hairline">{queue.map((doc) => <li key={doc.document_id} className="py-4 text-xs">
           <div className="flex items-start justify-between gap-2"><p className="min-w-0 break-words">{doc.original_filename}</p>
-            {doc.processing_status === "NEEDS_REVIEW" && <button type="button" onClick={(event) => review(doc, event.currentTarget)} className="min-h-9 shrink-0 rounded-full border border-review px-4 text-[8px] text-review">REVIEW</button>}
+            {doc.processing_status === "NEEDS_REVIEW" && <button type="button" onClick={(event) => review(doc, event.currentTarget)} className="min-h-11 shrink-0 rounded-full border border-review px-4 text-[8px] text-review">REVIEW</button>}
           </div>
           <p className={`mt-2 text-[10px] ${["NEEDS_REVIEW", "FAILED"].includes(doc.processing_status) ? "text-review" : "text-graphite"}`}>{doc.processing_status === "PROCESSING" ? "Extracting text…" : doc.processing_status === "UPLOADED" ? "Awaiting upload completion" : doc.processing_status === "NEEDS_REVIEW" ? "OCR complete · review required" : "Processing failed"}</p>
           {["FAILED", "UPLOADED"].includes(doc.processing_status) && <button type="button" disabled={!!retrying} onClick={() => void retryProcessing(doc.document_id)} className={actionClass}>{retrying === doc.document_id ? "Requesting…" : doc.processing_status === "UPLOADED" ? "Check uploaded file" : "Retry processing"}</button>}
@@ -282,7 +282,7 @@ function VaultWorkspace() {
     </section>
     <section aria-label="Longitudinal trends"><p className="mb-4 text-[10px] tracking-[0.12em] text-graphite">LONGITUDINAL TRENDS</p><div className="clinix-card p-[18px]">
       <h2 className="text-lg">{measurement ?? "Measurements"}</h2>
-      <div className="mt-3 flex flex-wrap gap-2" aria-label="Trend measurements">{measurements.map((name) => <button key={name} type="button" aria-pressed={name === measurement} onClick={() => setTrendName(name)} className={`min-h-9 rounded-full border border-sage px-4 text-[9px] ${name === measurement ? "bg-botanical text-surface" : "text-graphite"}`}>{name}</button>)}</div>
+      <div className="mt-3 flex flex-wrap gap-2" aria-label="Trend measurements">{measurements.map((name) => <button key={name} type="button" aria-pressed={name === measurement} onClick={() => setTrendName(name)} className={`min-h-11 rounded-full border border-sage px-4 text-[9px] ${name === measurement ? "bg-botanical text-surface" : "text-graphite"}`}>{name}</button>)}</div>
       {measurement ? <TrendPanel key={`${measurement}-${trendRevision}-${reports.flatMap((item) => item.observations.filter((field) => field.test_name === measurement).map((field) => `${field.id}:${field.value_numeric}:${field.unit}`)).join("|")}`} name={measurement} units={new Set(reports.flatMap((item) => item.observations.filter((field) => field.test_name === measurement).map((field) => field.unit ?? "")))} /> : <p className="py-5 text-xs">Trends appear after dated numeric lab values are extracted.</p>}
     </div></section>
     <div className="clinix-card flex items-center gap-5 rounded-2xl p-4 text-[10px] leading-4 text-graphite"><span aria-hidden="true" className="text-botanical">i</span><p>Original files are preserved. Extracted values always link back to their source.</p></div>

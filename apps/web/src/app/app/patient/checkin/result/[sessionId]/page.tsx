@@ -233,7 +233,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
           <Link
             href="/app/patient"
             aria-label="Back to home"
-            className="grid size-8 place-items-center text-2xl"
+            className="grid size-11 place-items-center text-2xl"
           >
             ←
           </Link>

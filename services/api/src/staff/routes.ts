@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { and, asc, eq, gte, inArray, lt, or } from "drizzle-orm";
 import { decryptMinimal } from "../patients/identity.js";
-import { intakeVitalsSchema } from "@clinix/schemas";
+import { intakeVitalsSchema, staffCreatePatientSchema } from "@clinix/schemas";
+import { createPatientFailure, createUnclaimedPatient } from "../patients/create.js";
+import { clinicDay } from "./clinic-day.js";
 import { requireDoctor, requirePracticeRole } from "../auth/guards.js";
 import type { PracticeMembership } from "../auth/context.js";
 import { appointmentView, patientNames } from "../appointments/map.js";
@@ -13,6 +15,7 @@ import {
   appointments,
   followups,
   intakeVitals,
+  patientDoctorRelationships,
   patientIdentity,
   patients,
   practices,
@@ -68,8 +71,7 @@ export async function staffRoutes(app: FastifyInstance) {
     const member = staffMember(request, reply);
     if ("statusCode" in member) return member;
     const database = requireDb();
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    const start = new Date(`${clinicDay()}T00:00:00+05:30`);
     const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
     const doctorIds = await practiceDoctorIds(member.practiceId);
     const scope = member.assignedDoctorId
@@ -123,7 +125,7 @@ export async function staffRoutes(app: FastifyInstance) {
   app.get<{ Querystring: { practice_id?: string; date?: string } }>("/staff/schedule", async (request, reply) => {
     const member = staffMember(request, reply);
     if ("statusCode" in member) return member;
-    const day = request.query.date ?? new Date().toISOString().slice(0, 10);
+    const day = request.query.date ?? clinicDay();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return error(request, reply, 400, "VALIDATION_ERROR", "Invalid date");
     const start = new Date(`${day}T00:00:00+05:30`);
     const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
@@ -168,7 +170,14 @@ export async function staffRoutes(app: FastifyInstance) {
       .from(appointments)
       .where(scope)
       .orderBy(asc(appointments.scheduledStart));
-    const ids = [...new Set(appts.map((a) => a.patientId))];
+    const relatedDoctorIds = member.assignedDoctorId ? [member.assignedDoctorId] : doctorIds;
+    const related = relatedDoctorIds.length
+      ? await database
+          .select({ patientId: patientDoctorRelationships.patientId })
+          .from(patientDoctorRelationships)
+          .where(and(inArray(patientDoctorRelationships.doctorId, relatedDoctorIds), eq(patientDoctorRelationships.status, "ACTIVE")))
+      : [];
+    const ids = [...new Set([...appts.map((a) => a.patientId), ...related.map((r) => r.patientId)])];
     if (ids.length === 0) return [];
     const rows = await database
       .select({ id: patients.id, status: patients.status, identity: patientIdentity })
@@ -195,6 +204,36 @@ export async function staffRoutes(app: FastifyInstance) {
       await logAccess(request, { patientId: p.patient_id, purpose: "Clinic operations patient list", resourceType: "patient_demographics", action: "READ" });
     }
     return result;
+  });
+
+  /**
+   * Staff registers an unclaimed patient and links them to one doctor of the selected practice.
+   * Needs an active membership in that practice; assistants stay limited to their assigned doctor.
+   * The registration is written to the access ledger like the operational patient list.
+   */
+  app.post<{ Querystring: { practice_id?: string } }>("/staff/patients", async (request, reply) => {
+    const member = staffMember(request, reply);
+    if ("statusCode" in member) return member;
+    const parsed = staffCreatePatientSchema.safeParse(request.body);
+    if (!parsed.success) return error(request, reply, 400, "VALIDATION_ERROR", "Invalid patient payload");
+    const { doctor_id: doctorId, ...body } = parsed.data;
+    const doctorIds = await practiceDoctorIds(member.practiceId);
+    if (!doctorIds.includes(doctorId) || (member.assignedDoctorId && member.assignedDoctorId !== doctorId)) {
+      return error(request, reply, 403, "DOCTOR_NOT_IN_PRACTICE", "That doctor is not available in this practice");
+    }
+    const created = await createUnclaimedPatient({
+      body,
+      doctorId,
+      createdBy: { actorType: "CLINIC_STAFF", actorId: request.auth.profileId },
+    });
+    if (!created.ok) return createPatientFailure(request, reply, created.code);
+    await logAccess(request, {
+      patientId: created.patientId,
+      purpose: "Clinic operations patient registration",
+      resourceType: "patient_demographics",
+      action: "CREATE",
+    });
+    return reply.code(201).send({ patient_id: created.patientId, doctor_id: doctorId });
   });
 
   /** Intake state for one appointment; vitals are visible to assistants only. */

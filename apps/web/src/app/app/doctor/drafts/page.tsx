@@ -83,7 +83,7 @@ export default function DraftsPage() {
             key={f ?? "all"}
             type="button"
             onClick={() => setFilter(f)}
-            className={`min-h-10 rounded-full border px-4 font-sans text-xs font-semibold ${
+            className={`min-h-11 rounded-full border px-4 font-sans text-xs font-semibold ${
               filter === f ? "border-copper bg-copper text-ink" : "border-white/10 text-doctor-muted/75"
             }`}
           >
@@ -149,7 +149,7 @@ export default function DraftsPage() {
                     <button
                       type="button"
                       onClick={() => router.push(`/app/doctor/prescription-drafts/${d.id}`)}
-                      className="min-h-10 flex-1 rounded-xl bg-copper px-4 font-sans text-xs font-semibold uppercase text-ink transition-transform active:translate-y-px"
+                      className="min-h-11 flex-1 rounded-xl bg-copper px-4 font-sans text-xs font-semibold uppercase text-ink transition-transform active:translate-y-px"
                     >
                       Review draft →
                     </button>
@@ -160,7 +160,7 @@ export default function DraftsPage() {
                         onClick={() => {
                           if (window.confirm("Delete this draft?")) void del(d.id);
                         }}
-                        className="min-h-10 rounded-xl border border-critical/40 bg-critical/10 px-4 font-sans text-xs font-semibold text-critical disabled:opacity-60"
+                        className="min-h-11 rounded-xl border border-critical/40 bg-critical/10 px-4 font-sans text-xs font-semibold text-critical disabled:opacity-60"
                       >
                         Delete
                       </button>

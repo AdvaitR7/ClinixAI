@@ -1,0 +1,47 @@
+{
+  "important_findings": [
+    "Patient is a female in the 31-50 age band presenting with a recurring dry cough for 4 days (4-7 day range).",
+    "Cough severity is reported as moderate and interfering with normal routine.",
+    "Associated upper respiratory symptoms include sore throat or nasal congestion.",
+    "Documented allergy/adverse reaction: 'Skin rash on day three; suspected amoxicillin allergy'.",
+    "Prior laboratory evaluation (2026-07-29) demonstrated elevated C-reactive protein (14 mg/L) and elevated white blood cell count (11.8 10^3/uL)."
+  ],
+  "historical_matches": [
+    {
+      "encounter_id": "983c1d5f-b395-4bce-ab8c-0f47d322379f",
+      "similarity_label": "PARTIALLY_SIMILAR",
+      "supporting_features": [
+        "Both presentations involve acute cough of approximately 4-5 days duration.",
+        "Both involve respiratory tract symptoms."
+      ],
+      "differences": [
+        "Historical encounter documented a low-grade fever, which is not reported in the current presentation.",
+        "Current presentation specifically reports a dry recurring cough with sore throat and nasal congestion.",
+        "Historical encounter resulted in an amoxicillin prescription associated with a subsequent documented adverse drug reaction (rash)."
+      ]
+    }
+  ],
+  "missing_information": [
+    "Current objective vital signs (temperature, pulse oximetry, heart rate, respiratory rate, blood pressure).",
+    "Current physical examination findings, particularly lung auscultation and oropharyngeal examination.",
+    "Updated inflammatory markers or respiratory viral panel testing for the current episode.",
+    "Screening for red-flag symptoms such as dyspnea, pleuritic chest pain, or hemoptysis.",
+    "Exact elapsed time since the July 2026 encounter."
+  ],
+  "safety_concerns": [
+    "Known suspected amoxicillin allergy: Patient developed a rash on day 3 of amoxicillin; amoxicillin and related beta-lactams must be avoided unless formal allergy evaluation is completed.",
+    "Potential for secondary bacterial infection or lower respiratory tract involvement given prior episode showed systemic inflammation (elevated WBC and CRP)."
+  ],
+  "supported_guidance": [
+    "Perform clinical evaluation including pulmonary examination and vital signs to assess for signs of lower respiratory tract infection.",
+    "Do not prescribe amoxicillin or other cross-reactive beta-lactams due to the documented history of drug rash.",
+    "Offer symptomatic management for upper respiratory symptoms (e.g., hydration, throat lozenges, saline nasal irrigation) pending clinical evaluation.",
+    "Instruct patient on red-flag symptoms requiring emergency evaluation, such as difficulty breathing, persistent high fevers, or chest pain."
+  ],
+  "doctor_questions": [
+    "Have you developed any fever, chills, shortness of breath, or chest discomfort during this current illness?",
+    "Can you describe the rash that occurred after taking amoxicillin in the past (e.g., raised hives, flat spots, facial swelling, or peeling)?",
+    "Have you used any over-the-counter medications, cough suppressants, or decongestants for this cough?"
+  ],
+  "confidence": "medium"
+}

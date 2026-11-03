@@ -17,7 +17,7 @@ export function AuthShell({
 }) {
   const doctor = tone === "doctor";
   return (
-    <main className={`min-h-dvh px-6 pb-12 pt-8 sm:py-12 ${doctor ? "bg-ink text-surface" : "bg-canvas text-ink"}`}>
+    <main className={`min-h-dvh px-6 pb-12 pt-[max(2rem,env(safe-area-inset-top))] sm:py-12 ${doctor ? "bg-ink text-surface" : "bg-canvas text-ink"}`}>
       <div className="mx-auto w-full max-w-[34rem]">
         <header className="flex justify-center sm:justify-start">
           <ClinixBrand inverted={doctor} />
