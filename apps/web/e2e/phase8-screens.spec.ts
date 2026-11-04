@@ -119,7 +119,7 @@ test("SCR-041 shows the created patient and issues a claim code once", async ({ 
   await expect(page.getByRole("heading", { name: "Patient created" })).toBeVisible();
   await expect(page.getByText("Synthetic New Patient")).toBeVisible();
   await expect(page).toHaveURL(/\/app\/doctor\/patients\/new$/);
-  await expect(page.getByRole("link", { name: "Open workspace" })).toHaveAttribute("href", `/app/doctor/patients/${patientId}`);
+  await expect(page.getByRole("link", { name: "Open workspace" })).toHaveAttribute("href", `/app/doctor/patients/by-id?patientId=${patientId}`);
   await page.getByRole("button", { name: "Send claim invitation" }).click();
   await expect(page.getByText("synthetic-claim-code")).toBeVisible();
   await expect(page.getByText("cannot be shown again", { exact: false })).toBeVisible();
@@ -140,7 +140,7 @@ test("Page 13a links from a ledger row and shows structured receipt fields only"
   await page.setViewportSize({ width: 393, height: 1000 });
   await page.goto("/app/patient/privacy");
   await page.getByRole("link", { name: "View receipt →" }).click();
-  await expect(page).toHaveURL(new RegExp(`/app/patient/privacy/access/${eventId}$`));
+  await expect(page).toHaveURL(new RegExp(`/app/patient/privacy/access/by-id\\?eventId=${eventId}$`));
   await expect(page.getByRole("heading", { name: "Access receipt" })).toBeVisible();
   await expect(page.getByText("Synthetic Alpha · Doctor")).toBeVisible();
   await expect(page.getByText("Your consent", { exact: true })).toBeVisible();
@@ -149,7 +149,7 @@ test("Page 13a links from a ledger row and shows structured receipt fields only"
 
 test("Page 13a shows an error and a way back when the receipt is not found", async ({ page }) => {
   await services(page, patientMe, (path) => (path.startsWith("/patients/self/access-events/") ? { status: 404, json: { error: { code: "NOT_FOUND", message: "Access event not found" } } } : undefined), /\/app\/patient$/);
-  await page.goto(`/app/patient/privacy/access/${eventId}`);
+  await page.goto(`/app/patient/privacy/access/by-id?eventId=${eventId}`);
   await expect(page.getByText("This receipt could not be loaded.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Back to ledger" })).toBeVisible();
 });

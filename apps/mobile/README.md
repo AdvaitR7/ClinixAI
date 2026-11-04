@@ -1,36 +1,33 @@
-# CliniX Android shell
+# CliniX Android app
 
-A Capacitor 8 app that loads the deployed web app (`server.url`). Web deploys reach installed phones immediately; only native changes need a new APK. A bundled `www/offline.html` shows when the site cannot be reached.
+The Capacitor app bundles the statically exported UI. It connects to the configured HTTPS API; records, uploads, and AI features need a network connection. No 9Router or Supabase service-role credentials are included in the APK.
 
 ## Build a debug APK
 
-Needs JDK 21 and the Android SDK (`ANDROID_HOME`), e.g. via Android Studio.
+Use JDK 21 and an installed Android SDK. The web export reads the public app configuration from environment variables:
 
 ```bash
-export CLINIX_APP_URL=https://app.<domain>            # required, https only
-export CLINIX_ALLOW_NAVIGATION=<project>.supabase.co  # optional, comma-separated hosts
-npm run build:android                                 # from the repo root
-# -> apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
-adb install -r apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+export NEXT_PUBLIC_API_BASE_URL=https://api.<domain>/api/v1
+export NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
+export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
+export NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL=https://app.<domain>
+npm run build:android
 ```
 
-`cap sync` writes the URL into `android/app/src/main/assets/capacitor.config.json`, which is gitignored. Run the sync again whenever the URL changes.
+The APK is written to `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Signed release
 
-Create a keystore **outside the repo** and never commit it. Then follow Capacitor's Android signing guide, or add a signing config to `android/app/build.gradle` that reads the keystore path and passwords from environment variables. `npm run build:android:release` builds the unsigned release APK.
+The GitHub Actions workflow `.github/workflows/android-release.yml` builds and publishes signed APKs. Configure the Android keystore values as repository secrets and keep a separate encrypted backup of the original keystore. Set `CLINIX_AUTH_HOST` to the app web domain hostname and the same public web configuration used for Dokploy. The certificate fingerprint in `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT` must match the release signing key for Android App Links.
 
-## What the web app does in the shell
+Releases stay in the PRIVATE `AdvaitR7/ClinixAI` repository. Download through a browser signed into GitHub with repository access. No GitHub credential is embedded in the app. Published candidates are prereleases until physical-phone acceptance.
 
-The shell appends `CliniXApp` to the WebView user agent. `apps/web/src/lib/native.ts` uses it to:
+The encrypted signing-keystore backup created during setup is `/home/advait/.local/share/clinix-signing/clinix-release.jks`; copy it to a second safe location outside the VPS and preserve its password.
 
-- map the hardware back button to browser history, closing the app at the first screen (`@capacitor/app`; Capacitor core does not do this on its own);
-- save and share generated prescription PDFs through the system share sheet, because a blob URL cannot be opened externally.
+Each release has an increasing version code and publishes a SHA-256 checksum. Install the newer APK over an existing install to verify the signing key and retained session behavior.
 
-## Limits
+## Authentication and offline behavior
 
-- Capacitor documents `server.url` as intended for development. It is used here on purpose; the cost is that the app needs a connection and a bad web deploy affects installed apps at once.
-- Google Play may reject an app that is only a website wrapper. Direct APK distribution works.
-- Email confirmation links open in the phone's browser, not in the app. Users sign in with their password inside the app. Android App Links would fix this later.
-- Fully offline use would need the dynamic `[id]` routes converted to query parameters and a static export. Not done.
-- `android:allowBackup` is off so the saved session is never copied into device backups.
+Email confirmation and recovery callbacks use verified HTTPS App Links on the `app.<domain>` hostname. Keep that hostname in the Supabase Auth redirect allow-list and serve the generated `/.well-known/assetlinks.json` file from the same web origin.
+
+The bundled UI opens without network access and shows a connection notice. Patient data, edits, uploads, and AI work require connectivity. No clinical data is cached for offline use.

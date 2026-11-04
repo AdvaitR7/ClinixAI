@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build && serwist build",
+    "build:mobile": "CLINIX_MOBILE_EXPORT=1 NEXT_PUBLIC_MOBILE_BUNDLE=1 next build",
     "lint": "eslint .",
     "test": "vitest run",
     "test:browser": "playwright test",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json"
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.sw.json"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.2",

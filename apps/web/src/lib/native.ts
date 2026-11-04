@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Helpers for running inside the Capacitor Android shell (apps/mobile), which loads this site via server.url.
+ * Helpers for the Capacitor Android app (apps/mobile), which serves its bundled UI from a local WebView origin.
  * Every function is a no-op in a normal browser, so the web app behaves exactly as before there.
  */
 
@@ -13,7 +13,7 @@ export const NATIVE_USER_AGENT_MARKER = "CliniXApp";
 /**
  * Resolves true once the Capacitor bridge reports a native platform.
  *
- * The native bridge is injected into remote pages shortly after scripts start, so a synchronous
+ * The native bridge is injected into WebView pages shortly after scripts start, so a synchronous
  * check can wrongly say "browser". This polls briefly (about 3 s) before giving up.
  */
 export async function detectNativeApp(): Promise<boolean> {
@@ -28,8 +28,8 @@ export async function detectNativeApp(): Promise<boolean> {
 }
 
 /**
- * Wires the Android hardware back button to browser history, and closes the app at the first screen.
- * Without this, Android would close the app on every back press (Capacitor core does not handle it).
+ * Handles Android back presses and routes verified email links into the bundled callback page.
+ * Without the back listener, Android closes the app instead of returning through its screens.
  *
  * @returns A cleanup function that removes the listener.
  */
@@ -40,7 +40,19 @@ export async function registerNativeBackButton(): Promise<() => void> {
     if (canGoBack) window.history.back();
     else void App.exitApp();
   });
-  return () => void handle.remove();
+  const openCallback = ({ url }: { url: string }) => {
+    const callback = new URL(url);
+    const expected = process.env.NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL;
+    if (!expected || callback.origin !== new URL(expected).origin || callback.protocol !== "https:" || callback.pathname !== "/auth/callback") return;
+    window.location.assign(`${callback.pathname}${callback.search}${callback.hash}`);
+  };
+  const urlHandle = await App.addListener("appUrlOpen", openCallback);
+  const launch = await App.getLaunchUrl();
+  if (launch?.url) openCallback({ url: launch.url });
+  return () => {
+    void handle.remove();
+    void urlHandle.remove();
+  };
 }
 
 /** Converts a Blob to base64 (without the data-URL prefix) for the Filesystem plugin. */

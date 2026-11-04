@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${jakarta.variable} ${jbmono.variable}`}>
       <body className="min-h-dvh bg-canvas font-sans text-ink antialiased">
-        <SerwistProvider swUrl="/sw.js" disable={process.env.NODE_ENV === "development"}>
+        <SerwistProvider swUrl="/sw.js" disable={process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_MOBILE_BUNDLE === "1"}>
           <InstallPromptCapture />
           <NativeShell />
           <AuthProvider>

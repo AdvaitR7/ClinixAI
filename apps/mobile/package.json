@@ -2,11 +2,12 @@
   "name": "@clinix/mobile",
   "version": "0.0.0",
   "private": true,
-  "description": "Capacitor Android shell that loads the deployed CliniX web app.",
+  "description": "Capacitor Android app with a bundled CliniX interface.",
   "scripts": {
     "sync": "cap sync android",
-    "build:android": "cap sync android && cd android && ./gradlew assembleDebug",
-    "build:android:release": "cap sync android && cd android && ./gradlew assembleRelease"
+    "build:web": "npm run build:mobile --workspace @clinix/web",
+    "build:android": "npm run build:web && CLINIX_MOBILE_WEB_DIR=../web/out cap sync android && cd android && ./gradlew assembleDebug",
+    "build:android:release": "npm run build:web && CLINIX_MOBILE_WEB_DIR=../web/out cap sync android && cd android && ./gradlew assembleRelease -PclinixAuthHost=${CLINIX_AUTH_HOST:?Set CLINIX_AUTH_HOST} -PclinixVersionCode=${CLINIX_VERSION_CODE:?Set CLINIX_VERSION_CODE} -PclinixVersionName=${CLINIX_VERSION_NAME:?Set CLINIX_VERSION_NAME}"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",

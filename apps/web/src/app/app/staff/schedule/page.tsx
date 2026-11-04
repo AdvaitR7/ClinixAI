@@ -7,6 +7,7 @@ import { useApiData, useMe } from "@/lib/api";
 import { StaffShell } from "@/components/staff-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { clinicDate, clinicTime, useApiWrite, type StaffAppointment } from "@/lib/staff";
+import { recordHref } from "@/lib/route-params";
 
 const card = "rounded-[18px] border border-copper bg-graphite p-4";
 const label = "text-[9px] uppercase text-copper";
@@ -91,7 +92,7 @@ function ScheduleTab({ practiceId, intakeOnly, role }: { practiceId: string; int
             <div className="mt-2 flex flex-wrap gap-2 text-xs">
               {!a.intake_status && ["REQUESTED", "CONFIRMED"].includes(a.status) && <button type="button" onClick={() => void mark(a.id, "arrive")} className="min-h-11 rounded-full border border-copper px-4">Mark arrival</button>}
               {a.intake_status === "ARRIVED" && <button type="button" onClick={() => void mark(a.id, "waiting")} className="min-h-11 rounded-full border border-copper px-4">Mark waiting</button>}
-              {a.intake_status && <Link href={`/app/staff/intake/${a.id}?practice_id=${practiceId}`} className="inline-flex min-h-11 items-center rounded-full bg-copper px-4 font-semibold text-ink">{role === "ASSISTANT" ? "Open intake" : "Arrival details"}</Link>}
+              {a.intake_status && <Link href={recordHref("/app/staff/intake", "appointmentId", a.id, { practice_id: practiceId })} className="inline-flex min-h-11 items-center rounded-full bg-copper px-4 font-semibold text-ink">{role === "ASSISTANT" ? "Open intake" : "Arrival details"}</Link>}
             </div>
           </li>
         ))}
