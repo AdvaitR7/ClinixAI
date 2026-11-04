@@ -29,6 +29,7 @@ ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
     NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL=$NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL \
     NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /repo/node_modules ./node_modules
+COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
 COPY package.json package-lock.json ./
 COPY packages ./packages
 COPY apps/web ./apps/web
