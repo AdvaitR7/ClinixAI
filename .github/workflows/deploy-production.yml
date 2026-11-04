@@ -1,0 +1,42 @@
+name: Promote production SHA
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full tested commit SHA on master
+        required: true
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: clinix-production-promotion
+  cancel-in-progress: false
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Require a successfully built master commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ inputs.sha }}
+        run: |
+          [[ "$TARGET_SHA" =~ ^[a-f0-9]{40}$ ]]
+          git merge-base --is-ancestor "$TARGET_SHA" origin/master
+          gh run list --workflow docker-publish.yml --commit "$TARGET_SHA" --branch master --status success --json databaseId --jq 'length > 0' | grep -qx true
+          git checkout --detach "$TARGET_SHA"
+      - name: Promote exact images and verify services
+        env:
+          TARGET_SHA: ${{ inputs.sha }}
+          DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
+          DOKPLOY_COMPOSE_ID: ${{ vars.DOKPLOY_COMPOSE_ID }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+        run: node scripts/deploy/promote.mjs

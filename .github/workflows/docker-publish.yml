@@ -1,19 +1,30 @@
 name: Build and publish images
 
 # Builds the web, api and worker images in CI (not on the Dokploy VPS), pushes them to GHCR,
-# then pings the Dokploy deploy webhook. Follows Dokploy's "Going Production" guidance.
+# Production promotion is a separate manual workflow; this workflow never deploys.
 on:
+  pull_request:
+    branches: [master]
   push:
     branches: [master]
   workflow_dispatch:
 
+concurrency:
+  group: clinix-build-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
-  packages: write
+  packages: read
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL || 'https://api.example.test/api/v1' }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://synthetic.supabase.co' }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'synthetic-publishable-key' }}
+      NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL: ${{ vars.NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL || 'https://app.example.test' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,10 +32,24 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Require production web configuration
+        run: |
+          test -n "$NEXT_PUBLIC_API_BASE_URL"
+          test -n "$NEXT_PUBLIC_SUPABASE_URL"
+          test -n "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          test -n "$NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL"
       - run: npm run typecheck
       - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run build
+      - run: npm run build:web --workspace @clinix/mobile
 
   publish:
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
     needs: verify
     runs-on: ubuntu-latest
     strategy:
@@ -40,6 +65,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Lowercase image prefix
         run: echo "PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/clinix" >> "$GITHUB_ENV"
+      - name: Require Android App Links certificate
+        if: matrix.name == 'web'
+        env:
+          ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT: ${{ vars.ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT }}
+        run: test -n "$ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT"
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -52,7 +82,6 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ${{ env.PREFIX }}-${{ matrix.name }}:latest
             ${{ env.PREFIX }}-${{ matrix.name }}:${{ github.sha }}
           # NEXT_PUBLIC_* values are public by design (inlined into the browser bundle); set them as repository variables.
           build-args: |
@@ -60,16 +89,29 @@ jobs:
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
             NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL=${{ vars.NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL }}
+            ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT=${{ vars.ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT }}
+            GIT_SHA=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
-  deploy:
-    needs: publish
+  container-check:
+    if: github.event_name == 'pull_request'
+    needs: verify
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dockerfile: [apps/web/Dockerfile, services/api/Dockerfile, services/worker/Dockerfile]
     steps:
-      - name: Trigger Dokploy deployment
-        env:
-          DOKPLOY_DEPLOY_WEBHOOK: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK }}
-        run: |
-          if [ -z "$DOKPLOY_DEPLOY_WEBHOOK" ]; then echo "DOKPLOY_DEPLOY_WEBHOOK is not set; skipping deploy"; exit 0; fi
-          curl --fail --silent --show-error -X POST "$DOKPLOY_DEPLOY_WEBHOOK"
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=https://api.example.test/api/v1
+            NEXT_PUBLIC_SUPABASE_URL=https://synthetic.supabase.co
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=synthetic-publishable-key
+            NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL=https://app.example.test
+            GIT_SHA=${{ github.sha }}

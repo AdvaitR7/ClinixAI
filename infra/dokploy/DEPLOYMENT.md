@@ -1,80 +1,64 @@
-# Deploying CliniX to Dokploy
+# CliniX deployment and private Android releases
 
-Web, api and worker run as one Docker Compose application on Dokploy. Postgres, Auth and Storage stay on Supabase.
+The APK bundles its interface and calls `https://clinix-api.thecontractor.me/api/v1`. Supabase remains the database, authentication and document provider. The existing `https://9router.thecontractor.me/v1` gateway remains independent.
 
-```
-Browser / Android app ──► app.<domain>  (web, Next.js :3000)
-                              │ Bearer token
-                              ▼
-                          api.<domain>  (api, Fastify :4000) ──► Supabase Postgres / Auth / Storage
-                          worker (pg-boss jobs) ───────────────┘
-        Traefik (managed by Dokploy) terminates HTTPS
-```
-
-## 1. Prerequisites (you do these)
-
-1. A Dokploy server with two DNS records pointing at it: `app.<domain>` and `api.<domain>`.
-2. A Supabase project with the `clinix-documents` bucket (`infra/supabase/bucket.sql`).
-3. A 64-hex-character identity key. Use the **original** key if synthetic data already exists, because a different key cannot decrypt existing rows. Otherwise generate one with `openssl rand -hex 32` and reseed.
-
-## 2. Create the application
-
-1. Dokploy → Project → **Create Service → Compose**. Source: this Git repo, branch `master`, compose path `infra/dokploy/docker-compose.yml`.
-2. **Environment** tab: set the variables listed below. Names only appear in this repo; values live only in Dokploy.
-3. **Domains** tab: add `app.<domain>` → service `web`, port `3000`, HTTPS on (Let's Encrypt); add `api.<domain>` → service `api`, port `4000`, HTTPS on.
-4. Deploy. Order is enforced by the compose file: `migrate` runs and exits 0, then `api` and `worker` start.
-
-### Environment variables
-
-| Variable | Used by | Notes |
-|---|---|---|
-| `DATABASE_URL` | migrate, api, worker | Supabase **session** pooler (port 5432), or the direct connection if the VPS has IPv6. Do not use the transaction pooler: pg-boss needs LISTEN/NOTIFY and postgres.js pipelining misbehaves there. |
-| `IDENTITY_ENCRYPTION_KEY` | api, worker | 64 hex chars. The api refuses to start without it. |
-| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | api (worker: URL + service role) | Service role stays server-side only. |
-| `SUPABASE_ANON_KEY` | api | Optional. |
-| `SUPABASE_JWT_VERIFICATION_MODE`, `SUPABASE_JWT_ISSUER`, `SUPABASE_JWT_ALLOWED_ALGORITHMS` | api | Must match the project that issues browser tokens. |
-| `CORS_ORIGINS` | api | `https://app.<domain>` (comma-separated for more). The Android app loads this same origin. |
-| `NEXT_PUBLIC_API_BASE_URL` | web (build) | `https://api.<domain>/api/v1`. Must be HTTPS in production. |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | web (build) | Public by design. |
-| `NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL` | web (build) | `https://app.<domain>` |
-| `NINEROUTER_BASE_URL`, `NINEROUTER_API_KEY`, `MODEL_ROUTE_ANALYST_1/2`, `MODEL_ROUTE_JUDGE`, `MODEL_ROUTE_OCR`, `MODEL_ROUTE_STT` | worker | AI/OCR. Leave empty to disable; the worker's AI jobs then fail. |
-| `DEMO_REPLAY` | worker | Optional (`replay` for model-free demos). |
-| `DB_POOL_MAX`, `QUEUE_POOL_MAX`, `WORKER_DB_POOL_MAX`, `WORKER_QUEUE_POOL_MAX` | api / worker | Defaults 4, 1, 2, 1 = 8 connections. Supabase session mode allows 15 across everything, including your own psql and seed runs. |
-| `CLINIX_IMAGE_PREFIX`, `CLINIX_IMAGE_TAG` | compose | Optional image names (see "Building elsewhere"). |
-
-Because `NEXT_PUBLIC_*` values are inlined into the browser bundle at build time, changing them requires a rebuild.
-
-## 3. Supabase dashboard (manual)
-
-- Authentication → URL Configuration: **Site URL** `https://app.<domain>`; **Redirect URLs** include `https://app.<domain>/auth/callback`.
-- Authentication → SMTP: confirm email delivery works.
-- Storage → CORS: allow `https://app.<domain>` for signed `PUT` uploads.
-
-## 4. Health checks and rollback
-
-Every service has a Docker `HEALTHCHECK` (web `/sign-in`, api `/health` with `db: up`, worker heartbeat file younger than 60 s). In the application's **Advanced → Swarm Settings** you can add Dokploy's recommended update config so an unhealthy release rolls back:
-
-```json
-{ "Parallelism": 1, "Delay": 10000000000, "FailureAction": "rollback", "Order": "start-first" }
+```mermaid
+flowchart LR
+  APK[Bundled Android APK] --> API[Dokploy API]
+  Browser --> Web[Dokploy web / callbacks]
+  Web --> API
+  API --> Supabase
+  Supabase --> Worker[Dokploy worker]
+  Worker --> Router[Existing 9Router]
 ```
 
-The api and worker handle SIGTERM: they stop accepting work, let in-flight jobs finish, then close their pools (`stop_grace_period: 20s`).
+## Setup
 
-## 5. Building elsewhere (optional)
+Follow [ENVIRONMENT.md](ENVIRONMENT.md) for exact DNS, Dokploy and GitHub settings. New resources belong only to project `CliniX`. Never delete or prune existing Routing resources.
 
-`.github/workflows/docker-publish.yml` runs typecheck and tests, builds the three images, pushes them to GHCR (`ghcr.io/<owner>/clinix-{web,api,worker}`) and calls a Dokploy webhook. Add repository **variables** `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL`, and the repository **secret** `DOKPLOY_DEPLOY_WEBHOOK` (from the application's Deployments tab). Dokploy's own guidance is to avoid building on the VPS because builds can exhaust its RAM. Note that the compose file as written builds from source; to deploy the pre-built images instead, create one Dokploy **Application** per image with source type Docker. This path has not been exercised.
+The raw Compose application uses private CI-built images. There are no production source builds and no public worker/migration ports. `migrate` must exit successfully before API and worker start. A one-shot `verify` service checks configured model routes, then enqueues a synthetic `ops.probe` job. The real worker must complete it with the same image revision and a structured 9Router response. No patient records are created by this probe.
 
-## 6. Backups
+## GitHub delivery
 
-Supabase is a single point of failure. Take periodic dumps over a **direct** connection (not a pooler):
+1. Push `deploy/clinix-android-production` and open a PR to `master`.
+2. PR verification uses synthetic public settings, runs typecheck/unit/browser tests, both UI builds and container build validation. It cannot deploy production.
+3. Merge once checks pass. `Build and publish images` publishes all three private GHCR images under the same full SHA. It does not deploy.
+4. Run `Promote production SHA`, input the full successfully built master SHA. The workflow checks ancestry and CI success, renders literal SHA image references, updates only the configured CliniX Compose definition and requests deployment.
+5. Promotion checks API revision/DB, public web health, Docker API/web/worker health, migration exit and synthetic verification exit. Any failure fails the job and records the previous SHA in the summary.
+6. Run `Android APK release`, selecting the same tested source SHA. Default: create a draft private prerelease and candidate artifact. `publish=true` publishes a PRIVATE prerelease candidate. Promote it to a stable release only after phone acceptance.
 
-```bash
-pg_dump "$DIRECT_DATABASE_URL" --format=custom --file=clinix-$(date +%F).dump
-```
+Source and releases stay private in `AdvaitR7/ClinixAI`. Do not create a second repository or change repository/package visibility. The APK contains no GitHub token. Private downloads require GitHub login with repository access.
 
-Store dumps outside the VPS. Dumps contain encrypted patient identity data; the identity key must be backed up separately.
+## First release checklist
 
-## 7. Known limits
+- [ ] DNS resolves both CliniX hosts to `194.163.133.221`; HTTPS certificates are trusted.
+- [ ] Original Supabase identity key and project configuration preserved.
+- [ ] Router key and exact model routes verified without patient content.
+- [ ] Private GHCR pulls work on Dokploy.
+- [ ] Supabase email confirmation and recovery callbacks configured.
+- [ ] Signing-key fingerprint matches web `/.well-known/assetlinks.json` and the APK certificate.
+- [ ] Backend promotion passes migration, health, and queued synthetic AI checks.
+- [ ] APK signature, application ID, version and bundled assets verified.
+- [ ] Physical phone: clean install, upgrade, sign-in/refresh/restart/logout/account switch, email confirmation/recovery, appointments, check-in, document extraction, analysis, prescription/PDF sharing.
+- [ ] Offline startup, dropped connections, invalid router credentials, missing model and interrupted worker recover safely.
+- [ ] Actual phone → API → queued job → worker → router → persisted result verified.
+- [ ] Offsite database AND document backups scheduled, monitored and restored successfully.
+- [ ] Publish the private release and verify APK/checksum access while signed into GitHub.
 
-- The Docker images have **not been built** on the machine where this was written (Docker was not installed). First build on Dokploy or CI is the first real test.
-- The worker's AI features need a valid 9Router key.
+## Rollback
+
+Each promotion summary records current and previous SHA. For an application rollback, run `Promote production SHA` with a previously successful master SHA. Do not reverse database migrations automatically. Schema changes must remain compatible with the preceding APK/API release. If migration failed, inspect and fix it before starting new API/worker containers.
+
+A bad installed APK is replaced with a corrected APK using the SAME signing key and a HIGHER version code. Withdraw only the bad candidate/release when appropriate; do not delete unrelated releases or services.
+
+## Monitoring and backups
+
+See ENVIRONMENT.md for the external destination inputs, daily 02:00 UTC schedule, retention and restoration gate. Docker health checks and CI gates exist; an offsite backup provider and external alert recipient must be configured before patient launch. Never treat documentation as proof that a backup schedule ran or a restore succeeded.
+
+## Operational commands
+
+`npm run typecheck`, `npm test`, `npm run test:browser`, `npm run build`, and `npm run build:web --workspace @clinix/mobile` validate local code.
+
+`npm run preflight:gateway --workspace @clinix/worker` verifies the live gateway from a configured server environment. The `verify` Compose service additionally proves persistent queue processing on the expected worker SHA.
+
+Production images are built in CI. Local Android builds require JDK 21 and the Android SDK; local container builds require Docker. Missing tooling must be reported, not counted as a successful build.

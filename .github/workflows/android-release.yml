@@ -1,0 +1,125 @@
+name: Android APK release
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full source SHA with successful CI
+        required: true
+      publish:
+        description: Publish private beta now (false creates a draft)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: clinix-android-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - name: Verify source and allocate increasing Android version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ inputs.sha }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          git merge-base --is-ancestor "$SOURCE_SHA" origin/master
+          gh run list --workflow docker-publish.yml --commit "$SOURCE_SHA" --status success --json databaseId --jq 'length > 0' | grep -qx true
+          previous="$(gh release list --limit 100 --json tagName --jq '[.[].tagName | select(startswith("android-v1.0.")) | split(".")[-1] | tonumber] | max // 0')"
+          version_code=$(( previous + 1 ))
+          if [ "$GITHUB_RUN_NUMBER" -gt "$version_code" ]; then version_code="$GITHUB_RUN_NUMBER"; fi
+          echo "CLINIX_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "CLINIX_VERSION_NAME=1.0.$version_code" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_APP_VERSION=1.0.$version_code" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Configure Android signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/clinix-release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/clinix-release.jks" >> "$GITHUB_ENV"
+      - name: Build signed APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          CLINIX_AUTH_HOST: ${{ vars.CLINIX_AUTH_HOST }}
+          ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT: ${{ vars.ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL: ${{ vars.NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL }}
+        run: |
+          test -n "$CLINIX_AUTH_HOST"
+          test -n "$ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT"
+          test -n "$NEXT_PUBLIC_API_BASE_URL"
+          test -n "$NEXT_PUBLIC_SUPABASE_URL"
+          test -n "$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          test -n "$NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL"
+          actual="$(keytool -exportcert -keystore "$ANDROID_KEYSTORE_PATH" -alias "$ANDROID_KEY_ALIAS" -storepass:env ANDROID_KEYSTORE_PASSWORD | openssl dgst -sha256 -binary | od -An -v -tx1 | tr -d ' \n' | tr '[:lower:]' '[:upper:]')"
+          expected="$(printf '%s' "$ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT" | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          test "$actual" = "$expected"
+          npm run build:android:release --workspace @clinix/mobile
+      - name: Verify APK signature
+        run: |
+          APK_SIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$APK_SIGNER"
+          "$APK_SIGNER" verify --verbose apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+      - name: Scan bundled assets for server credentials
+        run: |
+          mkdir -p "$RUNNER_TEMP/clinix-apk-scan"
+          unzip -q apps/mobile/android/app/build/outputs/apk/release/app-release.apk 'assets/public/*' -d "$RUNNER_TEMP/clinix-apk-scan"
+          if rg -l 'SUPABASE_SERVICE_ROLE_KEY|NINEROUTER_API_KEY|IDENTITY_ENCRYPTION_KEY' "$RUNNER_TEMP/clinix-apk-scan"; then
+            echo "Server credential markers found in bundled assets"; exit 1
+          fi
+      - name: Name APK and create checksum
+        id: artifact
+        run: |
+          mkdir -p release
+          cp apps/mobile/android/app/build/outputs/apk/release/app-release.apk release/clinix-android.apk
+          sha256sum release/clinix-android.apk | sed 's|  release/|  |' > release/clinix-android.apk.sha256
+          echo "tag=android-v${CLINIX_VERSION_NAME}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clinix-android-${{ env.CLINIX_VERSION_NAME }}
+          path: release/
+      - uses: softprops/action-gh-release@v2
+        with:
+          repository: AdvaitR7/ClinixAI
+          target_commitish: ${{ inputs.sha }}
+          draft: ${{ !inputs.publish }}
+          prerelease: true
+          tag_name: ${{ steps.artifact.outputs.tag }}
+          name: CliniX Android ${{ steps.artifact.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            release/clinix-android.apk
+            release/clinix-android.apk.sha256
