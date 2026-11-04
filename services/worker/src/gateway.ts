@@ -102,6 +102,7 @@ export async function generateStructuredTracked<T>(args: {
   const res = await client.chat.completions.create({
     model: route,
     messages: args.messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+    reasoning_effort: "low",
     response_format: { type: "json_object" },
   });
 
