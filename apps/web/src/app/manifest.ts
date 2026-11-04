@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+export const dynamic = "force-static";
+
 /** Web app manifest that makes CliniX AI installable as a standalone phone app. */
 export default function manifest(): MetadataRoute.Manifest {
   return {

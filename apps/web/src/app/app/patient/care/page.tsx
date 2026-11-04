@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import type { ConsentView, DoctorOption, RelationshipView } from "@clinix/schemas";
 import { useAuth } from "@/lib/auth";
 import { fetchApi, useApiData } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 import { careNav, expiryText, privacyCard, privacyLabel, scopeSummary } from "@/lib/privacy";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { PatientVisitHeader } from "@/components/patient-visit-header";
@@ -102,7 +103,7 @@ function MyDoctors({ circle, consents }: { circle: ReturnType<typeof useApiData<
                 <p key={c.id} className="mt-1 text-xs">{scopeSummary(c)} · {expiryText(c)}</p>
               ))}
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <Link href={`/app/patient/care/share/${doctor.doctor_id}`} className="grid min-h-11 place-items-center rounded-full bg-botanical px-3 text-xs text-surface">Share records</Link>
+                <Link href={recordHref("/app/patient/care/share", "doctorId", doctor.doctor_id)} className="grid min-h-11 place-items-center rounded-full bg-botanical px-3 text-xs text-surface">Share records</Link>
                 <Link href={`/app/patient/book?doctorId=${doctor.doctor_id}`} className="grid min-h-11 place-items-center rounded-full border border-sage px-3 text-xs">Book</Link>
                 <button type="button" disabled className="min-h-11 rounded-full border border-hairline px-3 text-xs text-graphite/60">Message unavailable</button>
                 <button type="button" onClick={(e) => { removeRef.current = e.currentTarget; setError(null); setRemoving(doctor); }} className="min-h-11 rounded-full border border-hairline px-3 text-xs text-critical">Remove</button>

@@ -121,7 +121,7 @@ test("SCR-018 care circle shows sharing state, never shares by itself, and remov
   await expect(page.getByRole("heading", { name: "Dr. Synthetic Alpha" })).toBeVisible();
   await expect(page.getByText(/Medication history · Expires/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Message unavailable" })).toBeDisabled();
-  await expect(page.getByRole("link", { name: "Share records" })).toHaveAttribute("href", `/app/patient/care/share/${alpha}`);
+  await expect(page.getByRole("link", { name: "Share records" })).toHaveAttribute("href", `/app/patient/care/share/by-id?doctorId=${alpha}`);
   await expect(page.getByRole("navigation").getByRole("link", { name: "Care" })).toHaveAttribute("href", "/app/patient/care");
   await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-018-393.png", fullPage: true });
   const remove = page.getByRole("button", { name: "Remove", exact: true });
@@ -156,7 +156,7 @@ test("SCR-019 discover searches verified doctors and adding one grants no consen
 test("SCR-020 scope picker needs a purpose, disables unavailable groups, and creates consent only after review", async ({ page }) => {
   const state = await privacyServices(page, "PATIENT");
   await page.setViewportSize({ width: 393, height: 1400 });
-  await page.goto(`/app/patient/care/share/${alpha}`);
+  await page.goto(`/app/patient/care/share/by-id?doctorId=${alpha}`);
   await expect(page.getByRole("checkbox", { name: /Known allergies/ })).toBeDisabled();
   await expect(page.getByText("No allergy record exists in CliniX yet.")).toBeVisible();
   const review = page.getByRole("button", { name: "REVIEW & CONFIRM SHARE" });
@@ -183,7 +183,7 @@ test("SCR-020 scope picker needs a purpose, disables unavailable groups, and cre
 
 test("SCR-020 returns to booking with the new consent id", async ({ page }) => {
   await privacyServices(page, "PATIENT");
-  await page.goto(`/app/patient/care/share/${alpha}?from=book&encounterId=${beta}`);
+  await page.goto(`/app/patient/care/share/by-id?from=book&encounterId=${beta}&doctorId=${alpha}`);
   await page.getByLabel("Purpose").fill("Visit review");
   await page.getByRole("button", { name: "REVIEW & CONFIRM SHARE" }).click();
   await page.getByRole("button", { name: "Confirm and share" }).click();
@@ -273,7 +273,7 @@ for (const width of [320, 768, 1440])
   test(`privacy screens fit ${width}px`, async ({ page }) => {
     await privacyServices(page, "PATIENT");
     await page.setViewportSize({ width, height: 900 });
-    for (const path of ["/app/patient/care", `/app/patient/care/share/${alpha}`, "/app/patient/privacy"]) {
+    for (const path of ["/app/patient/care", `/app/patient/care/share/by-id?doctorId=${alpha}`, "/app/patient/privacy"]) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

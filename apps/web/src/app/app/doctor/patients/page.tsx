@@ -7,6 +7,7 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { useApiData } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 
 const nav = [
   { label: "Desk", href: "/app/doctor" },
@@ -80,7 +81,7 @@ export default function DirectoryPage() {
           <ul className="space-y-3">
             {state.data.map((patient) => (
               <li key={patient.patient_id}>
-                <Link href={`/app/doctor/patients/${patient.patient_id}/context`} className="block min-h-44 rounded-[22px] border border-copper bg-graphite p-5">
+                <Link href={recordHref("/app/doctor/patients", "patientId", patient.patient_id, {}, "/context")} className="block min-h-44 rounded-[22px] border border-copper bg-graphite p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-copper font-sans text-sm font-bold text-ink">

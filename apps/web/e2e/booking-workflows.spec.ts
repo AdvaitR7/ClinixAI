@@ -280,7 +280,7 @@ test("SCR-022/023 reviews real doctor/mode/date/reason, preserves edits, and mak
   });
   await expect(
     page.getByRole("link", { name: "Choose what to share →" }),
-  ).toHaveAttribute("href", `/app/patient/care/share/${alpha}?from=book`);
+  ).toHaveAttribute("href", `/app/patient/care/share/by-id?from=book&doctorId=${alpha}`);
   await page
     .getByRole("button", { name: "REVIEW BOOKING", exact: true })
     .click();

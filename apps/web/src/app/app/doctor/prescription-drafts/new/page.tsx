@@ -8,6 +8,7 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
 import { MedicineEditor } from "@/components/medicine-editor";
 import { fetchApi } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 
 const nav = [
   { label: "Desk", href: "/app/doctor" },
@@ -57,8 +58,13 @@ function NewPrescriptionForm() {
           body: JSON.stringify({ source: "DIRECT_ENTRY", items: cleaned }),
         },
       );
-      const base = `/app/doctor/prescription-drafts/${res.id}`;
-      router.replace(next === "preview" ? `${base}/preview` : next === "finalize" ? `${base}?finalize=1` : base);
+      router.replace(recordHref(
+        "/app/doctor/prescription-drafts",
+        "draftId",
+        res.id,
+        next === "finalize" ? { finalize: "1" } : {},
+        next === "preview" ? "/preview" : "",
+      ));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save draft");
     } finally {

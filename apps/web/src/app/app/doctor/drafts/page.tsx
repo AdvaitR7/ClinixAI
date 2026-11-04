@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { ConfidenceBadge } from "@/components/confidence-badge";
 import { fetchApi, useApiData } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 
 const nav = [
   { label: "Desk", href: "/app/doctor" },
@@ -156,7 +157,7 @@ export default function DraftsPage() {
                   <div className="mt-5 flex gap-2.5 border-t border-white/5 pt-3.5">
                     <button
                       type="button"
-                      onClick={() => router.push(`/app/doctor/prescription-drafts/${d.id}`)}
+                      onClick={() => router.push(recordHref("/app/doctor/prescription-drafts", "draftId", d.id))}
                       className="min-h-11 flex-1 rounded-xl bg-copper px-4 font-sans text-xs font-semibold uppercase text-ink transition-transform active:translate-y-px"
                     >
                       Review draft →

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useApiData, useMe } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 import { StaffShell } from "@/components/staff-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { clinicDate, clinicTime, pickPractice, rememberPractice, useApiWrite, type StaffDashboard } from "@/lib/staff";
@@ -104,7 +105,7 @@ export default function StaffDashboardPage() {
                     {a.status === "REQUESTED" && (
                       <button type="button" onClick={() => void mark(a.id, "confirm")} className="min-h-11 rounded-full border border-copper px-4 text-xs">Confirm</button>
                     )}
-                    <Link href={`/app/staff/receipt/${a.id}?practice_id=${data.practice.id}`} className="inline-flex min-h-11 items-center rounded-full border border-copper px-4 text-xs">Payment</Link>
+                    <Link href={recordHref("/app/staff/receipt", "appointmentId", a.id, { practice_id: data.practice.id })} className="inline-flex min-h-11 items-center rounded-full border border-copper px-4 text-xs">Payment</Link>
                     {!a.intake_status && ["REQUESTED", "CONFIRMED"].includes(a.status) && (
                       <button type="button" onClick={() => void mark(a.id, "arrive")} className="min-h-11 rounded-full border border-copper px-4 text-xs">Mark arrival</button>
                     )}
@@ -112,7 +113,7 @@ export default function StaffDashboardPage() {
                       <button type="button" onClick={() => void mark(a.id, "waiting")} className="min-h-11 rounded-full border border-copper px-4 text-xs">Mark waiting</button>
                     )}
                     {a.intake_status && (
-                      <Link href={`/app/staff/intake/${a.id}?practice_id=${data.practice.id}`} className="inline-flex min-h-11 items-center rounded-full bg-copper px-4 text-xs font-semibold text-ink">
+                      <Link href={recordHref("/app/staff/intake", "appointmentId", a.id, { practice_id: data.practice.id })} className="inline-flex min-h-11 items-center rounded-full bg-copper px-4 text-xs font-semibold text-ink">
                         {staffRole === "ASSISTANT" ? "Open intake" : "Arrival details"}
                       </Link>
                     )}
@@ -129,7 +130,7 @@ export default function StaffDashboardPage() {
             <ul className="mt-3 space-y-2">
               {data.assigned_followups.map((f) => (
                 <li key={f.id}>
-                  <Link href={`/app/staff/followups/${f.id}?practice_id=${data.practice.id}`} className={`${card} block`}>
+                  <Link href={recordHref("/app/staff/followups", "id", f.id, { practice_id: data.practice.id })} className={`${card} block`}>
                     <p className="text-sm font-semibold">{f.patient_name || "Patient"} · {f.contact_status.toLowerCase()}</p>
                     <p className="text-xs text-surface/75">{f.reason}</p>
                     <p className="text-[10px] text-copper">Due {clinicDate(f.due_at)}</p>

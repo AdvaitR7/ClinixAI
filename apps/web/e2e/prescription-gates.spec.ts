@@ -81,7 +81,7 @@ async function gateServices(page: Page, source: "OCR" | "DIRECT_ENTRY" = "OCR") 
 }
 
 const alertLocator = (page: Page) => page.locator('[role="alert"]:not(#__next-route-announcer__)');
-const draftUrl = "/app/doctor/prescription-drafts/synthetic-draft";
+const draftUrl = "/app/doctor/prescription-drafts/by-id?draftId=synthetic-draft";
 const finalize = (page: Page) => page.getByRole("button", { name: "Finalize prescription", exact: true });
 
 test("SCR-033 shows source recovery, safety context and blocks finalization until flagged lines are confirmed", async ({ page }) => {
@@ -127,14 +127,14 @@ test("SCR-033 shows source recovery, safety context and blocks finalization unti
   state.rejectReview = true;
   await confirm.click();
   await expect(alertLocator(page).filter({ hasText: "Synthetic server review gate" })).toBeVisible();
-  await expect(page).toHaveURL(/\/prescription-drafts\/synthetic-draft$/);
+  await expect(page).toHaveURL(/\/prescription-drafts\/by-id\?draftId=synthetic-draft$/);
   state.rejectReview = false;
   await finalize(page).click();
   await review.getByLabel("Medicines match the original source").check();
   await review.getByLabel("Allergies and current medicines reviewed with the patient").check();
   await review.getByLabel("Printable preview checked").check();
   await review.getByRole("button", { name: "Finalize prescription", exact: true }).click();
-  await expect(page).toHaveURL(/\/prescriptions\/synthetic-prescription$/);
+  await expect(page).toHaveURL(/\/prescriptions\/by-id\?prescriptionId=synthetic-prescription$/);
 });
 
 test("editing a confirmed extracted line requires confirming it again, and a context failure is recoverable", async ({ page }) => {
@@ -155,7 +155,7 @@ test("SCR-033/034 PREVIEW saves the current edits and shows a printable, clearly
   await page.goto(draftUrl);
   await page.getByLabel("Dose (e.g. 1 tab)").fill("250 mg");
   await page.getByRole("button", { name: "Preview", exact: true }).click();
-  await expect(page).toHaveURL(/\/synthetic-draft\/preview$/);
+  await expect(page).toHaveURL(/\/prescription-drafts\/by-id\/preview\?draftId=synthetic-draft$/);
   const sheet = page.getByRole("article", { name: "Printable prescription preview" });
   await expect(sheet).toContainText("Draft preview — not a finalized prescription");
   await expect(sheet).toContainText("Amoxicillin");
@@ -163,7 +163,7 @@ test("SCR-033/034 PREVIEW saves the current edits and shows a printable, clearly
   await expect(page.getByRole("button", { name: "Print preview" })).toBeVisible();
   expect(state.events).toEqual(["save"]);
   await page.getByRole("link", { name: "Back to draft" }).click();
-  await expect(page).toHaveURL(/\/prescription-drafts\/synthetic-draft$/);
+  await expect(page).toHaveURL(/\/prescription-drafts\/by-id\?draftId=synthetic-draft$/);
   await expect(page.getByLabel("Dose (e.g. 1 tab)")).toHaveValue("250 mg");
 });
 
@@ -175,7 +175,7 @@ test("SCR-034 direct entry offers PREVIEW and FINALIZE, with free-text route/fre
   await expect(page.getByLabel("Route (e.g. Oral)")).toHaveAttribute("list", /options$/);
   await page.getByLabel("Route (e.g. Oral)").fill("Sublingual");
   await page.getByRole("button", { name: "Preview", exact: true }).click();
-  await expect(page).toHaveURL(/\/synthetic-draft\/preview$/);
+  await expect(page).toHaveURL(/\/prescription-drafts\/by-id\/preview\?draftId=synthetic-draft$/);
   await expect(page.getByRole("article", { name: "Printable prescription preview" })).toContainText("Sublingual");
 
   await page.goto(url);
@@ -203,7 +203,7 @@ for (const width of [320, 768, 1440]) test(`prescription draft, final review and
   expect(await fits()).toBe(true);
   await page.keyboard.press("Escape");
   await expect(finalize(page)).toBeFocused();
-  await page.goto(`${draftUrl}/preview`);
+  await page.goto("/app/doctor/prescription-drafts/by-id/preview?draftId=synthetic-draft");
   await expect(page.getByRole("article", { name: "Printable prescription preview" })).toBeVisible();
   expect(await fits()).toBe(true);
 });

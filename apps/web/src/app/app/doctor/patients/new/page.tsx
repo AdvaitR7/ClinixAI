@@ -10,6 +10,7 @@ import type { DoctorDirectoryEntry } from "@clinix/schemas";
 import { doctorCreatePatientSchema, type DoctorCreatePatient } from "@clinix/schemas";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchApi } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 
 const nav = [
   { label: "Desk", href: "/app/doctor" },
@@ -130,7 +131,7 @@ export default function AddPatientPage() {
         {inviteError && <p role="alert" className="font-sans text-sm font-medium text-critical">{inviteError}</p>}
         <div className="flex flex-col gap-3">
           <Link
-            href={`/app/doctor/patients/${created.patientId}`}
+            href={recordHref("/app/doctor/patients", "patientId", created.patientId)}
             className="flex min-h-[52px] items-center justify-center rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink"
           >
             Open workspace
@@ -265,7 +266,7 @@ export default function AddPatientPage() {
                   <li key={c.patient_id}>
                     <button
                       type="button"
-                      onClick={() => router.replace(`/app/doctor/patients/${c.patient_id}`)}
+                      onClick={() => router.replace(recordHref("/app/doctor/patients", "patientId", c.patient_id))}
                       className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-left font-sans text-sm text-surface hover:border-copper"
                     >
                       <span className="font-semibold">{c.full_name}</span>

@@ -162,7 +162,7 @@ test("SCR 23d staff books from published times; 23e receipt updates payment; 23f
   await expect(page.getByRole("button", { name: "Request appointment" })).toBeDisabled();
   await page.getByRole("group", { name: "Available times" }).getByRole("button").first().click();
   await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-023d-393.png", fullPage: true });
-  await page.goto(`/app/staff/receipt/${apptId}?practice_id=${practiceId}`);
+  await page.goto(`/app/staff/receipt/by-id?appointmentId=${apptId}&practice_id=${practiceId}`);
   await expect(page.getByText("Fee ₹600")).toBeVisible();
   await page.getByRole("button", { name: "Paid", exact: true }).click();
   expect(state.calls.some((c) => c.path.endsWith("/payment-status") && c.body.payment_status === "PAID")).toBe(true);
