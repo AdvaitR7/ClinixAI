@@ -14,7 +14,7 @@
     "dev:worker": "npm run dev --workspace @clinix/worker",
     "build": "npm run build --workspace @clinix/web",
     "lint": "npm run lint --workspace @clinix/web",
-    "test": "npm run test --workspace @clinix/web && npm run test --workspace @clinix/api",
+    "test": "npm run test --workspace @clinix/web && npm run test --workspace @clinix/api && npm run test --workspace @clinix/worker",
     "test:browser": "npm run test:browser --workspace @clinix/web",
     "typecheck": "npm run typecheck --workspace @clinix/web && npm run typecheck --workspace @clinix/api && npm run typecheck --workspace @clinix/worker",
     "db:generate": "npm run db:generate --workspace @clinix/api",

@@ -14,6 +14,19 @@ const ROUTE_ENV: Record<ModelRole, string> = {
   STT: "MODEL_ROUTE_STT",
 };
 
+/** Adds the OpenAI-compatible API path exactly once for 9Router deployments. */
+export function gatewayBaseUrl(value: string | undefined): string {
+  if (!value) throw new Error("NINEROUTER_BASE_URL is not configured");
+  const base = new URL(value);
+  if (base.protocol !== "https:" && base.hostname !== "localhost") {
+    throw new Error("NINEROUTER_BASE_URL must use HTTPS outside local development");
+  }
+  base.pathname = `${base.pathname.replace(/\/+$/, "").replace(/\/v1$/i, "")}/v1`;
+  base.search = "";
+  base.hash = "";
+  return base.toString().replace(/\/$/, "");
+}
+
 type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string | unknown[];
@@ -77,9 +90,10 @@ export async function generateStructuredTracked<T>(args: {
 
   const route = process.env[ROUTE_ENV[args.role]];
   if (!route) throw new Error(`Missing model route for role ${args.role}`);
+  if (!process.env.NINEROUTER_API_KEY) throw new Error("NINEROUTER_API_KEY is not configured");
 
   const client = new OpenAI({
-    baseURL: process.env.NINEROUTER_BASE_URL,
+    baseURL: gatewayBaseUrl(process.env.NINEROUTER_BASE_URL),
     apiKey: process.env.NINEROUTER_API_KEY,
   });
 
