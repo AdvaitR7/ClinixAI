@@ -34,6 +34,7 @@ import { assertIdentityKey } from "./crypto.js";
 assertIdentityKey();
 
 const app = Fastify({ logger: true, genReqId: () => crypto.randomUUID() });
+let mobileReleaseCache: { expiresAt: number; value: { version: string; download_url: string; published_at: string | null } } | null = null;
 
 // The web app calls the API cross-origin. CORS_ORIGINS is the allowlist; unset keeps the open dev default.
 await app.register(cors, { origin: corsOrigin(), methods: CORS_METHODS });
@@ -62,7 +63,42 @@ app.setErrorHandler((err: unknown, request, reply) => {
 // Health is a root-level ops endpoint (Phase 0).
 app.get("/health", async () => {
   const up = await checkDb();
-  return { ok: true, db: up ? "up" : "down" };
+  return {
+    ok: true,
+    db: up ? "up" : "down",
+    version: process.env.APP_VERSION ?? "unknown",
+    revision: process.env.GIT_SHA ?? "unknown",
+  };
+});
+
+/** Returns private-release metadata; GitHub still authenticates the APK download. */
+app.get("/mobile/release", async (_request, reply) => {
+  if (mobileReleaseCache && mobileReleaseCache.expiresAt > Date.now()) return mobileReleaseCache.value;
+  const repository = process.env.ANDROID_RELEASE_REPOSITORY ?? "AdvaitR7/ClinixAI";
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repository}/releases/latest`, {
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "ClinixAI",
+        ...(process.env.GITHUB_RELEASE_READ_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_RELEASE_READ_TOKEN}` } : {}),
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) return reply.code(503).send({ error: "Release information is unavailable." });
+    const release = await response.json() as {
+      tag_name?: string;
+      published_at?: string;
+      html_url?: string;
+      assets?: Array<{ name?: string; browser_download_url?: string; digest?: string }>;
+    };
+    const apk = release.assets?.find((asset) => asset.name === "clinix-android.apk");
+    if (!release.tag_name || !apk?.browser_download_url) {
+      return reply.code(503).send({ error: "No Android release is published yet." });
+    }
+    const value = { version: release.tag_name, version_code: Number(release.tag_name.match(/^android-v1\.0\.(\d+)$/)?.[1]) || null, sha256: apk.digest?.replace(/^sha256:/, "") ?? null, download_url: `https://github.com/${repository}/releases/tag/${encodeURIComponent(release.tag_name)}`, published_at: release.published_at ?? null };
+    mobileReleaseCache = { expiresAt: Date.now() + 5 * 60_000, value };
+    return value;
+  } catch {
+    return reply.code(503).send({ error: "Release information is temporarily unavailable." });
+  }
 });
 
 // Domain routes live under /api/v1 (architectural invariant).

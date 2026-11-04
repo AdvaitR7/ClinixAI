@@ -4,8 +4,8 @@
 # Domains are assigned in Dokploy's Domains tab: app.<domain> -> web:3000, api.<domain> -> api:4000.
 # Traefik terminates HTTPS, so no host ports are published here.
 #
-# Local run (needs the proxy network once: `docker network create dokploy-network`):
-#   docker compose --env-file <your env file> -f infra/dokploy/docker-compose.yml up --build
+# Local run (uses the published images configured for Dokploy):
+#   docker compose --env-file <your env file> -f infra/dokploy/docker-compose.yml up
 name: clinix
 
 x-api-environment: &api-environment
@@ -17,10 +17,8 @@ x-api-environment: &api-environment
 services:
   # One-shot: applies pending Drizzle migrations, then exits 0. api and worker wait for it.
   migrate:
-    build:
-      context: ../..
-      dockerfile: services/api/Dockerfile
-    image: ${CLINIX_IMAGE_PREFIX:-clinix}-api:${CLINIX_IMAGE_TAG:-latest}
+    image: ${CLINIX_IMAGE_PREFIX:-ghcr.io/advaitr7/clinix}-api:${CLINIX_IMAGE_TAG:?set immutable commit SHA}
+    pull_policy: always
     restart: "no"
     command: ["node", "--import", "tsx", "src/migrate.ts"]
     environment:
@@ -29,15 +27,8 @@ services:
       disable: true
 
   web:
-    build:
-      context: ../..
-      dockerfile: apps/web/Dockerfile
-      args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?set NEXT_PUBLIC_API_BASE_URL (https://api.<domain>/api/v1)}
-        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?set NEXT_PUBLIC_SUPABASE_URL}
-        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
-        NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL: ${NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL:?set NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL (https://app.<domain>)}
-    image: ${CLINIX_IMAGE_PREFIX:-clinix}-web:${CLINIX_IMAGE_TAG:-latest}
+    image: ${CLINIX_IMAGE_PREFIX:-ghcr.io/advaitr7/clinix}-web:${CLINIX_IMAGE_TAG:?set immutable commit SHA}
+    pull_policy: always
     restart: unless-stopped
     expose:
       - "3000"
@@ -51,10 +42,8 @@ services:
       start_period: 20s
 
   api:
-    build:
-      context: ../..
-      dockerfile: services/api/Dockerfile
-    image: ${CLINIX_IMAGE_PREFIX:-clinix}-api:${CLINIX_IMAGE_TAG:-latest}
+    image: ${CLINIX_IMAGE_PREFIX:-ghcr.io/advaitr7/clinix}-api:${CLINIX_IMAGE_TAG:?set immutable commit SHA}
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       migrate:
@@ -62,8 +51,10 @@ services:
     environment:
       <<: *api-environment
       PORT: "4000"
+      ANDROID_RELEASE_REPOSITORY: AdvaitR7/ClinixAI
+      GITHUB_RELEASE_READ_TOKEN: ${GITHUB_RELEASE_READ_TOKEN:-}
       # Exact web origins allowed to call the API; production refuses to start without it.
-      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS to https://app.<domain>}
+      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS to https://clinix.thecontractor.me,https://localhost}
       IDENTITY_ENCRYPTION_KEY: ${IDENTITY_ENCRYPTION_KEY:?set IDENTITY_ENCRYPTION_KEY (64 hex chars)}
       SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL}
       SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:?set SUPABASE_PUBLISHABLE_KEY}
@@ -86,15 +77,13 @@ services:
       start_period: 20s
 
   worker:
-    build:
-      context: ../..
-      dockerfile: services/worker/Dockerfile
-    image: ${CLINIX_IMAGE_PREFIX:-clinix}-worker:${CLINIX_IMAGE_TAG:-latest}
+    image: ${CLINIX_IMAGE_PREFIX:-ghcr.io/advaitr7/clinix}-worker:${CLINIX_IMAGE_TAG:?set immutable commit SHA}
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       migrate:
         condition: service_completed_successfully
-    environment:
+    environment: &worker-environment
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
       DB_POOL_MAX: ${WORKER_DB_POOL_MAX:-2}
@@ -102,15 +91,30 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?set SUPABASE_SERVICE_ROLE_KEY}
       IDENTITY_ENCRYPTION_KEY: ${IDENTITY_ENCRYPTION_KEY:?set IDENTITY_ENCRYPTION_KEY (64 hex chars)}
-      NINEROUTER_BASE_URL: ${NINEROUTER_BASE_URL:-}
-      NINEROUTER_API_KEY: ${NINEROUTER_API_KEY:-}
-      MODEL_ROUTE_ANALYST_1: ${MODEL_ROUTE_ANALYST_1:-}
-      MODEL_ROUTE_ANALYST_2: ${MODEL_ROUTE_ANALYST_2:-}
-      MODEL_ROUTE_JUDGE: ${MODEL_ROUTE_JUDGE:-}
-      MODEL_ROUTE_OCR: ${MODEL_ROUTE_OCR:-}
+      NINEROUTER_BASE_URL: ${NINEROUTER_BASE_URL:?set NINEROUTER_BASE_URL}
+      NINEROUTER_API_KEY: ${NINEROUTER_API_KEY:?set NINEROUTER_API_KEY}
+      MODEL_ROUTE_ANALYST_1: ${MODEL_ROUTE_ANALYST_1:?set MODEL_ROUTE_ANALYST_1}
+      MODEL_ROUTE_ANALYST_2: ${MODEL_ROUTE_ANALYST_2:?set MODEL_ROUTE_ANALYST_2}
+      MODEL_ROUTE_JUDGE: ${MODEL_ROUTE_JUDGE:?set MODEL_ROUTE_JUDGE}
+      MODEL_ROUTE_OCR: ${MODEL_ROUTE_OCR:?set MODEL_ROUTE_OCR}
       MODEL_ROUTE_STT: ${MODEL_ROUTE_STT:-}
       DEMO_REPLAY: ${DEMO_REPLAY:-}
     stop_grace_period: 20s
+
+  verify:
+    image: ${CLINIX_IMAGE_PREFIX:-ghcr.io/advaitr7/clinix}-worker:${CLINIX_IMAGE_TAG:?set immutable commit SHA}
+    pull_policy: always
+    restart: "no"
+    command: ["node", "--import", "tsx", "src/deployment-probe.ts"]
+    environment:
+      <<: *worker-environment
+    depends_on:
+      api:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+    healthcheck:
+      disable: true
 
 networks:
   dokploy-network:

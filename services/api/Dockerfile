@@ -13,8 +13,10 @@ RUN npm ci --omit=dev --workspace @clinix/api
 
 FROM node:24-slim AS runtime
 WORKDIR /repo
+ARG GIT_SHA=unknown
 ENV NODE_ENV=production \
     PORT=4000
+ENV GIT_SHA=$GIT_SHA APP_VERSION=$GIT_SHA
 COPY --from=deps /repo/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY packages ./packages

@@ -3,6 +3,8 @@ import { writeFileSync } from "node:fs";
 import { PgBoss } from "pg-boss";
 import { sql } from "./db.js";
 import { handleDocumentExtract } from "./handlers/document-extract.js";
+import { generateStructured } from "./gateway.js";
+import { z } from "zod";
 import { handleAiAnalyze } from "./handlers/ai-analyze.js";
 
 // Worker process for pg-boss jobs (ARCHITECTURE_SPEC §35). Lives in
@@ -23,6 +25,16 @@ async function main() {
   await boss.createQueue("ai.analyze");
   await boss.work("document.extract", handleDocumentExtract);
   await boss.work("ai.analyze", handleAiAnalyze);
+  await boss.createQueue("ops.probe");
+  // Synthetic deployment probe contains no patient data and is consumed by the real worker.
+  await boss.work<{ revision: string }>("ops.probe", { batchSize: 1 }, async ([job]) => {
+    if (job.data.revision !== process.env.GIT_SHA) throw new Error("Worker revision does not match probe");
+    const result = await generateStructured({
+      role: "ANALYST_1", schema: z.object({ ok: z.literal(true) }),
+      messages: [{ role: "user", content: 'Return JSON: {"ok":true}' }],
+    });
+    return { ok: result.ok, revision: process.env.GIT_SHA };
+  });
   console.log("worker: listening for document.extract and ai.analyze");
 
   // The Docker HEALTHCHECK reads this file's age; it is only refreshed while the database answers.

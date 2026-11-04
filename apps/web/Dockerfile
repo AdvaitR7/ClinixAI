@@ -20,6 +20,9 @@ ARG NEXT_PUBLIC_API_BASE_URL
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL
+ARG ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
     NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
@@ -29,11 +32,16 @@ COPY --from=deps /repo/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY packages ./packages
 COPY apps/web ./apps/web
+RUN if [ -n "$ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT" ]; then \
+      mkdir -p apps/web/public/.well-known && \
+      node -e 'const fs=require("node:fs"); const fingerprint=process.argv[1].split(",").map((value)=>value.trim()).filter(Boolean); if (!fingerprint.length) process.exit(2); fs.writeFileSync("apps/web/public/.well-known/assetlinks.json", JSON.stringify([{relation:["delegate_permission/common.handle_all_urls"],target:{namespace:"android_app",package_name:"com.clinixai.app",sha256_cert_fingerprints:fingerprint}}]));' "$ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT"; \
+    fi
 # `next build && serwist build`: emits the standalone server and public/sw.js.
 RUN npm run build --workspace @clinix/web
 
 FROM node:24-slim AS runtime
 WORKDIR /repo
+LABEL org.opencontainers.image.source="https://github.com/AdvaitR7/ClinixAI"
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
