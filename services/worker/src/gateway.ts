@@ -33,7 +33,7 @@ type ChatMessage = {
 };
 
 /** Strips ```json / ``` markdown fences that some routes emit despite json_object. */
-function extractJson(content: string): string {
+export function extractJson(content: string): string {
   let s = content.trim();
   const fence = s.match(/^```(?:json)?\s*/i);
   if (fence) s = s.slice(fence[0].length);

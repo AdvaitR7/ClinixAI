@@ -1,6 +1,6 @@
 import "dotenv/config";
 import OpenAI from "openai";
-import { gatewayBaseUrl, type ModelRole } from "./gateway.js";
+import { extractJson, gatewayBaseUrl, type ModelRole } from "./gateway.js";
 
 const requiredRoutes: Record<Exclude<ModelRole, "STT">, string> = {
   ANALYST_1: "MODEL_ROUTE_ANALYST_1",
@@ -40,7 +40,7 @@ async function main() {
     response_format: { type: "json_object" },
   });
   const content = response.choices[0]?.message?.content;
-  if (!content || JSON.parse(content).ok !== true) throw new Error("The 9Router structured-response check failed");
+  if (!content || JSON.parse(extractJson(content)).ok !== true) throw new Error("The 9Router structured-response check failed");
 
   console.log(`9Router preflight passed: ${Object.keys(routes).length} routes found and JSON completion succeeded.`);
 }

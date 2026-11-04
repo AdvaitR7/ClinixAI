@@ -10,11 +10,11 @@ vi.mock("openai", () => ({ default: class {
 
 afterEach(() => vi.unstubAllEnvs());
 
-it("requests a bounded non-streaming JSON completion from the selected route", async () => {
+it.each(['{"ok":true}', '```json\n{"ok":true}\n```'])("validates a bounded non-streaming completion: %s", async (content) => {
   vi.stubEnv("NINEROUTER_BASE_URL", "https://router.example.test/v1");
   vi.stubEnv("NINEROUTER_API_KEY", "synthetic-key");
   vi.stubEnv("MODEL_ROUTE_OCR", "ag/gemini-3.8-flash-high");
-  mocks.create.mockResolvedValue({ choices: [{ message: { content: '{"ok":true}' } }] });
+  mocks.create.mockResolvedValue({ choices: [{ message: { content } }] });
   await expect(generateStructuredTracked({ role: "OCR", schema: z.object({ ok: z.literal(true) }), messages: [{ role: "user", content: "Return JSON" }] }))
     .resolves.toEqual({ value: { ok: true }, source: "live" });
   expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ model: "ag/gemini-3.8-flash-high", stream: false }));
