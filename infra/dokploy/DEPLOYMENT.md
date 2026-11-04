@@ -22,7 +22,7 @@ The raw Compose application uses private CI-built images. There are no productio
 
 1. Push `deploy/clinix-android-production` and open a PR to `master`.
 2. PR verification uses synthetic public settings, runs typecheck/unit/browser tests, both UI builds and container build validation. It cannot deploy production.
-3. Merge once checks pass. `Build and publish images` publishes all three private GHCR images under the same full SHA. It does not deploy.
+3. Merge once checks pass. `Build and publish images` publishes all four private GHCR images under the same full SHA. It does not deploy.
 4. Run `Promote production SHA`, input the full successfully built master SHA. The workflow checks ancestry and CI success, renders literal SHA image references, updates only the configured CliniX Compose definition and requests deployment.
 5. Promotion checks API revision/DB, public web health, Docker API/web/worker health, migration exit and synthetic verification exit. Any failure fails the job and records the previous SHA in the summary.
 6. Run `Android APK release`, selecting the same tested source SHA. Default: create a draft private prerelease and candidate artifact. `publish=true` publishes a PRIVATE prerelease candidate. Promote it to a stable release only after phone acceptance.
@@ -53,7 +53,7 @@ A bad installed APK is replaced with a corrected APK using the SAME signing key 
 
 ## Monitoring and backups
 
-See ENVIRONMENT.md for the external destination inputs, daily 02:00 UTC schedule, retention and restoration gate. Docker health checks and CI gates exist; an offsite backup provider and external alert recipient must be configured before patient launch. Never treat documentation as proof that a backup schedule ran or a restore succeeded.
+See ENVIRONMENT.md for the external destination inputs, daily 02:00 UTC schedule, retention and restoration gate. A daily backup schedule and operations container are prepared; the schedule remains disabled until destination credentials and a successful restore drill exist. Docker health checks and CI gates exist; an offsite backup provider and external alert recipient must be configured before patient launch. Never treat documentation as proof that a backup schedule ran or a restore succeeded.
 
 ## Operational commands
 

@@ -116,6 +116,20 @@ services:
     healthcheck:
       disable: true
 
+  backup:
+    image: ${CLINIX_IMAGE_PREFIX:-ghcr.io/advaitr7/clinix}-backup:${CLINIX_IMAGE_TAG:?set immutable commit SHA}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      BACKUP_DATABASE_URL: ${BACKUP_DATABASE_URL:-}
+      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?set SUPABASE_SERVICE_ROLE_KEY}
+      BACKUP_S3_URI: ${BACKUP_S3_URI:-}
+      AWS_ACCESS_KEY_ID: ${BACKUP_AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${BACKUP_AWS_REGION:-us-east-1}
+      AWS_ENDPOINT_URL: ${BACKUP_AWS_ENDPOINT_URL:-}
+
 networks:
   dokploy-network:
     external: true

@@ -61,6 +61,8 @@ jobs:
             dockerfile: services/api/Dockerfile
           - name: worker
             dockerfile: services/worker/Dockerfile
+          - name: backup
+            dockerfile: infra/dokploy/backup.Dockerfile
     steps:
       - uses: actions/checkout@v4
       - name: Lowercase image prefix
@@ -100,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dockerfile: [apps/web/Dockerfile, services/api/Dockerfile, services/worker/Dockerfile]
+        dockerfile: [apps/web/Dockerfile, services/api/Dockerfile, services/worker/Dockerfile, infra/dokploy/backup.Dockerfile]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3

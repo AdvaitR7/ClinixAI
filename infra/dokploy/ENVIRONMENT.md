@@ -99,3 +99,24 @@ No offsite destination was configured during initial inspection. Before producti
 Daily schedule: `0 2 * * *` UTC. Retention: 30 daily copies and 12 monthly copies. Use a PostgreSQL client compatible with the server, an approved direct/session backup connection, checksums, and a document manifest. Separately encrypt and retain the identity key and Android signing key. Alert on backup failure or last success older than 26 hours. Restore into an isolated Supabase project and verify decryption and document contents before launch. Do not enable an empty or untested backup schedule.
 
 Monitor API HTTPS/DB status, web/callback availability, Docker worker heartbeat, queue failures/stalls, router failures and certificate expiry. Use operational identifiers and counts only; exclude patient data, prompts and credentials. Configure an alert destination before patient launch.
+
+## Backup service and schedule
+
+The `backup` operations container has no public ingress. Its PostgreSQL 17 client must match the actual Supabase server major (adjust the backup Dockerfile if the server is newer). Dokploy schedule `CliniX daily offsite database and documents` is created at `02:00 UTC` but DISABLED until configuration and restore validation.
+
+Add these ONLY to Dokploy Environment:
+
+| Name | Value |
+|---|---|
+| `BACKUP_DATABASE_URL` | Approved direct/session PostgreSQL backup connection |
+| `BACKUP_S3_URI` | `s3://<offsite-bucket>/clinix` |
+| `BACKUP_AWS_ACCESS_KEY_ID` | Restricted offsite destination key |
+| `BACKUP_AWS_SECRET_ACCESS_KEY` | Restricted destination secret |
+| `BACKUP_AWS_REGION` | Destination region |
+| `BACKUP_AWS_ENDPOINT_URL` | Optional S3-compatible HTTPS endpoint |
+
+Set bucket lifecycle rules: expire `clinix/daily/` after 30 days and `clinix/monthly/` after 366 days. Require server-side encryption and restrict access to the backup prefix. The script uploads checksummed database/document snapshots with AES256 server-side encryption, makes a monthly copy on the first day, and updates `last-success.json` only when all uploads succeed. Object names appear only inside the protected backup manifest. Configure an external alert to read that success marker and alert after 26 hours or on a failed Dokploy schedule.
+
+Run the schedule manually once, then download that snapshot into an isolated environment. Verify `database_sha256` and every document checksum in manifest.json. Restore the dump using `pg_restore --no-owner --no-acl` into an EMPTY non-production Supabase project with compatible roles/extensions; recreate the private document bucket and upload the original object paths from the manifest. Never run restore against production. Verify identity decryption with the separately held ORIGINAL identity key and signed document access. Record the drill result before enabling the daily schedule.
+
+Database and object captures are not one atomic snapshot: the manifest records the backup start time. Pause application writes for the first restoration drill and document any later restore-point gap. Do not claim point-in-time document recovery from these daily copies.
