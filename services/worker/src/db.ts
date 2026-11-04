@@ -7,7 +7,7 @@ import * as schema from "@clinix/api/schema";
 // api's schema so table definitions never drift between the two processes.
 const url = process.env.DATABASE_URL;
 
-export const sql = url ? postgres(url, { max: 5 }) : null;
+export const sql = url ? postgres(url, { max: Number(process.env.DB_POOL_MAX ?? 2) }) : null;
 export const db = sql ? drizzle(sql, { schema }) : null;
 
 export function requireDb() {

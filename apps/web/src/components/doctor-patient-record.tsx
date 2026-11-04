@@ -16,6 +16,7 @@ import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
 import { Skeleton } from "@/components/skeleton";
 import { createIdentityRequest, useAuth } from "@/lib/auth";
 import { fetchApi, useApiData } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 
 const nav = [
   { label: "Desk", href: "/app/doctor" },
@@ -342,7 +343,7 @@ export function DoctorPatientRecord({
     );
 
   const record = latest ?? state.data;
-  const recordUrl = `/app/doctor/patients/${patientId}`;
+  const recordUrl = recordHref("/app/doctor/patients", "patientId", patientId);
   const medications = record.medications ?? [];
   const current = medications.filter(
     (medicine) => medicine.status === "CURRENT",
@@ -442,7 +443,7 @@ export function DoctorPatientRecord({
               ) && (
                 <Link
                   className="mt-2 inline-block min-h-11 py-3 text-xs text-evidence underline"
-                  href={`/app/doctor/prescriptions/${medicine.prescription_id}`}
+                  href={recordHref("/app/doctor/prescriptions", "prescriptionId", medicine.prescription_id)}
                 >
                   Open original prescription
                 </Link>
@@ -860,7 +861,7 @@ export function DoctorPatientRecord({
                   record.prescriptions.map((prescription) => (
                     <Link
                       key={prescription.id}
-                      href={`/app/doctor/prescriptions/${prescription.id}`}
+                      href={recordHref("/app/doctor/prescriptions", "prescriptionId", prescription.id)}
                       className="mt-2 block min-h-11 py-3 text-xs text-evidence"
                     >
                       Finalized prescription · {at(prescription.finalized_at)} →
@@ -955,7 +956,7 @@ export function DoctorPatientRecord({
           )}
           {selected ? (
             <Link
-              href={`/app/doctor/consultation/${selected.id}`}
+              href={recordHref("/app/doctor/consultation", "appointmentId", selected.id)}
               className={`${action} bg-copper text-ink`}
             >
               {compact ? "Start consultation" : "Begin consultation"}

@@ -1,0 +1,21 @@
+# Secrets and local state never enter an image build context.
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+.sensitive_docs
+docs
+code-agent
+
+# Dependencies and build output are produced inside the image.
+**/node_modules
+**/.next
+**/.next-*
+**/dist
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+.git
+**/*.log

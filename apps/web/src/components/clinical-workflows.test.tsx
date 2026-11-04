@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import PrescriptionDraftPage from "@/app/app/doctor/prescription-drafts/[draftId]/page";
-import ConsultationPage from "@/app/app/doctor/consultation/[appointmentId]/page";
+import PrescriptionDraftPage from "@/components/route-pages/app-doctor-prescription-drafts";
+import ConsultationPage from "@/components/route-pages/app-doctor-consultation";
 
 const mocks = vi.hoisted(() => ({ getToken: vi.fn(), fetchApi: vi.fn(), replace: vi.fn(), refresh: vi.fn(), state: {} as Record<string, unknown> }));
 vi.mock("@/lib/auth", () => ({ useAuth: () => ({ getToken: mocks.getToken }) }));
@@ -57,7 +57,7 @@ describe("prescription review and finalization", () => {
     fireEvent.click(within(dialog).getByLabelText("Printable preview checked"));
     expect(finalize).toBeEnabled();
     fireEvent.click(finalize);
-    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/app/doctor/prescriptions/synthetic-prescription"));
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/app/doctor/prescriptions/by-id?prescriptionId=synthetic-prescription"));
     const request = mocks.fetchApi.mock.calls.find((call) => call[2]?.method === "POST")!;
     expect(JSON.parse(request[2].body)).toEqual({ reviewed_items: [{ medicine_name: "Synthetic medicine", dose: "2 tablets" }] });
   });

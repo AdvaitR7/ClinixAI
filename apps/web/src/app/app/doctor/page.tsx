@@ -14,7 +14,7 @@ const nav = [
   { label: "Schedule", href: "/app/doctor/schedule" },
   { label: "Patients", href: "/app/doctor/patients" },
   { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor", disabled: true },
+  { label: "Follow-ups", href: "/app/doctor/followups" },
 ];
 
 function fmtTime(iso: string) {
@@ -31,13 +31,19 @@ export default function DoctorPage() {
   const state = useApiData<DoctorDashboard>("/doctor/dashboard");
   const [busy, setBusy] = useState<string | null>(null);
 
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  /** Runs a confirm/cancel action and surfaces a failure inline instead of an unhandled rejection. */
   async function act(path: string, id: string) {
     setBusy(id);
+    setActionError(null);
     try {
       const token = await getToken();
       if (!token) throw new Error("Not signed in");
       await fetchApi(token, path, { method: "POST", body: "{}" });
       await state.refresh();
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "The action failed.");
     } finally {
       setBusy(null);
     }
@@ -50,6 +56,12 @@ export default function DoctorPage() {
           <Skeleton className="h-20 rounded-2xl" />
           <Skeleton className="h-72 rounded-2xl" />
         </div>
+      )}
+
+      {actionError && (
+        <p role="alert" className="mb-3 font-sans text-xs text-critical">
+          {actionError}
+        </p>
       )}
 
       {state.status === "error" && (
@@ -180,10 +192,21 @@ export default function DoctorPage() {
                 <span className="font-sans text-sm font-semibold text-surface">Overdue</span>
                 <span className="font-mono text-lg text-surface">{state.data.followups_due.overdue}</span>
               </div>
-              <p className="mt-3 rounded-xl border border-white/10 p-3 font-sans text-xs leading-5 text-doctor-muted/65">
-                Follow-up records are not available yet; these are API summary counts only.
-              </p>
+              <Link href="/app/doctor/followups" className="mt-3 flex min-h-11 items-center justify-between border-t border-white/10 pt-3 font-sans text-sm font-semibold text-surface">
+                Open follow-up worklist <span aria-hidden="true" className="text-copper">→</span>
+              </Link>
             </div>
+          </section>
+
+          <section aria-labelledby="practice-title">
+            <p className="clinix-label text-copper">Practice</p>
+            <h2 id="practice-title" className="mt-1 font-sans text-xl font-semibold text-surface">Team and profile</h2>
+            <Link href="/app/doctor/team" className="clinix-doctor-card mt-4 flex min-h-14 items-center justify-between p-4 font-sans text-sm font-semibold text-surface">
+              Practice team <span aria-hidden="true" className="text-copper">→</span>
+            </Link>
+            <Link href="/app/doctor/profile" className="clinix-doctor-card mt-3 flex min-h-14 items-center justify-between p-4 font-sans text-sm font-semibold text-surface">
+              Profile and services <span aria-hidden="true" className="text-copper">→</span>
+            </Link>
           </section>
 
           <section aria-labelledby="patient-search-title">

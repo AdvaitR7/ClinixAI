@@ -55,7 +55,7 @@ export default function RemovalRequestsPage() {
       </section>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Request filters">
         {FILTERS.map((f) => (
-          <button key={f.label} type="button" aria-pressed={filter.label === f.label} onClick={() => setFilter(f)} className={`min-h-9 rounded-full border px-3 text-[10px] ${filter.label === f.label ? "border-copper bg-copper text-ink" : "border-copper/60"}`}>{f.label}</button>
+          <button key={f.label} type="button" aria-pressed={filter.label === f.label} onClick={() => setFilter(f)} className={`min-h-11 rounded-full border px-3 text-[10px] ${filter.label === f.label ? "border-copper bg-copper text-ink" : "border-copper/60"}`}>{f.label}</button>
         ))}
       </div>
       {requests.status === "loading" && <p role="status" className="text-sm">Loading requests…</p>}

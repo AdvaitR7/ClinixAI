@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { ConfidenceBadge } from "@/components/confidence-badge";
 import { fetchApi, useApiData } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 
 const nav = [
   { label: "Desk", href: "/app/doctor" },
@@ -37,13 +38,19 @@ export default function DraftsPage() {
   const [filter, setFilter] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  /** Deletes a draft and surfaces a failure inline instead of an unhandled rejection. */
   async function del(id: string) {
     setBusy(id);
+    setDeleteError(null);
     try {
       const token = await getToken();
       if (!token) throw new Error("Not signed in");
       await fetchApi(token, `/doctor/prescription-drafts/${id}`, { method: "DELETE" });
       await state.refresh();
+    } catch (cause) {
+      setDeleteError(cause instanceof Error ? cause.message : "The draft could not be deleted.");
     } finally {
       setBusy(null);
     }
@@ -83,7 +90,7 @@ export default function DraftsPage() {
             key={f ?? "all"}
             type="button"
             onClick={() => setFilter(f)}
-            className={`min-h-10 rounded-full border px-4 font-sans text-xs font-semibold ${
+            className={`min-h-11 rounded-full border px-4 font-sans text-xs font-semibold ${
               filter === f ? "border-copper bg-copper text-ink" : "border-white/10 text-doctor-muted/75"
             }`}
           >
@@ -98,6 +105,8 @@ export default function DraftsPage() {
           <Skeleton className="h-32 rounded-2xl" />
         </div>
       )}
+
+      {deleteError && <p role="alert" className="font-sans text-sm text-critical">{deleteError}</p>}
 
       {state.status === "error" && <p role="alert" className="font-sans text-sm text-critical">{state.error}</p>}
 
@@ -148,8 +157,8 @@ export default function DraftsPage() {
                   <div className="mt-5 flex gap-2.5 border-t border-white/5 pt-3.5">
                     <button
                       type="button"
-                      onClick={() => router.push(`/app/doctor/prescription-drafts/${d.id}`)}
-                      className="min-h-10 flex-1 rounded-xl bg-copper px-4 font-sans text-xs font-semibold uppercase text-ink transition-transform active:translate-y-px"
+                      onClick={() => router.push(recordHref("/app/doctor/prescription-drafts", "draftId", d.id))}
+                      className="min-h-11 flex-1 rounded-xl bg-copper px-4 font-sans text-xs font-semibold uppercase text-ink transition-transform active:translate-y-px"
                     >
                       Review draft →
                     </button>
@@ -160,7 +169,7 @@ export default function DraftsPage() {
                         onClick={() => {
                           if (window.confirm("Delete this draft?")) void del(d.id);
                         }}
-                        className="min-h-10 rounded-xl border border-critical/40 bg-critical/10 px-4 font-sans text-xs font-semibold text-critical disabled:opacity-60"
+                        className="min-h-11 rounded-xl border border-critical/40 bg-critical/10 px-4 font-sans text-xs font-semibold text-critical disabled:opacity-60"
                       >
                         Delete
                       </button>

@@ -13,7 +13,9 @@ apps/web/.env.local
 # Dependencies / builds
 node_modules/
 .next/
+apps/web/out/
 .next-browser-tests/
+.next-pwa-tests/
 .next-verification/
 dist/
 .turbo/
@@ -21,9 +23,16 @@ dist/
 test-results/
 playwright-report/
 
+# Serwist-generated service worker
+apps/web/public/sw*
+
 # Misc
 .DS_Store
 *.log
 
 # Generated copyright deposits and complete source listings
 /copyright-submission/
+
+# Permanent Android signing material must stay outside source control
+*.jks
+*.keystore

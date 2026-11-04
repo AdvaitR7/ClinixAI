@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import type { AccessLedger, ConsentView, LedgerCategory, RelationshipView, RemovalRequestView } from "@clinix/schemas";
 import { useAuth } from "@/lib/auth";
 import { fetchApi, useApiData } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 import { careNav, expiryText, formatDateTime, privacyCard, privacyLabel, scopeSummary } from "@/lib/privacy";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { PatientVisitHeader } from "@/components/patient-visit-header";
@@ -102,7 +103,7 @@ function Permissions({ consents, activeCount, totalEvents, onChanged }: { consen
               <div className="flex justify-between gap-4"><dt className="text-graphite">Expiry</dt><dd>{expiryText(c)}</dd></div>
             </dl>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <Link href={`/app/patient/care/share/${c.doctor_id}`} className="grid min-h-11 place-items-center rounded-full border border-sage px-3 text-xs">Change scope</Link>
+              <Link href={recordHref("/app/patient/care/share", "doctorId", c.doctor_id)} className="grid min-h-11 place-items-center rounded-full border border-sage px-3 text-xs">Change scope</Link>
               <button type="button" onClick={(e) => { triggerRef.current = e.currentTarget; setError(null); setRevoking(c); }} className="min-h-11 rounded-full border border-critical px-3 text-xs text-critical">Revoke</button>
             </div>
           </article>
@@ -176,7 +177,7 @@ function Ledger({ onCounts }: { onCounts: (counts: AccessLedger["counts"]) => vo
       </div>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Ledger filters">
         {FILTERS.map((f) => (
-          <button key={f.label} type="button" aria-pressed={category === f.value} onClick={() => { setEvents([]); setCursor(null); setCategory(f.value); }} className={`min-h-9 rounded-full border px-3 text-[10px] ${category === f.value ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{f.label}{counts ? ` · ${counts[f.count]}` : ""}</button>
+          <button key={f.label} type="button" aria-pressed={category === f.value} onClick={() => { setEvents([]); setCursor(null); setCategory(f.value); }} className={`min-h-11 rounded-full border px-3 text-[10px] ${category === f.value ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{f.label}{counts ? ` · ${counts[f.count]}` : ""}</button>
         ))}
       </div>
       {status === "error" && <div role="alert" className={privacyCard}><p className="text-sm">{error}</p><button type="button" onClick={() => void load(null)} className="mt-2 min-h-11 text-xs text-evidence">Retry</button></div>}
@@ -193,6 +194,7 @@ function Ledger({ onCounts }: { onCounts: (counts: AccessLedger["counts"]) => vo
             {e.purpose && <div className="flex justify-between gap-4"><dt className="text-graphite">Purpose</dt><dd className="text-right">{e.purpose}</dd></div>}
             {e.consent_id && <div className="flex justify-between gap-4"><dt className="text-graphite">Basis</dt><dd>Your consent</dd></div>}
           </dl>
+          <Link href={recordHref("/app/patient/privacy/access", "eventId", e.id)} className="mt-1 inline-flex min-h-11 items-center text-[10px] font-semibold text-botanical">View receipt →</Link>
         </article>
       ))}
       {status === "loading" && <p role="status" className="text-xs text-graphite">Loading ledger…</p>}

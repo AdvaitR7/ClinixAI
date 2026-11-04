@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import { CORS_METHODS, corsOrigin } from "./cors.js";
 import authPlugin from "./auth/context.js";
 import { meRoutes } from "./auth/me.js";
 import { doctorRoutes } from "./doctors/routes.js";
@@ -19,20 +20,41 @@ import { interactionRoutes } from "./interactions/routes.js";
 import { aiRoutes } from "./ai/routes.js";
 import { timelineRoutes } from "./timeline/routes.js";
 import { privacyRoutes } from "./privacy/routes.js";
-import { startQueue } from "./queue.js";
-import { checkDb } from "./db";
+import { practiceRoutes } from "./practices/routes.js";
+import { staffRoutes } from "./staff/routes.js";
+import { staffOperationsRoutes } from "./staff/operations-routes.js";
+import { followupRoutes } from "./followups/routes.js";
+import { notificationRoutes } from "./notifications/routes.js";
+import { doctorProfileRoutes } from "./doctors/profile-routes.js";
+import { startQueue, stopQueue } from "./queue.js";
+import { checkDb, sql } from "./db";
+import { assertIdentityKey } from "./crypto.js";
+
+// Fail at boot, not with a 500 on every patient route, when the identity key is missing or malformed.
+assertIdentityKey();
 
 const app = Fastify({ logger: true, genReqId: () => crypto.randomUUID() });
+let mobileReleaseCache: { expiresAt: number; value: { version: string; download_url: string; published_at: string | null } } | null = null;
 
-// Web (localhost:3000) calls the API cross-origin; allow it for dev.
-await app.register(cors, { origin: true });
+// The web app calls the API cross-origin. CORS_ORIGINS is the allowlist; unset keeps the open dev default.
+await app.register(cors, { origin: corsOrigin(), methods: CORS_METHODS });
+
+/** Maps an HTTP status to the API error code so framework 401/404/415 errors are not reported as internal. */
+function errorCode(status: number): string {
+  if (status === 400) return "VALIDATION_ERROR";
+  if (status === 401) return "UNAUTHORIZED";
+  if (status === 403) return "FORBIDDEN";
+  if (status === 404) return "NOT_FOUND";
+  if (status === 415) return "UNSUPPORTED_MEDIA_TYPE";
+  return "INTERNAL_ERROR";
+}
 
 // Consistent error envelope (API spec §1).
 app.setErrorHandler((err: unknown, request, reply) => {
   const statusCode = (err as { statusCode?: unknown } | null)?.statusCode;
   const message = err instanceof Error ? err.message : "Internal error";
   const status = typeof statusCode === "number" ? statusCode : 500;
-  const code = status === 400 ? "VALIDATION_ERROR" : "INTERNAL_ERROR";
+  const code = errorCode(status);
   reply.code(status).send({
     error: { code, message: status === 500 ? "Internal error" : message, request_id: request.id },
   });
@@ -41,7 +63,42 @@ app.setErrorHandler((err: unknown, request, reply) => {
 // Health is a root-level ops endpoint (Phase 0).
 app.get("/health", async () => {
   const up = await checkDb();
-  return { ok: true, db: up ? "up" : "down" };
+  return {
+    ok: true,
+    db: up ? "up" : "down",
+    version: process.env.APP_VERSION ?? "unknown",
+    revision: process.env.GIT_SHA ?? "unknown",
+  };
+});
+
+/** Returns private-release metadata; GitHub still authenticates the APK download. */
+app.get("/mobile/release", async (_request, reply) => {
+  if (mobileReleaseCache && mobileReleaseCache.expiresAt > Date.now()) return mobileReleaseCache.value;
+  const repository = process.env.ANDROID_RELEASE_REPOSITORY ?? "AdvaitR7/ClinixAI";
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repository}/releases/latest`, {
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "ClinixAI",
+        ...(process.env.GITHUB_RELEASE_READ_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_RELEASE_READ_TOKEN}` } : {}),
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) return reply.code(503).send({ error: "Release information is unavailable." });
+    const release = await response.json() as {
+      tag_name?: string;
+      published_at?: string;
+      html_url?: string;
+      assets?: Array<{ name?: string; browser_download_url?: string; digest?: string }>;
+    };
+    const apk = release.assets?.find((asset) => asset.name === "clinix-android.apk");
+    if (!release.tag_name || !apk?.browser_download_url) {
+      return reply.code(503).send({ error: "No Android release is published yet." });
+    }
+    const value = { version: release.tag_name, version_code: Number(release.tag_name.match(/^android-v1\.0\.(\d+)$/)?.[1]) || null, sha256: apk.digest?.replace(/^sha256:/, "") ?? null, download_url: `https://github.com/${repository}/releases/tag/${encodeURIComponent(release.tag_name)}`, published_at: release.published_at ?? null };
+    mobileReleaseCache = { expiresAt: Date.now() + 5 * 60_000, value };
+    return value;
+  } catch {
+    return reply.code(503).send({ error: "Release information is temporarily unavailable." });
+  }
 });
 
 // Domain routes live under /api/v1 (architectural invariant).
@@ -66,6 +123,12 @@ await app.register(
     await instance.register(aiRoutes);
     await instance.register(timelineRoutes);
     await instance.register(privacyRoutes);
+    await instance.register(practiceRoutes);
+    await instance.register(staffRoutes);
+    await instance.register(staffOperationsRoutes);
+    await instance.register(followupRoutes);
+    await instance.register(notificationRoutes);
+    await instance.register(doctorProfileRoutes);
   },
   { prefix: "/api/v1" },
 );
@@ -82,3 +145,19 @@ try {
   app.log.error(err);
   process.exit(1);
 }
+
+/** Stops accepting requests, drains the job queue and closes the database pool before exiting. */
+async function stopGracefully(signal: string) {
+  app.log.info({ signal }, "stopping");
+  try {
+    await app.close();
+    await stopQueue();
+    await sql?.end({ timeout: 5 });
+    process.exit(0);
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
+}
+process.once("SIGTERM", () => void stopGracefully("SIGTERM"));
+process.once("SIGINT", () => void stopGracefully("SIGINT"));

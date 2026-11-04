@@ -6,6 +6,7 @@ import type { DetailedTimelineItem, TimelineFilter } from "@clinix/schemas";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
 import { useApiData } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 
 const nav = [
   { label: "Home", href: "/app/patient" },
@@ -13,6 +14,7 @@ const nav = [
   { label: "Vault", href: "/app/patient/vault" },
   { label: "Visits", href: "/app/patient/appointments" },
   { label: "Care", href: "/app/patient/care" },
+  { label: "You", href: "/settings" },
 ];
 
 const FILTER_OPTIONS: Array<{ label: string; value: TimelineFilter }> = [
@@ -209,7 +211,7 @@ export default function PatientTimelinePage() {
                         {/* Card Deep Link */}
                         <div className="mt-3 flex items-center justify-between border-t border-hairline/60 pt-2">
                           {item.type === "AI_CHECKIN" && typeof item.metadata?.ai_session_id === "string" ? (
-                            <Link href={`/app/patient/timeline/checkins/${encodeURIComponent(item.metadata.ai_session_id)}`} className="inline-flex min-h-11 items-center font-sans text-[10px] font-semibold text-evidence">View details &amp; sources →</Link>
+                            <Link href={recordHref("/app/patient/timeline/checkins", "sessionId", item.metadata.ai_session_id)} className="inline-flex min-h-11 items-center font-sans text-[10px] font-semibold text-evidence">View details &amp; sources →</Link>
                           ) : (
                             <span className="font-sans text-[10px] font-semibold text-evidence">View details &amp; sources →</span>
                           )}

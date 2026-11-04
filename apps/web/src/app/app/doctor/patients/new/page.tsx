@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/lib/auth";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -9,6 +10,7 @@ import type { DoctorDirectoryEntry } from "@clinix/schemas";
 import { doctorCreatePatientSchema, type DoctorCreatePatient } from "@clinix/schemas";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchApi } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 
 const nav = [
   { label: "Desk", href: "/app/doctor" },
@@ -28,6 +30,10 @@ export default function AddPatientPage() {
   const [review, setReview] = useState<DoctorCreatePatient | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<DoctorDirectoryEntry[] | null>(null);
+  const [created, setCreated] = useState<{ patientId: string; summary: DoctorCreatePatient } | null>(null);
+  const [invite, setInvite] = useState<{ code: string; expiresAt: string } | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
   const {
     register,
     handleSubmit,
@@ -54,7 +60,7 @@ export default function AddPatientPage() {
         method: "POST",
         body: JSON.stringify(review),
       });
-      router.replace(`/app/doctor/patients/${res.patient_id}`);
+      setCreated({ patientId: res.patient_id, summary: review });
     } catch (err) {
       const code = (err as { code?: string }).code;
       if (code === "DUPLICATE_PATIENT") {
@@ -71,6 +77,78 @@ export default function AddPatientPage() {
         setError(err instanceof Error ? err.message : "Could not create patient");
       }
     }
+  }
+
+  /** Issues the one-time claim code for the new patient; it is shown once and never stored in the page URL. */
+  async function sendInvite() {
+    if (!created) return;
+    setInviting(true);
+    setInviteError(null);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Not signed in");
+      const res = await fetchApi<{ invite_token: string; expires_at: string }>(
+        token,
+        `/doctor/patients/${created.patientId}/claim-invites`,
+        { method: "POST", body: "{}" },
+      );
+      setInvite({ code: res.invite_token, expiresAt: res.expires_at });
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : "Could not create the claim invitation.");
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  /** SCR-041: confirms the patient exists and offers the two next steps. */
+  if (created) {
+    return (
+      <WorkspaceShell workspace="Doctor" title="Patient created" nav={nav}>
+        <section className="clinix-doctor-card border-copper p-5">
+          <p className="clinix-label text-copper">Patient record created</p>
+          <dl className="mt-4 space-y-3 font-sans text-sm">
+            <div className="flex justify-between border-b border-white/5 pb-2">
+              <dt className="text-doctor-muted/70">Name</dt>
+              <dd className="font-semibold text-surface">{created.summary.full_name}</dd>
+            </div>
+            <div className="flex justify-between border-b border-white/5 pb-2">
+              <dt className="text-doctor-muted/70">Date of birth</dt>
+              <dd className="font-mono text-surface">{created.summary.date_of_birth}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-doctor-muted/70">Status</dt>
+              <dd className="text-surface">Unclaimed</dd>
+            </div>
+          </dl>
+        </section>
+        {invite && (
+          <section role="status" className="clinix-doctor-card border-review p-5">
+            <p className="clinix-label text-review">Claim code (shown once)</p>
+            <p className="mt-2 break-all font-mono text-sm text-surface">{invite.code}</p>
+            <p className="mt-2 font-sans text-xs text-doctor-muted/75">Give this code to the patient. It expires on {new Date(invite.expiresAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" })} and cannot be shown again.</p>
+          </section>
+        )}
+        {inviteError && <p role="alert" className="font-sans text-sm font-medium text-critical">{inviteError}</p>}
+        <div className="flex flex-col gap-3">
+          <Link
+            href={recordHref("/app/doctor/patients", "patientId", created.patientId)}
+            className="flex min-h-[52px] items-center justify-center rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink"
+          >
+            Open workspace
+          </Link>
+          {!invite && (
+            <button
+              type="button"
+              disabled={inviting}
+              onClick={() => void sendInvite()}
+              className="min-h-[52px] rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold text-surface disabled:opacity-60"
+            >
+              Send claim invitation
+            </button>
+          )}
+        </div>
+      </WorkspaceShell>
+    );
   }
 
   return (
@@ -188,7 +266,7 @@ export default function AddPatientPage() {
                   <li key={c.patient_id}>
                     <button
                       type="button"
-                      onClick={() => router.replace(`/app/doctor/patients/${c.patient_id}`)}
+                      onClick={() => router.replace(recordHref("/app/doctor/patients", "patientId", c.patient_id))}
                       className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-left font-sans text-sm text-surface hover:border-copper"
                     >
                       <span className="font-semibold">{c.full_name}</span>

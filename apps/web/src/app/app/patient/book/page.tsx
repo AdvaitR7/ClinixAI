@@ -12,6 +12,7 @@ import type {
 } from "@clinix/schemas";
 import { useAuth } from "@/lib/auth";
 import { fetchApi, useApiData } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 import { expiryText, scopeSummary } from "@/lib/privacy";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
@@ -276,7 +277,7 @@ function BookingForm({
           (c) => c.id === initialConsentId && c.doctor_id === doctorId && c.status === "ACTIVE",
         )
       : undefined;
-  const shareHref = `/app/patient/care/share/${doctorId}?from=book${encounterId ? `&encounterId=${encodeURIComponent(encounterId)}` : ""}`;
+  const shareHref = recordHref("/app/patient/care/share", "doctorId", doctorId, { from: "book", ...(encounterId ? { encounterId } : {}) });
   const days = daysFrom(calendarStart);
 
   /** Associates native-dialog focus return with the exact invoking control. */

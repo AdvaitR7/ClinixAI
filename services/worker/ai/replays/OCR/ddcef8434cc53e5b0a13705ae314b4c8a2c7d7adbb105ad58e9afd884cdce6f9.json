@@ -1,0 +1,18 @@
+{
+  "raw_text": "Rx\nAmoxicillin 500 mg\n1 tab three times daily\nfor 5 days\nDr. A. Sharma, Reg. 12345",
+  "medicines": [
+    {
+      "medicine_name": "Amoxicillin",
+      "strength": "500 mg",
+      "dose": "1 tab",
+      "route": null,
+      "frequency": "three times daily",
+      "timing": null,
+      "duration": "5 days",
+      "instructions": null,
+      "confidence": 0.99
+    }
+  ],
+  "overall_confidence": 0.99,
+  "risk_flags": []
+}

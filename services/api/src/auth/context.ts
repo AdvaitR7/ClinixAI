@@ -4,8 +4,16 @@ import fp from "fastify-plugin";
 import type { UserRole } from "@clinix/schemas";
 import { db } from "../db.js";
 import { error } from "../http.js";
-import { doctors, patients, profiles } from "../schema.js";
+import { doctors, patients, practiceMembers, profiles } from "../schema.js";
 import { verifiedBearer } from "./bearer.js";
+
+/** An ACTIVE practice membership resolved from Postgres, never from the client. */
+export interface PracticeMembership {
+  memberId: string;
+  practiceId: string;
+  role: "OWNER" | "DOCTOR" | "RECEPTION" | "ASSISTANT";
+  assignedDoctorId: string | null;
+}
 
 export interface AuthContext {
   supabaseUserId: string;
@@ -13,6 +21,8 @@ export interface AuthContext {
   role: UserRole;
   patientId: string | null;
   doctorId: string | null;
+  /** ACTIVE practice memberships only; suspended, former and revoked rows are excluded. */
+  memberships?: PracticeMembership[];
 }
 
 declare module "fastify" {
@@ -63,7 +73,18 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
     doctorId = drs[0]?.id ?? null;
   }
 
-  request.auth = { supabaseUserId: identity.userId, profileId: profile.id, role, patientId, doctorId };
+  const memberRows = await db
+    .select({
+      memberId: practiceMembers.id,
+      practiceId: practiceMembers.practiceId,
+      role: practiceMembers.role,
+      assignedDoctorId: practiceMembers.assignedDoctorId,
+    })
+    .from(practiceMembers)
+    .where(and(eq(practiceMembers.profileId, profile.id), eq(practiceMembers.status, "ACTIVE")));
+  const memberships = memberRows as PracticeMembership[];
+
+  request.auth = { supabaseUserId: identity.userId, profileId: profile.id, role, patientId, doctorId, memberships };
 }
 
 export default fp(async function authPlugin(app) {

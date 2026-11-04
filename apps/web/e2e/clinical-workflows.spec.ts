@@ -95,7 +95,7 @@ test("GAP-011 restores the existing Timeline destination from Vault, medications
 test("SCR-033/035/058 saves current edits, supports Escape, and navigates to the final record", async ({ page }) => {
   const state = await clinicalServices(page);
   await page.setViewportSize({ width: 393, height: 1260 });
-  await page.goto("/app/doctor/prescription-drafts/synthetic-draft");
+  await page.goto("/app/doctor/prescription-drafts/by-id?draftId=synthetic-draft");
   await page.getByLabel("Dose (e.g. 1 tab)").fill("2 tablets");
   await page.getByRole("button", { name: "Finalize prescription", exact: true }).click();
   const review = page.getByRole("dialog", { name: "Finalize prescription?" });
@@ -109,28 +109,28 @@ test("SCR-033/035/058 saves current edits, supports Escape, and navigates to the
   await review.getByLabel("Allergies and current medicines reviewed with the patient").check();
   await review.getByLabel("Printable preview checked").check();
   await review.getByRole("button", { name: "Finalize prescription", exact: true }).click();
-  await expect(page).toHaveURL(/\/prescriptions\/synthetic-prescription$/);
+  await expect(page).toHaveURL(/\/prescriptions\/by-id\?prescriptionId=synthetic-prescription$/);
   await expect(page.getByText("Synthetic medicine", { exact: true })).toBeVisible();
   expect(state.events).toEqual(["save-draft", "save-draft", "finalize"]);
 });
 
 test("SCR-035 stale review keeps the draft open with an actionable failure", async ({ page }) => {
   const state = await clinicalServices(page);
-  await page.goto("/app/doctor/prescription-drafts/synthetic-draft");
+  await page.goto("/app/doctor/prescription-drafts/by-id?draftId=synthetic-draft");
   await page.getByRole("button", { name: "Finalize prescription", exact: true }).click();
   state.staleDraft = true;
   await page.getByRole("dialog").getByLabel("Allergies and current medicines reviewed with the patient").check();
   await page.getByRole("dialog").getByLabel("Printable preview checked").check();
   await page.getByRole("dialog").getByRole("button", { name: "Finalize prescription", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Synthetic draft changed after review" })).toBeVisible();
-  await expect(page).toHaveURL(/\/prescription-drafts\/synthetic-draft$/);
+  await expect(page).toHaveURL(/\/prescription-drafts\/by-id\?draftId=synthetic-draft$/);
   await expect(page.getByLabel("Dose (e.g. 1 tab)")).toHaveValue("1 tablet");
 });
 
 test("SCR-030/031 completion retains failed saves, retries, then exposes a dated amendment", async ({ page }) => {
   const state = await clinicalServices(page);
   await page.setViewportSize({ width: 393, height: 1180 });
-  await page.goto("/app/doctor/consultation/synthetic-appointment");
+  await page.goto("/app/doctor/consultation/by-id?appointmentId=synthetic-appointment");
   await page.getByLabel("Assessment", { exact: true }).fill("Synthetic reviewed assessment");
   await page.getByRole("button", { name: "Complete consultation", exact: true }).click();
   const review = page.getByRole("dialog", { name: "Complete consultation?" });
@@ -158,7 +158,7 @@ for (const width of [320, 768, 1440]) {
   test(`SCR-031 review contains keyboard focus and fits ${width}px`, async ({ page }) => {
     await clinicalServices(page);
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/app/doctor/consultation/synthetic-appointment");
+    await page.goto("/app/doctor/consultation/by-id?appointmentId=synthetic-appointment");
     await page.getByRole("button", { name: "Complete consultation", exact: true }).click();
     const review = page.getByRole("dialog");
     await expect(review).toBeVisible();

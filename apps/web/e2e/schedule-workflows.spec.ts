@@ -67,7 +67,7 @@ test("SCR-024 day/week/date/status and SCR-026 back/close preserve calendar cont
   for (const button of await page.getByRole("button", { name: /^Open →/ }).all()) await expect(button).toBeDisabled();
   await expect(page.getByText("Allergy data unavailable", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "OPEN PATIENT RECORD", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "START CONSULTATION", exact: false })).toHaveAttribute("href", "/app/doctor/consultation/appointment-0");
+  await expect(page.getByRole("link", { name: "START CONSULTATION", exact: false })).toHaveAttribute("href", "/app/doctor/consultation/by-id?appointmentId=appointment-0");
   await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-026-393.png", fullPage: true });
   await page.getByRole("link", { name: "Back to schedule", exact: true }).click(); await expect(page).toHaveURL(/view=week&status=CONFIRMED/);
   await page.getByRole("link", { name: "Open context →", exact: true }).first().click(); await page.getByRole("link", { name: "Close", exact: true }).click(); await expect(page).toHaveURL(/view=week&status=CONFIRMED/);
@@ -76,12 +76,12 @@ test("SCR-024 day/week/date/status and SCR-026 back/close preserve calendar cont
 });
 
 test("missing/foreign appointments and denied patient records fail closed; cancelled/requested cannot start", async ({ page }) => {
-  const state = await services(page); await page.goto(`/app/doctor/schedule/foreign?date=${date}`);
+  const state = await services(page); await page.goto(`/app/doctor/schedule/by-id?appointmentId=foreign&date=${date}`);
   await expect(page.locator('[role="alert"]:not(#__next-route-announcer__)')).toHaveText("This appointment is unavailable in your schedule."); expect(state.calls.some((path) => path.endsWith("/workspace"))).toBe(false);
-  state.denyRecord = true; await page.goto(`/app/doctor/schedule/appointment-1?date=${date}`);
+  state.denyRecord = true; await page.goto(`/app/doctor/schedule/by-id?appointmentId=appointment-1&date=${date}`);
   await expect(page.getByRole("button", { name: "Consultation cannot start while requested" })).toBeDisabled(); await expect(page.getByRole("button", { name: "Patient record access unavailable" })).toBeDisabled();
   state.denyRecord = false; await page.getByRole("button", { name: "Retry patient record access" }).click(); await expect(page.getByRole("link", { name: "OPEN PATIENT RECORD" })).toBeVisible();
-  await page.goto(`/app/doctor/schedule/appointment-2?date=${date}`); await expect(page.getByRole("button", { name: "Consultation cannot start while cancelled" })).toBeDisabled();
+  await page.goto(`/app/doctor/schedule/by-id?appointmentId=appointment-2&date=${date}`); await expect(page.getByRole("button", { name: "Consultation cannot start while cancelled" })).toBeDisabled();
 });
 
 test("confirm/payment/cancel failures preserve state, cancellation Escape/Keep return focus, and retries complete", async ({ page }) => {
@@ -126,5 +126,5 @@ test("schedule/availability read failures retry and no saved week is invented fo
 for (const width of [320, 768, 1440]) test(`schedule, availability editor and appointment context fit ${width}px`, async ({ page }) => {
   await services(page); await page.setViewportSize({ width, height: 900 }); await page.goto(root); await expect(page.getByText(/7 APPOINTMENTS/)).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("link", { name: "Availability", exact: true }).click(); await page.getByRole("button", { name: "Edit Mon working hours" }).click(); for (let i = 0; i < 18; i++) { await page.keyboard.press("Tab"); expect(await page.getByRole("dialog").evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true); } expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.keyboard.press("Escape"); await expect(page.getByRole("button", { name: "Edit Mon working hours" })).toBeFocused();
-  await page.goto(`/app/doctor/schedule/appointment-0?date=${date}`); await expect(page.getByRole("heading", { name: "Synthetic Patient 0", exact: true })).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.goto(`/app/doctor/schedule/by-id?appointmentId=appointment-0&date=${date}`); await expect(page.getByRole("heading", { name: "Synthetic Patient 0", exact: true })).toBeVisible(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

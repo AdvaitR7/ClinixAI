@@ -78,3 +78,28 @@ function OnboardingAccess({ children }: { children: ReactNode }) {
   }
   return <AuthShell eyebrow="CliniX" title="Loading your account" orientation="Checking your application profile."><div className="h-12 animate-pulse rounded-xl bg-hairline" aria-hidden="true" /></AuthShell>;
 }
+
+/** Allows the staff workspace for CLINIC_STAFF profiles or any account holding an active staff membership. */
+export function RequireStaffWorkspace({ children }: { children: ReactNode }) {
+  return <RequireSession><StaffAccess>{children}</StaffAccess></RequireSession>;
+}
+
+/** Staff access derives from database memberships, never from a client-supplied role. */
+function StaffAccess({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const state = useMe();
+  const isStaff = state.status === "ready" && (state.me.role === "CLINIC_STAFF" || (state.me.memberships ?? []).some((m) => m.role === "RECEPTION" || m.role === "ASSISTANT"));
+  const destination = state.status === "ready" ? workspacePathForRole(state.me.role) : null;
+
+  useEffect(() => {
+    if (state.status === "signed-out") router.replace("/sign-in");
+    else if (state.status === "needs-onboarding") router.replace("/onboarding/role");
+    else if (state.status === "ready" && !isStaff && destination) router.replace(destination);
+  }, [destination, isStaff, router, state.status]);
+
+  if (isStaff) return children;
+  if (state.status === "error") {
+    return <AuthShell eyebrow="CliniX" title="Workspace unavailable" orientation="We could not confirm your application access."><button type="button" onClick={() => void state.refresh()} className="min-h-12 w-full rounded-2xl bg-botanical px-4 font-sans text-sm font-semibold text-surface">Try again</button></AuthShell>;
+  }
+  return <AuthShell eyebrow="CliniX" title="Loading your workspace" orientation="Checking your application access."><div className="h-12 animate-pulse rounded-xl bg-hairline" aria-hidden="true" /></AuthShell>;
+}

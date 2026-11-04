@@ -1,0 +1,50 @@
+{
+  "important_findings": [
+    "Increased thirst and tiredness persisting for two weeks, characterized as mild and manageable.",
+    "Associated symptoms include unusual tiredness and body aches.",
+    "Patient is currently taking Metformin 500 mg twice daily.",
+    "Serial HbA1c values show an improving trend from 8.4% in June 2026 to 7.0% in October 2026, though remaining above normal baseline.",
+    "Documented history of Type 2 diabetes follow-up."
+  ],
+  "historical_matches": [
+    {
+      "encounter_id": "bd6cfb1e-4a23-4ef3-93a6-eb79d348fce5",
+      "similarity_label": "PARTIALLY_SIMILAR",
+      "supporting_features": [
+        "Involves underlying diabetes mellitus care",
+        "Associated with current Metformin prescription"
+      ],
+      "differences": [
+        "Historical encounter was an in-person routine Type 2 diabetes follow-up",
+        "Current encounter focuses on new onset of active symptoms (increased thirst and fatigue over two weeks)",
+        "HbA1c was higher (8.4%) at the time of the previous encounter compared to current levels (7.0%)"
+      ]
+    }
+  ],
+  "missing_information": [
+    "Recent home blood glucose monitoring readings (fasting and postprandial)",
+    "Presence of increased urination frequency or volume (polyuria), nocturia, or blurred vision",
+    "Current medication adherence to the Metformin regimen",
+    "Recent dietary habits, fluid intake patterns, or unintentional weight changes",
+    "Presence of concurrent intercurrent illness, fever, or gastrointestinal upset"
+  ],
+  "safety_concerns": [
+    "Potential for acute or worsening hyperglycemia causing osmotic symptoms and dehydration",
+    "Risk of progressive metabolic decompensation if symptoms worsen or if accompanied by nausea, vomiting, or abdominal pain",
+    "Need to rule out dehydration or electrolyte disturbances related to persistent polyuria/polydipsia"
+  ],
+  "supported_guidance": [
+    "Maintain adequate daily hydration with plain water while avoiding sugar-sweetened beverages.",
+    "Continue taking prescribed Metformin as directed; do not alter dosages without medical instruction.",
+    "Ensure adequate rest and pace physical activities while experiencing tiredness.",
+    "Keep a log of daily fluid intake, urination frequency, and any home blood glucose readings to share with your provider.",
+    "Seek immediate medical care if you experience warning signs such as severe lightheadedness, confusion, persistent vomiting, deep rapid breathing, or severe abdominal pain."
+  ],
+  "doctor_questions": [
+    "Have you noticed any change in urination, such as needing to go more frequently or waking up at night to urinate?",
+    "Have you been checking your fingerstick blood sugars at home, and what have those numbers looked like recently?",
+    "Have you been able to take your Metformin consistently every day without missing doses?",
+    "Have you experienced any unexpected weight loss, changes in your vision, or recent infections?"
+  ],
+  "confidence": "high"
+}

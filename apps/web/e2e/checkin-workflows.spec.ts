@@ -343,7 +343,7 @@ test("SCR-008 restores real questions and answers, resumes after reload, retries
   const count = state.submissions.length;
   state.failAnalysis = false;
   await page.getByRole("button", { name: "START ANALYSIS" }).click();
-  await expect(page).toHaveURL(new RegExp(`/checkin/result/${sessionId}$`));
+  await expect(page).toHaveURL(new RegExp(`/checkin/result/by-id\\?sessionId=${sessionId}$`));
   await expect(
     page.getByRole("heading", { name: "Check-in complete" }),
   ).toBeVisible();
@@ -427,7 +427,7 @@ test("SCR-010 evidence retry, scoped export, timeline detail and cross-module ex
   const state = await checkinServices(page);
   state.failEvidence = true;
   await page.setViewportSize({ width: 393, height: 1000 });
-  await page.goto(`/app/patient/checkin/result/${sessionId}`);
+  await page.goto(`/app/patient/checkin/result/by-id?sessionId=${sessionId}`);
   await expect(page.getByText("SAVED TO RECORD · VIEW TIMELINE")).toBeVisible();
   await expect(
     page.getByRole("link", { name: "SHARE WITH DOCTOR", exact: true }),
@@ -468,7 +468,7 @@ test("SCR-010 evidence retry, scoped export, timeline detail and cross-module ex
     .getByRole("link", { name: "SAVED TO RECORD · VIEW TIMELINE" })
     .click();
   await page.getByRole("link", { name: "View details & sources →" }).click();
-  await expect(page).toHaveURL(new RegExp(`/timeline/checkins/${sessionId}$`));
+  await expect(page).toHaveURL(new RegExp(`/timeline/checkins/by-id\\?sessionId=${sessionId}$`));
   await expect(
     page.getByRole("heading", { name: "Check-in record" }),
   ).toBeVisible();
@@ -488,7 +488,7 @@ test("SCR-010 evidence retry, scoped export, timeline detail and cross-module ex
     page.getByRole("link", { name: "Back to timeline", exact: true }),
   ).toHaveAttribute("href", "/app/patient/timeline");
   await page.getByRole("link", { name: "Open full result →" }).click();
-  await expect(page).toHaveURL(new RegExp(`/checkin/result/${sessionId}$`));
+  await expect(page).toHaveURL(new RegExp(`/checkin/result/by-id\\?sessionId=${sessionId}$`));
   await page.getByRole("link", { name: "Review reports →" }).click();
   await expect(page).toHaveURL(/\/app\/patient\/vault$/);
 });
@@ -498,7 +498,7 @@ test("checked urgent and review outcomes never render unconditional low-risk rea
 }) => {
   const state = await checkinServices(page);
   state.disposition = "URGENT";
-  await page.goto(`/app/patient/checkin/result/${sessionId}`);
+  await page.goto(`/app/patient/checkin/result/by-id?sessionId=${sessionId}`);
   await expect(
     page.getByRole("heading", { name: "Get urgent medical help now" }),
   ).toBeVisible();
@@ -523,7 +523,7 @@ test("pending, denied, legacy and failed results expose safe recovery without fa
 }) => {
   const state = await checkinServices(page);
   state.aiStatus = "RUNNING";
-  await page.goto(`/app/patient/checkin/result/${sessionId}`);
+  await page.goto(`/app/patient/checkin/result/by-id?sessionId=${sessionId}`);
   await expect(
     page.getByRole("heading", { name: "Preparing your check-in result…" }),
   ).toBeVisible();
@@ -564,8 +564,8 @@ for (const width of [320, 768, 1440])
     await checkinServices(page);
     await page.setViewportSize({ width, height: 1000 });
     for (const path of [
-      `/app/patient/checkin/result/${sessionId}`,
-      `/app/patient/timeline/checkins/${sessionId}`,
+      `/app/patient/checkin/result/by-id?sessionId=${sessionId}`,
+      `/app/patient/timeline/checkins/by-id?sessionId=${sessionId}`,
     ]) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -591,7 +591,7 @@ test("SCR-012 entry and answer errors retry the selected session without exposin
   const state = await checkinServices(page);
   state.failResult = true;
   state.failEvidence = true;
-  await page.goto(`/app/patient/timeline/checkins/${sessionId}`);
+  await page.goto(`/app/patient/timeline/checkins/by-id?sessionId=${sessionId}`);
   await expect(
     page.getByRole("alert").filter({ hasText: /result not found/ }),
   ).toBeVisible();

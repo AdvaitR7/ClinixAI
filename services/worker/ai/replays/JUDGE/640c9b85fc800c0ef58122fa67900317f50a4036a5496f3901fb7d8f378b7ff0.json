@@ -1,0 +1,28 @@
+{
+  "agreements": [
+    "The patient is an adult female (age 31–50) with a recurring dry cough lasting 4–7 days of moderate severity interfering with daily routines.",
+    "Current symptoms include associated upper respiratory features such as sore throat or nasal congestion.",
+    "There is a documented suspected allergy to amoxicillin characterized by a skin rash on day three of treatment.",
+    "Historical lab results from July 2026 demonstrated mild leukocytosis and elevated C-reactive protein.",
+    "Current objective vital signs (temperature, oxygen saturation, heart rate) and physical exam findings are missing.",
+    "Red-flag respiratory symptoms (such as dyspnea, wheezing, pleuritic chest pain, or hemoptysis) need to be evaluated.",
+    "Supportive non-pharmacologic measures (hydration, throat lozenges, airway humidification) are appropriate while monitoring for clinical worsening."
+  ],
+  "material_disagreements": [],
+  "unsupported_claims": [],
+  "questions_to_ask_next": [
+    "Have you developed any fever, chills, or night sweats during this illness?",
+    "Are you experiencing any shortness of breath, wheezing, or chest pain with coughing?",
+    "Can you describe the rash that occurred with amoxicillin (e.g., hives, swelling of the face/lips, itching, or peeling)?",
+    "Have you used any over-the-counter medications, and does anything specific trigger the cough?"
+  ],
+  "safe_consensus": [
+    "Maintain adequate oral hydration with water, warm broths, or tea to soothe airway irritation.",
+    "Consider supportive measures such as throat lozenges, warm liquids with honey, or a cool-mist humidifier to ease cough and nasal congestion.",
+    "Do not take amoxicillin or related penicillin-class antibiotics without a formal medical evaluation due to the documented history of drug-induced rash.",
+    "Schedule an outpatient evaluation with a healthcare provider for chest auscultation and clinical assessment.",
+    "Seek prompt emergency medical care if you experience difficulty breathing, chest pain, high or persistent fever, or swelling of the face or throat."
+  ],
+  "requires_doctor_review": true,
+  "requires_urgent_escalation": false
+}

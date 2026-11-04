@@ -12,6 +12,7 @@ import type {
 } from "@clinix/schemas";
 import { CheckinSafety } from "@/components/checkin-safety";
 import { fetchApi } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 
 type SavedQuestion = {
   block: InteractionBlockView;
@@ -152,7 +153,7 @@ export default function PatientCheckinPage() {
       `/encounters/${id}/ai-analysis`,
       { method: "POST" },
     );
-    router.push(`/app/patient/checkin/result/${data.ai_session_id}`);
+    router.push(recordHref("/app/patient/checkin/result", "sessionId", data.ai_session_id));
   }
 
   /** Creates or resumes a durable encounter/session, preserving retries and safety state. */

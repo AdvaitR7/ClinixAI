@@ -14,12 +14,14 @@
     "dev:worker": "npm run dev --workspace @clinix/worker",
     "build": "npm run build --workspace @clinix/web",
     "lint": "npm run lint --workspace @clinix/web",
-    "test": "npm run test --workspace @clinix/web && npm run test --workspace @clinix/api",
+    "test": "npm run test --workspace @clinix/web && npm run test --workspace @clinix/api && npm run test --workspace @clinix/worker",
     "test:browser": "npm run test:browser --workspace @clinix/web",
     "typecheck": "npm run typecheck --workspace @clinix/web && npm run typecheck --workspace @clinix/api && npm run typecheck --workspace @clinix/worker",
     "db:generate": "npm run db:generate --workspace @clinix/api",
     "db:migrate": "npm run db:migrate --workspace @clinix/api",
-    "db:check": "npm run db:check --workspace @clinix/api"
+    "db:check": "npm run db:check --workspace @clinix/api",
+    "seed": "npm run seed --workspace @clinix/api",
+    "build:android": "npm run build:android --workspace @clinix/mobile"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

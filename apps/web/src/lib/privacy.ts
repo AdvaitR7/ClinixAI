@@ -6,6 +6,7 @@ export const careNav = (active: "Care" | "None" = "Care") => [
   { label: "Timeline", href: "/app/patient/timeline" },
   { label: "Reports", href: "/app/patient/vault" },
   { label: "Care", href: "/app/patient/care", active: active === "Care" },
+  { label: "You", href: "/settings" },
 ];
 
 /** Shared card/label classes matching the patient workspace look. */

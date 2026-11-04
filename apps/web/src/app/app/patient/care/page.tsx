@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import type { ConsentView, DoctorOption, RelationshipView } from "@clinix/schemas";
 import { useAuth } from "@/lib/auth";
 import { fetchApi, useApiData } from "@/lib/api";
+import { recordHref } from "@/lib/route-params";
 import { careNav, expiryText, privacyCard, privacyLabel, scopeSummary } from "@/lib/privacy";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { PatientVisitHeader } from "@/components/patient-visit-header";
@@ -28,7 +29,7 @@ export default function CarePage() {
       focused
       flowNavigation
       hideHeading
-      headerContent={<PatientVisitHeader backHref="/app/patient" action={<Link href="/app/patient/privacy" className="inline-flex min-h-9 items-center rounded-full border border-botanical px-3 text-[10px] text-botanical">Privacy</Link>} />}
+      headerContent={<PatientVisitHeader backHref="/app/patient" action={<Link href="/app/patient/privacy" className="inline-flex min-h-11 items-center rounded-full border border-botanical px-3 text-[10px] text-botanical">Privacy</Link>} />}
     >
       <div>
         <p className={privacyLabel}>Patient record · care circle</p>
@@ -102,7 +103,7 @@ function MyDoctors({ circle, consents }: { circle: ReturnType<typeof useApiData<
                 <p key={c.id} className="mt-1 text-xs">{scopeSummary(c)} · {expiryText(c)}</p>
               ))}
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <Link href={`/app/patient/care/share/${doctor.doctor_id}`} className="grid min-h-11 place-items-center rounded-full bg-botanical px-3 text-xs text-surface">Share records</Link>
+                <Link href={recordHref("/app/patient/care/share", "doctorId", doctor.doctor_id)} className="grid min-h-11 place-items-center rounded-full bg-botanical px-3 text-xs text-surface">Share records</Link>
                 <Link href={`/app/patient/book?doctorId=${doctor.doctor_id}`} className="grid min-h-11 place-items-center rounded-full border border-sage px-3 text-xs">Book</Link>
                 <button type="button" disabled className="min-h-11 rounded-full border border-hairline px-3 text-xs text-graphite/60">Message unavailable</button>
                 <button type="button" onClick={(e) => { removeRef.current = e.currentTarget; setError(null); setRemoving(doctor); }} className="min-h-11 rounded-full border border-hairline px-3 text-xs text-critical">Remove</button>
@@ -161,7 +162,7 @@ function Discover({ circle, onAdded }: { circle: RelationshipView[]; onAdded: ()
       {specialities.length > 0 && (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by speciality">
           {[null, ...specialities].map((item) => (
-            <button key={item ?? "all"} type="button" aria-pressed={speciality === item} onClick={() => setSpeciality(item)} className={`min-h-9 rounded-full border px-3 text-[10px] ${speciality === item ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{item ?? "All"}</button>
+            <button key={item ?? "all"} type="button" aria-pressed={speciality === item} onClick={() => setSpeciality(item)} className={`min-h-11 rounded-full border px-3 text-[10px] ${speciality === item ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{item ?? "All"}</button>
           ))}
         </div>
       )}

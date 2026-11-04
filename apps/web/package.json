@@ -4,13 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && serwist build",
+    "build:mobile": "CLINIX_MOBILE_EXPORT=1 NEXT_PUBLIC_MOBILE_BUNDLE=1 next build",
     "lint": "eslint .",
     "test": "vitest run",
     "test:browser": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.sw.json"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/share": "^8.0.3",
     "@clinix/schemas": "*",
     "@hookform/resolvers": "^5.2.2",
     "@supabase/supabase-js": "^2.118.0",
@@ -22,15 +27,19 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@serwist/cli": "^9.5.13",
+    "@serwist/next": "^9.5.13",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.8",
     "jsdom": "^30.1.3",
+    "serwist": "^9.5.13",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"

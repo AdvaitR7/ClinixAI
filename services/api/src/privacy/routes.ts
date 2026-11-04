@@ -6,11 +6,13 @@ import {
   removalRequestCreateSchema,
   removalResolveSchema,
   removalRouteSchema,
+  type AccessReceipt,
   type ConsentView,
   type LedgerCategory,
   type RemovalRequestView,
 } from "@clinix/schemas";
-import { requireDoctor, requirePatient } from "../auth/guards.js";
+import { requireDoctor, requirePatient, requirePracticeRole } from "../auth/guards.js";
+import { practiceDoctorIds } from "../practices/scope.js";
 import { logAccess } from "../audit/log.js";
 import { patientNames } from "../appointments/map.js";
 import { error, requireDb } from "../http.js";
@@ -31,6 +33,15 @@ import { actionLabel, categoryOf, resourceLabel } from "./ledger.js";
 /** Patient-authored ledger actions that stay visible; routine patient self-reads are hidden. */
 const PATIENT_VISIBLE_ACTIONS = ["SHARE", "REVOKE_ACCESS", "REMOVAL_REQUEST"];
 const LEDGER_PAGE_SIZE = 20;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ACTOR_ROLE_LABELS: Record<string, string> = {
+  PATIENT: "You",
+  DOCTOR: "Doctor",
+  CLINIC_STAFF: "Clinic staff",
+  ADMIN: "CliniX administrator",
+  AI_SERVICE: "AI service",
+  SYSTEM: "CliniX system",
+};
 const REMOVAL_RESOURCE_TYPES = ["DOCUMENT", "ENCOUNTER", "PRESCRIPTION"];
 
 /** Record groups offered in the scope picker; the last two have no data source yet. */
@@ -301,6 +312,71 @@ export async function privacyRoutes(app: FastifyInstance) {
     },
   );
 
+  /**
+   * One ledger row as a receipt (Page 13a). Owner-only and limited to the same rows the ledger shows,
+   * so a hidden patient self-read can never be fetched by id. Only structured fields are returned.
+   */
+  app.get<{ Params: { id: string } }>("/patients/self/access-events/:id", async (request, reply) => {
+    const patientId = requirePatient(request, reply);
+    if (typeof patientId !== "string") return patientId;
+    if (!UUID_RE.test(request.params.id)) return error(request, reply, 404, "NOT_FOUND", "Access event not found");
+    const database = requireDb();
+    const [row] = await database
+      .select({
+        id: accessEvents.id,
+        createdAt: accessEvents.createdAt,
+        actorType: accessEvents.actorType,
+        actorName: profiles.displayName,
+        action: accessEvents.action,
+        purpose: accessEvents.purpose,
+        resourceType: accessEvents.resourceType,
+        consentId: accessEvents.consentId,
+      })
+      .from(accessEvents)
+      .leftJoin(profiles, eq(profiles.id, accessEvents.actorId))
+      .where(
+        and(
+          eq(accessEvents.id, request.params.id),
+          eq(accessEvents.patientId, patientId),
+          or(sql`${accessEvents.actorType} <> 'PATIENT'`, inArray(accessEvents.action, PATIENT_VISIBLE_ACTIONS)),
+        ),
+      )
+      .limit(1);
+    if (!row) return error(request, reply, 404, "NOT_FOUND", "Access event not found");
+
+    let consent: AccessReceipt["consent"] = null;
+    if (row.consentId) {
+      const [grant] = await database
+        .select({ id: consents.id, purpose: consents.purpose })
+        .from(consents)
+        .where(and(eq(consents.id, row.consentId), eq(consents.patientId, patientId)))
+        .limit(1);
+      if (grant) {
+        const scopes = await database
+          .select({ resourceType: consentScopes.resourceType })
+          .from(consentScopes)
+          .where(eq(consentScopes.consentId, grant.id));
+        consent = { id: grant.id, purpose: grant.purpose, scopes: [...new Set(scopes.map((s) => resourceLabel(s.resourceType)))] };
+      }
+    }
+    const receipt: AccessReceipt = {
+      id: row.id,
+      timestamp: row.createdAt.toISOString(),
+      category: categoryOf(row),
+      actor: {
+        type: row.actorType,
+        role_label: ACTOR_ROLE_LABELS[row.actorType] ?? "CliniX",
+        display_name: row.actorType === "AI_SERVICE" ? "ClinixAI" : (row.actorName ?? "CliniX staff"),
+      },
+      action: actionLabel(row.action),
+      resource_label: resourceLabel(row.resourceType),
+      purpose: row.purpose,
+      legal_basis: consent ? "Your consent" : null,
+      consent,
+    };
+    return receipt;
+  });
+
   // --- Record removal (API §29) ---
 
   /** Patient asks a doctor to remove a record from active views; creates a request only. */
@@ -381,6 +457,9 @@ export async function privacyRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string } }>("/doctor/record-removal-requests/:id/resolve", async (request, reply) => {
     const doctorId = requireDoctor(request, reply);
     if (typeof doctorId !== "string") return doctorId;
+    // The addressed doctor decides; a practice OWNER may also decide for the practice's doctors.
+    const ownedPractices = (request.auth.memberships ?? []).filter((m) => m.role === "OWNER");
+    const deciderScope = [doctorId, ...(await Promise.all(ownedPractices.map((m) => practiceDoctorIds(m.practiceId)))).flat()];
     const parsed = removalResolveSchema.safeParse(request.body);
     if (!parsed.success) return error(request, reply, 400, "VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid decision");
     const body = parsed.data;
@@ -423,22 +502,33 @@ export async function privacyRoutes(app: FastifyInstance) {
     return removalView(updated ?? { ...existing, status: body.outcome, resolvedAt: now }, { patient: null, doctor: null });
   });
 
-  /** Routes a request to the responsible doctor. Staff are refused until practice membership exists (Phase 7). */
+  /**
+   * Routes a request to a responsible doctor. A doctor routes their own requests;
+   * an active practice member routes requests held by a doctor of that practice
+   * to another doctor of the same practice. Staff cannot decide a request.
+   */
   app.post<{ Params: { id: string } }>("/record-removal-requests/:id/route", async (request, reply) => {
-    if (request.auth.role === "CLINIC_STAFF") {
-      return error(request, reply, 403, "PRACTICE_MEMBERSHIP_REQUIRED", "Staff routing needs practice membership, which is not available yet");
+    let scopeIds: string[];
+    if (request.auth.role === "DOCTOR" && request.auth.doctorId) {
+      scopeIds = [request.auth.doctorId];
+    } else {
+      const member = requirePracticeRole(request, reply, ["RECEPTION", "ASSISTANT", "OWNER"]);
+      if ("statusCode" in member) return member;
+      scopeIds = await practiceDoctorIds(member.practiceId);
+      if (scopeIds.length === 0) return error(request, reply, 403, "FORBIDDEN", "Practice has no doctors");
     }
-    const doctorId = requireDoctor(request, reply);
-    if (typeof doctorId !== "string") return doctorId;
     const parsed = removalRouteSchema.safeParse(request.body);
     if (!parsed.success) return error(request, reply, 400, "VALIDATION_ERROR", "Invalid routing");
     const database = requireDb();
     const target = await doctorNames(database, [parsed.data.doctor_id]);
     if (!target.has(parsed.data.doctor_id)) return error(request, reply, 404, "NOT_FOUND", "Doctor not found");
+    if (request.auth.role !== "DOCTOR" && !scopeIds.includes(parsed.data.doctor_id)) {
+      return error(request, reply, 403, "FORBIDDEN", "Staff can route only within their practice");
+    }
     const rows = await database
       .select()
       .from(recordRemovalRequests)
-      .where(and(eq(recordRemovalRequests.id, request.params.id), eq(recordRemovalRequests.targetActorId, doctorId)))
+      .where(and(eq(recordRemovalRequests.id, request.params.id), inArray(recordRemovalRequests.targetActorId, scopeIds)))
       .limit(1);
     if (rows.length === 0) return error(request, reply, 404, "NOT_FOUND", "Request not found");
     if (rows[0].resolvedAt) return error(request, reply, 409, "ALREADY_RESOLVED", "This request was already decided");

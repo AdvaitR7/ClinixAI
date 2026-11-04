@@ -1,4 +1,5 @@
 import { scheduleDateSchema } from "@clinix/schemas";
+import { recordHref } from "@/lib/route-params";
 
 export const scheduleNav = [
   { label: "Desk", href: "/app/doctor" },
@@ -34,7 +35,8 @@ export function scheduleHref(state: ScheduleState, appointmentId?: string) {
   const query = new URLSearchParams({ date: state.date, view: state.view });
   if (state.status) query.set("status", state.status);
   if (!appointmentId && state.tab === "availability") query.set("tab", "availability");
-  return `/app/doctor/schedule${appointmentId ? `/${encodeURIComponent(appointmentId)}` : ""}?${query}`;
+  if (appointmentId) return recordHref("/app/doctor/schedule", "appointmentId", appointmentId, Object.fromEntries(query));
+  return `/app/doctor/schedule?${query}`;
 }
 
 /** Formats actual visit times in the scheduling timezone. */

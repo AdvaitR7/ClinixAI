@@ -1,11 +1,12 @@
 import type { FastifyInstance } from "fastify";
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, lte } from "drizzle-orm";
 import { requireDoctor, requirePatient } from "../auth/guards.js";
 import { error, requireDb } from "../http.js";
 import {
   appointments,
   doctors,
   encounters,
+  followups,
   patientDoctorRelationships,
   prescriptionDrafts,
   profiles,
@@ -67,6 +68,15 @@ export async function dashboardRoutes(app: FastifyInstance) {
         ),
     ]);
 
+    const openFollowups = await database
+      .select({ dueAt: followups.dueAt })
+      .from(followups)
+      .where(and(eq(followups.doctorId, doctorId), eq(followups.status, "OPEN"), lt(followups.dueAt, end)));
+    const followupsDue = {
+      due_today: openFollowups.filter((f) => f.dueAt >= start).length,
+      overdue: openFollowups.filter((f) => f.dueAt < start).length,
+    };
+
     const allRows = [...todayRows, ...incomingRows];
     const names = await patientNames(allRows.map((r) => r.patientId));
 
@@ -74,7 +84,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
       today_appointments: todayRows.map((r) => appointmentView(r, names.get(r.patientId) ?? "")),
       incoming_requests: incomingRows.map((r) => appointmentView(r, names.get(r.patientId) ?? "")),
       draft_queue: { pending: draftRows.length, high_risk: 0 },
-      followups_due: { due_today: 0, overdue: 0 },
+      followups_due: followupsDue,
     };
   });
 
@@ -131,6 +141,12 @@ export async function dashboardRoutes(app: FastifyInstance) {
         .limit(10),
     ]);
 
+    const pendingFollowups = await database
+      .select({ id: followups.id, dueAt: followups.dueAt, reason: followups.reason })
+      .from(followups)
+      .where(and(eq(followups.patientId, patientId), eq(followups.status, "OPEN")))
+      .orderBy(asc(followups.dueAt))
+      .limit(5);
     const names = await patientNames(apptRows.map((r) => r.patientId));
 
     const timeline = [
@@ -162,7 +178,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
           }
         : null,
       recent_timeline: timeline,
-      pending_followups: [],
+      pending_followups: pendingFollowups.map((f) => ({ id: f.id, due_at: f.dueAt.toISOString(), reason: f.reason })),
       recent_report: null,
     };
   });

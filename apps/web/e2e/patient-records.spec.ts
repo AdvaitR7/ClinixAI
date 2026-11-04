@@ -309,7 +309,7 @@ test("directory → compact context → dossier → selected consultation, with 
   await page.setViewportSize({ width: 393, height: 1450 });
   await page.goto("/app/doctor/patients");
   await page.getByRole("link", { name: /Synthetic One/ }).click();
-  await expect(page).toHaveURL(/\/context$/);
+  await expect(page).toHaveURL(new RegExp(`/patients/by-id/context\\?patientId=${patientId}$`));
   await expect(
     page.getByText("Allergy status not confirmed", { exact: true }),
   ).toBeVisible();
@@ -328,7 +328,7 @@ test("directory → compact context → dossier → selected consultation, with 
   await page
     .getByRole("link", { name: "Open patient record", exact: true })
     .click();
-  await expect(page).toHaveURL(new RegExp(`/patients/${patientId}$`));
+  await expect(page).toHaveURL(new RegExp(`/patients/by-id\\?patientId=${patientId}$`));
   await expect(page.getByText("Penicillin", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Migraine", { exact: true })).toHaveCount(0);
   await expect(
@@ -341,7 +341,7 @@ test("directory → compact context → dossier → selected consultation, with 
   await page
     .getByRole("link", { name: "Begin consultation", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/consultation\/synthetic-visit$/);
+  await expect(page).toHaveURL(/\/consultation\/by-id\?appointmentId=synthetic-visit$/);
   expect(state.calls.filter((path) => path.includes("ai-assistance"))).toEqual(
     [],
   );
@@ -391,6 +391,7 @@ test("directory filters, search, creation link and direct prescription entry rem
   await page.getByRole("button", { name: "Retry directory" }).click();
   await expect(page.getByRole("link", { name: /Synthetic One/ })).toBeVisible();
   await page.goto(`/app/doctor/patients/${patientId}`);
+  await expect(page).toHaveURL(new RegExp(`/app/doctor/patients/by-id\\?patientId=${patientId}$`));
   await page
     .getByRole("button", { name: "Create prescription", exact: true })
     .click();
@@ -406,7 +407,7 @@ test("denied original source never displays the previous preview and can be retr
   page,
 }) => {
   const state = await recordServices(page);
-  await page.goto(`/app/doctor/patients/${patientId}`);
+  await page.goto(`/app/doctor/patients/by-id?patientId=${patientId}`);
   state.failSource = true;
   await page.getByRole("button", { name: "Open report & source →" }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
@@ -423,7 +424,7 @@ test("record section navigation, timeline, source and prescription history remai
   page,
 }) => {
   await recordServices(page);
-  await page.goto(`/app/doctor/patients/${patientId}`);
+  await page.goto(`/app/doctor/patients/by-id?patientId=${patientId}`);
   await page
     .getByRole("navigation", { name: "Patient record sections" })
     .getByRole("link", { name: "Reports", exact: true })
@@ -447,14 +448,14 @@ test("record section navigation, timeline, source and prescription history remai
   await history
     .getByRole("link", { name: "Open original prescription" })
     .click();
-  await expect(page).toHaveURL(/\/prescriptions\/synthetic-rx$/);
+  await expect(page).toHaveURL(/\/prescriptions\/by-id\?prescriptionId=synthetic-rx$/);
 });
 
 test("upload rejects a failed PUT and retries completion without repeating a successful PUT", async ({
   page,
 }) => {
   const state = await recordServices(page);
-  await page.goto(`/app/doctor/patients/${patientId}`);
+  await page.goto(`/app/doctor/patients/by-id?patientId=${patientId}`);
   await page
     .getByRole("button", { name: "Upload record", exact: true })
     .click();
@@ -496,13 +497,13 @@ test("empty, unclaimed and forbidden records have working exits and no invented 
   const state = await recordServices(page);
   state.visits = false;
   state.unclaimed = true;
-  await page.goto(`/app/doctor/patients/${patientId}`);
+  await page.goto(`/app/doctor/patients/by-id?patientId=${patientId}`);
   await expect(
     page.getByRole("button", { name: "Begin consultation", exact: true }),
   ).toBeDisabled();
   await page.getByRole("button", { name: "Generate claim invite" }).click();
   await expect(page.getByText("SYNTHETIC-CODE")).toBeVisible();
-  await page.goto(`/app/doctor/patients/${otherId}`);
+  await page.goto(`/app/doctor/patients/by-id?patientId=${otherId}`);
   await expect(
     page.getByText("Synthetic allergy", { exact: true }),
   ).toBeVisible();
@@ -535,7 +536,7 @@ for (const width of [320, 768, 1440]) {
   }) => {
     await recordServices(page);
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(`/app/doctor/patients/${patientId}/context`);
+    await page.goto(`/app/doctor/patients/by-id/context?patientId=${patientId}`);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
