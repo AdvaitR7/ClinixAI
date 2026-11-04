@@ -27,6 +27,18 @@ export async function detectNativeApp(): Promise<boolean> {
   return false;
 }
 
+/** Accepts only the configured HTTPS callback origin and preserves the PKCE query for the local WebView. */
+export function nativeAuthCallbackPath(url: string, expectedBase: string | undefined): string | null {
+  try {
+    if (!expectedBase) return null;
+    const callback = new URL(url);
+    if (callback.origin !== new URL(expectedBase).origin || callback.protocol !== "https:" || callback.pathname !== "/auth/callback" || callback.username || callback.password) return null;
+    return `${callback.pathname}${callback.search}${callback.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Handles Android back presses and routes verified email links into the bundled callback page.
  * Without the back listener, Android closes the app instead of returning through its screens.
@@ -41,10 +53,8 @@ export async function registerNativeBackButton(): Promise<() => void> {
     else void App.exitApp();
   });
   const openCallback = ({ url }: { url: string }) => {
-    const callback = new URL(url);
-    const expected = process.env.NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL;
-    if (!expected || callback.origin !== new URL(expected).origin || callback.protocol !== "https:" || callback.pathname !== "/auth/callback") return;
-    window.location.assign(`${callback.pathname}${callback.search}${callback.hash}`);
+    const path = nativeAuthCallbackPath(url, process.env.NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL);
+    if (path) window.location.assign(path);
   };
   const urlHandle = await App.addListener("appUrlOpen", openCallback);
   const launch = await App.getLaunchUrl();
