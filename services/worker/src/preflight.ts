@@ -31,6 +31,7 @@ async function main() {
 
   const response = await client.chat.completions.create({
     model: routes.ANALYST_1!,
+    stream: false,
     messages: [
       { role: "system", content: "Return a JSON object with one key named ok whose value is true." },
       { role: "user", content: "Return the requested object." },

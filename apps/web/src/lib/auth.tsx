@@ -99,17 +99,17 @@ const tokenVersions = new Map<string, number>();
 function redirectUrl(path: string): string {
   const configuredBase = process.env.NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL?.trim();
   if (process.env.NODE_ENV === "production" && !configuredBase) {
-    throw new Error("NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL must be configured in production.");
+    throw Object.assign(new Error("NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL must be configured in production."), { code: "auth_redirect_configuration" });
   }
   const base = configuredBase || window.location.origin;
   let parsed: URL;
   try {
     parsed = new URL(base);
   } catch {
-    throw new Error("Authentication redirect URL must be an absolute URL.");
+    throw Object.assign(new Error("Authentication redirect URL must be an absolute URL."), { code: "auth_redirect_configuration" });
   }
   if (process.env.NODE_ENV === "production" && parsed.protocol !== "https:") {
-    throw new Error("Authentication redirect URL must use HTTPS in production.");
+    throw Object.assign(new Error("Authentication redirect URL must use HTTPS in production."), { code: "auth_redirect_configuration" });
   }
   return new URL(path, parsed).toString();
 }

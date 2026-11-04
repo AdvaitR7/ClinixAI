@@ -24,6 +24,7 @@ const day = new Intl.DateTimeFormat("en-IN", {
   month: "long",
 });
 
+/** Formats an appointment's time in the clinic's India timezone. */
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata",
@@ -89,14 +90,14 @@ export default function PatientPage() {
 
           <section aria-labelledby="today-title">
             <div className="mb-3 flex items-center justify-between">
-              <h2 id="today-title" className="clinix-label text-botanical">Today</h2>
+              <h2 id="today-title" className="clinix-label text-botanical">Next appointment</h2>
               <span className="font-sans text-[10px] font-semibold uppercase text-graphite">
                 {state.data.upcoming_appointment ? "1 item" : "No items"}
               </span>
             </div>
             <div className="clinix-card p-[18px]">
               <h3 className="font-sans text-[1.4rem] font-bold leading-tight tracking-[-0.03em] text-ink">
-                {day.format(new Date())}
+                {day.format(state.data.upcoming_appointment ? new Date(state.data.upcoming_appointment.scheduled_start) : new Date())}
               </h3>
               {state.data.upcoming_appointment ? (
                 <div className="mt-4 flex items-center gap-3 rounded-2xl bg-canvas p-3.5">

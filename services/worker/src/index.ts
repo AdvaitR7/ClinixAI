@@ -18,7 +18,13 @@ async function main() {
     process.exit(1);
   }
 
-  const boss = new PgBoss({ connectionString: url, max: Number(process.env.QUEUE_POOL_MAX ?? 1) });
+  // Bound queries and recycle pooled sockets so a broken connection cannot stall all consumers.
+  const queueOptions = {
+    connectionString: url, max: Number(process.env.QUEUE_POOL_MAX ?? 1),
+    connectionTimeoutMillis: 10_000, query_timeout: 15_000,
+    keepAlive: true, keepAliveInitialDelayMillis: 10_000, maxLifetimeSeconds: 300,
+  };
+  const boss = new PgBoss(queueOptions);
   boss.on("error", (err) => console.error("worker queue error", err));
   await boss.start();
   await boss.createQueue("document.extract");
@@ -39,12 +45,26 @@ async function main() {
 
   // The Docker HEALTHCHECK reads this file's age; it is only refreshed while the database answers.
   const heartbeatFile = process.env.HEARTBEAT_FILE ?? "/tmp/worker-heartbeat";
+  let failedBeats = 0;
+  let checkingHealth = false;
+  /** Checks both database pools; exits after repeated failures so Docker restarts stalled consumers. */
   const beat = async () => {
+    if (checkingHealth) return;
+    checkingHealth = true;
+    let deadline: ReturnType<typeof setTimeout> | undefined;
     try {
-      if (sql) await sql`select 1`;
+      await Promise.race([
+        Promise.all([sql ? sql`select 1` : Promise.reject(new Error("Database is unavailable")), boss.getQueues(["document.extract", "ai.analyze"])]),
+        new Promise((_, reject) => { deadline = setTimeout(() => reject(new Error("Worker queue health check timed out")), 10_000); }),
+      ]);
+      failedBeats = 0;
       writeFileSync(heartbeatFile, String(Date.now()));
     } catch (err) {
       console.error("worker heartbeat skipped", err);
+      if (++failedBeats >= 3) process.exit(1);
+    } finally {
+      clearTimeout(deadline);
+      checkingHealth = false;
     }
   };
   await beat();

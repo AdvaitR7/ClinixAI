@@ -95,12 +95,15 @@ export async function generateStructuredTracked<T>(args: {
   const client = new OpenAI({
     baseURL: gatewayBaseUrl(process.env.NINEROUTER_BASE_URL),
     apiKey: process.env.NINEROUTER_API_KEY,
+    timeout: 60_000,
+    maxRetries: 0,
   });
 
   // ponytail: response_format json_object + manual parse, not zodResponseFormat's
   // json_schema; upgrade if 9Router gains native structured output.
   const res = await client.chat.completions.create({
     model: route,
+    stream: false,
     messages: args.messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
     reasoning_effort: "low",
     response_format: { type: "json_object" },
