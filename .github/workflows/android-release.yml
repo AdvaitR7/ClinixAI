@@ -112,6 +112,7 @@ jobs:
           name: clinix-android-${{ env.CLINIX_VERSION_NAME }}
           path: release/
       - uses: softprops/action-gh-release@v2
+        id: published
         with:
           repository: AdvaitR7/ClinixAI
           target_commitish: ${{ inputs.sha }}
@@ -123,3 +124,12 @@ jobs:
           files: |
             release/clinix-android.apk
             release/clinix-android.apk.sha256
+
+      - name: Record private release link
+        env:
+          RELEASE_URL: ${{ steps.published.outputs.url }}
+          SOURCE_SHA: ${{ inputs.sha }}
+        run: |
+          echo "Private Android candidate: $RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Source: $SOURCE_SHA; version: $CLINIX_VERSION_NAME ($CLINIX_VERSION_CODE)" >> "$GITHUB_STEP_SUMMARY"
+          echo "GitHub sign-in is required. Physical-phone acceptance is required before marking stable." >> "$GITHUB_STEP_SUMMARY"
