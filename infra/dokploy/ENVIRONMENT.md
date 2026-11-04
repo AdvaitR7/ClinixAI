@@ -67,10 +67,10 @@ Enter only production values. Changing these requires redeployment, not rebuildi
 | `CORS_ORIGINS` | `https://localhost,https://clinix.thecontractor.me` | API |
 | `NINEROUTER_BASE_URL` | `https://9router.thecontractor.me/v1` | Worker, verify |
 | `NINEROUTER_API_KEY` | Existing router credential | Worker, verify |
-| `MODEL_ROUTE_ANALYST_1` | Exact supplied route ID | Worker, verify |
-| `MODEL_ROUTE_ANALYST_2` | Exact supplied route ID | Worker, verify |
-| `MODEL_ROUTE_JUDGE` | Exact supplied route ID | Worker, verify |
-| `MODEL_ROUTE_OCR` | Exact supplied route ID | Worker, verify |
+| `MODEL_ROUTE_ANALYST_1` | `cx/gpt-6.1-sol` (user-selected for every role) | Worker, verify |
+| `MODEL_ROUTE_ANALYST_2` | `cx/gpt-6.1-sol` (user-selected for every role) | Worker, verify |
+| `MODEL_ROUTE_JUDGE` | `cx/gpt-6.1-sol` (user-selected for every role) | Worker, verify |
+| `MODEL_ROUTE_OCR` | `cx/gpt-6.1-sol` (user-selected for every role) | Worker, verify |
 | `GITHUB_RELEASE_READ_TOKEN` | Optional fine-grained GitHub token: Contents READ on this private repo only | API |
 
 `ANDROID_RELEASE_REPOSITORY=AdvaitR7/ClinixAI` is fixed in Compose. The update endpoint uses the server-side read token to fetch private metadata and returns a GitHub release PAGE URL. Downloading the APK requires the user's GitHub login. The token is never returned to the phone. If no token is configured, update lookup reports unavailable; manual private release downloads remain available.
@@ -120,3 +120,5 @@ Set bucket lifecycle rules: expire `clinix/daily/` after 30 days and `clinix/mon
 Run the schedule manually once, then download that snapshot into an isolated environment. Verify `database_sha256` and every document checksum in manifest.json. Restore the dump using `pg_restore --no-owner --no-acl` into an EMPTY non-production Supabase project with compatible roles/extensions; recreate the private document bucket and upload the original object paths from the manifest. Never run restore against production. Verify identity decryption with the separately held ORIGINAL identity key and signed document access. Record the drill result before enabling the daily schedule.
 
 Database and object captures are not one atomic snapshot: the manifest records the backup start time. Pause application writes for the first restoration drill and document any later restore-point gap. Do not claim point-in-time document recovery from these daily copies.
+
+All four AI roles use the exact model ID `cx/gpt-6.1-sol`. The gateway and preflight request `reasoning_effort: "low"`; `(low)` is not part of the model ID. STT remains disabled.
