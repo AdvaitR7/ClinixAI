@@ -16,6 +16,7 @@ import {
 } from "@clinix/api/schema";
 import { requireDb } from "../db.js";
 import { generateStructuredTracked, replayKeyOf } from "../gateway.js";
+import { prepareOcrImage } from "../ocr-image.js";
 
 const BUCKET = "clinix-documents";
 
@@ -133,7 +134,8 @@ async function extractDocument(documentId: string): Promise<void> {
 
   try {
     const bytes = await downloadObject(doc.storageObjectKey);
-    const dataUrl = `data:${doc.mimeType};base64,${bytes.toString("base64")}`;
+    const input = await prepareOcrImage(bytes, doc.mimeType);
+    const dataUrl = `data:${input.mimeType};base64,${input.bytes.toString("base64")}`;
     // Stable for the synthetic fixtures: the same file bytes always map to the same canned output.
     const replayKey = replayKeyOf(bytes);
 
