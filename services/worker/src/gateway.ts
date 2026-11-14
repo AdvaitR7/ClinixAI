@@ -15,6 +15,17 @@ const ROUTE_ENV: Record<ModelRole, string> = {
 };
 
 /** Adds the OpenAI-compatible API path exactly once for 9Router deployments. */
+/**
+ * Reasoning effort sent with every 9Router chat call.
+ *
+ * Read from MODEL_REASONING_EFFORT so the model's effort can change without a code release;
+ * unknown or empty values fall back to "low", the previous fixed setting.
+ */
+export function reasoningEffort(): "low" | "medium" | "high" {
+  const value = process.env.MODEL_REASONING_EFFORT?.trim().toLowerCase();
+  return value === "medium" || value === "high" ? value : "low";
+}
+
 export function gatewayBaseUrl(value: string | undefined): string {
   if (!value) throw new Error("NINEROUTER_BASE_URL is not configured");
   const base = new URL(value);
@@ -105,7 +116,7 @@ export async function generateStructuredTracked<T>(args: {
     model: route,
     stream: false,
     messages: args.messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-    reasoning_effort: "low",
+    reasoning_effort: reasoningEffort(),
     response_format: { type: "json_object" },
   });
 
