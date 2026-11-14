@@ -50,6 +50,38 @@ function testSession(id: string, email: string) {
 }
 
 describe("browser authentication lifecycle", () => {
+  it("rejects an HTTP callback in production before attempting signup", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.status).toBe("signed-out"));
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL", "http://localhost:3000");
+    try {
+      await expect(result.current.signUp("new@example.test", "synthetic-password", "New user"))
+        .rejects.toMatchObject({ code: "auth_redirect_configuration" });
+      expect(mockState.client.auth.signUp).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("sends signup with the HTTPS callback in production", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.status).toBe("signed-out"));
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL", "https://example.invalid");
+    mockState.client.auth.signUp.mockResolvedValue({ data: { session: testSession("new", "new@example.test") }, error: null });
+    try {
+      await expect(result.current.signUp("new@example.test", "synthetic-password", "New user")).resolves.toBe(true);
+      expect(mockState.client.auth.signUp).toHaveBeenCalledWith({
+        email: "new@example.test",
+        password: "synthetic-password",
+        options: { data: { display_name: "New user" }, emailRedirectTo: "https://example.invalid/auth/callback" },
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.listener = null;

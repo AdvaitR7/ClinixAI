@@ -7,8 +7,8 @@ android {
         applicationId "com.clinixai.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode (project.findProperty("clinixVersionCode") ?: "1").toInteger()
-        versionName project.findProperty("clinixVersionName") ?: "1.0"
+        versionCode = (project.findProperty("clinixVersionCode") ?: "1").toInteger()
+        versionName = project.findProperty("clinixVersionName") ?: "1.0"
         manifestPlaceholders = [authHost: project.findProperty("clinixAuthHost") ?: "localhost"]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

@@ -23,7 +23,12 @@ export async function startQueue(): Promise<PgBoss | null> {
 
 /** Publishes the queue only after startup succeeds and contains background errors. */
 async function initializeQueue(url: string): Promise<PgBoss | null> {
-  const candidate = new PgBoss({ connectionString: url, max: Number(process.env.QUEUE_POOL_MAX ?? 1) });
+  const queueOptions = {
+    connectionString: url, max: Number(process.env.QUEUE_POOL_MAX ?? 1),
+    connectionTimeoutMillis: 10_000, query_timeout: 15_000,
+    keepAlive: true, keepAliveInitialDelayMillis: 10_000, maxLifetimeSeconds: 300,
+  };
+  const candidate = new PgBoss(queueOptions);
   // EventEmitter errors happen outside start()'s promise; without a listener they kill the API.
   candidate.on("error", (err) => console.error("pg-boss background error", err));
   try {

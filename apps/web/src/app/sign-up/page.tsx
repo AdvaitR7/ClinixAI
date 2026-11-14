@@ -19,6 +19,7 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accountExists, setAccountExists] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -30,6 +31,7 @@ export default function SignUpPage() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setAccountExists(false);
     if (password.length < 8) {
       setError("Use a password with at least 8 characters.");
       return;
@@ -45,8 +47,14 @@ export default function SignUpPage() {
       else setConfirmationSent(true);
     } catch (cause) {
       const code = (cause as { code?: string }).code;
-      setError(code === "weak_password"
+      const existingAccount = code === "user_already_exists" || code === "email_exists";
+      setAccountExists(existingAccount);
+      setError(existingAccount
+        ? "An account with this email already exists. Sign in or reset your password."
+        : code === "weak_password"
         ? "Choose a stronger password and try again."
+        : code === "auth_redirect_configuration"
+        ? "This app's sign-up configuration is invalid. Please install an updated version or sign up on the website."
         : "We could not create your account. Check your details or try signing in.");
     } finally {
       setBusy(false);
@@ -97,6 +105,12 @@ export default function SignUpPage() {
             <input id="confirm-password" type={showPassword ? "text" : "password"} autoComplete="new-password" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className={inputClass} />
           </div>
           <FormError message={error} />
+          {accountExists && (
+            <div className="flex flex-wrap gap-4 font-sans text-sm font-semibold text-evidence">
+              <Link href="/sign-in">Sign in to your account</Link>
+              <Link href="/forgot-password">Reset your password</Link>
+            </div>
+          )}
           <button type="submit" disabled={busy} className="min-h-[57px] w-full rounded-[18px] bg-botanical font-sans text-sm font-bold uppercase text-surface shadow-[0_5px_14px_rgba(18,53,44,0.14)] disabled:opacity-60">{busy ? "Creating account…" : "Create account"}</button>
         </form>
       )}

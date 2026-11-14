@@ -93,7 +93,7 @@ export default function PatientOnboardingPage() {
           </div>
           <div>
             <label htmlFor="sex_at_registration" className="font-sans text-sm font-medium">
-              Sex at registration
+              Sex
             </label>
             <input id="sex_at_registration" type="text" className={inputClass} {...register("sex_at_registration")} />
           </div>
