@@ -27,7 +27,7 @@ import { followupRoutes } from "./followups/routes.js";
 import { notificationRoutes } from "./notifications/routes.js";
 import { doctorProfileRoutes } from "./doctors/profile-routes.js";
 import { startQueue, stopQueue } from "./queue.js";
-import { checkDb, sql } from "./db";
+import { checkDb, sql } from "./db.js";
 import { assertIdentityKey } from "./crypto.js";
 
 // Fail at boot, not with a 500 on every patient route, when the identity key is missing or malformed.
@@ -136,8 +136,9 @@ await app.register(
 const port = Number(process.env.PORT ?? 4000);
 const host = process.env.HOST ?? "0.0.0.0";
 
-// Start the document queue before listening so upload-complete can enqueue.
-await startQueue();
+// Start the document queue before listening so upload-complete can enqueue. On Vercel it starts
+// lazily on the first send instead, keeping the pg-boss connection out of every cold start.
+if (!process.env.VERCEL) await startQueue();
 
 try {
   await app.listen({ port, host });

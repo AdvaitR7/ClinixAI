@@ -21,12 +21,20 @@ export async function startQueue(): Promise<PgBoss | null> {
   }
 }
 
-/** Publishes the queue only after startup succeeds and contains background errors. */
+/**
+ * Publishes the queue only after startup succeeds and contains background errors.
+ *
+ * On Vercel (`VERCEL` is set) the API is a send-only producer: supervision, cron scheduling and
+ * schema migration are left to the long-running worker, so short-lived function instances never
+ * run pg-boss maintenance timers or race each other on migrations.
+ */
 async function initializeQueue(url: string): Promise<PgBoss | null> {
+  const producerOnly = Boolean(process.env.VERCEL);
   const queueOptions = {
     connectionString: url, max: Number(process.env.QUEUE_POOL_MAX ?? 1),
     connectionTimeoutMillis: 10_000, query_timeout: 15_000,
     keepAlive: true, keepAliveInitialDelayMillis: 10_000, maxLifetimeSeconds: 300,
+    ...(producerOnly ? { supervise: false, schedule: false, migrate: false } : {}),
   };
   const candidate = new PgBoss(queueOptions);
   // EventEmitter errors happen outside start()'s promise; without a listener they kill the API.
