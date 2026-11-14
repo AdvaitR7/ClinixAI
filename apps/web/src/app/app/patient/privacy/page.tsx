@@ -80,7 +80,7 @@ function Permissions({ consents, activeCount, totalEvents, onChanged }: { consen
   }
 
   if (consents.status === "loading") return <p role="status" className="text-sm text-graphite">Loading permissions…</p>;
-  if (consents.status === "error") return <div role="alert" className={privacyCard}><p className="text-sm">{consents.error}</p><button type="button" onClick={() => void consents.refresh()} className="mt-2 min-h-11 text-xs text-evidence">Retry</button></div>;
+  if (consents.status === "error") return <div role="alert" className={privacyCard}><p className="text-sm">{consents.error}</p><button type="button" onClick={() => void consents.refresh()} className="mt-2 min-h-11 text-xs text-clear-info">Retry</button></div>;
   const active = consents.data.filter((c) => c.status === "ACTIVE");
   const past = consents.data.filter((c) => c.status !== "ACTIVE");
 
@@ -108,7 +108,7 @@ function Permissions({ consents, activeCount, totalEvents, onChanged }: { consen
             </div>
           </article>
         ))}
-        <Link href="/app/patient/care" className="block min-h-11 text-center text-xs text-evidence">+ Add another doctor or encounter share</Link>
+        <Link href="/app/patient/care" className="block min-h-11 text-center text-xs text-clear-info">+ Add another doctor or encounter share</Link>
       </section>
       {past.length > 0 && (
         <section className="space-y-2">
@@ -173,20 +173,20 @@ function Ledger({ onCounts }: { onCounts: (counts: AccessLedger["counts"]) => vo
       <div>
         <h2 className={privacyLabel}>Access ledger</h2>
         <p className="mt-2 text-lg">Every access, permanently visible</p>
-        <p className="mt-2 inline-block rounded-full bg-surface px-3 py-2 text-[10px] text-graphite">IMMUTABLE · READ ONLY · APPEND-ONLY</p>
+        <p className="mt-2 inline-block rounded-full bg-surface px-3 py-2 text-xs text-graphite">IMMUTABLE · READ ONLY · APPEND-ONLY</p>
       </div>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Ledger filters">
         {FILTERS.map((f) => (
-          <button key={f.label} type="button" aria-pressed={category === f.value} onClick={() => { setEvents([]); setCursor(null); setCategory(f.value); }} className={`min-h-11 rounded-full border px-3 text-[10px] ${category === f.value ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{f.label}{counts ? ` · ${counts[f.count]}` : ""}</button>
+          <button key={f.label} type="button" aria-pressed={category === f.value} onClick={() => { setEvents([]); setCursor(null); setCategory(f.value); }} className={`min-h-11 rounded-full border px-3 text-xs ${category === f.value ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{f.label}{counts ? ` · ${counts[f.count]}` : ""}</button>
         ))}
       </div>
-      {status === "error" && <div role="alert" className={privacyCard}><p className="text-sm">{error}</p><button type="button" onClick={() => void load(null)} className="mt-2 min-h-11 text-xs text-evidence">Retry</button></div>}
+      {status === "error" && <div role="alert" className={privacyCard}><p className="text-sm">{error}</p><button type="button" onClick={() => void load(null)} className="mt-2 min-h-11 text-xs text-clear-info">Retry</button></div>}
       {status === "ready" && events.length === 0 && <p className={`${privacyCard} text-sm text-graphite`}>No access events yet.</p>}
       {events.map((e) => (
         <article key={e.id} className={privacyCard}>
           <div className="flex items-start justify-between gap-2">
-            <span className="rounded-full border border-sage px-2 py-1 text-[9px] uppercase">{e.category === "AI" ? "AI inference audit" : `${e.category.toLowerCase()} access`}</span>
-            <time dateTime={e.timestamp} className="text-[10px] text-graphite">{formatDateTime(e.timestamp)}</time>
+            <span className="rounded-full border border-sage px-2 py-1 text-xs uppercase">{e.category === "AI" ? "AI inference audit" : `${e.category.toLowerCase()} access`}</span>
+            <time dateTime={e.timestamp} className="text-xs text-graphite">{formatDateTime(e.timestamp)}</time>
           </div>
           <h3 className="mt-3 text-base">{e.actor.display_name}</h3>
           <dl className="mt-2 space-y-1 text-xs">
@@ -194,7 +194,7 @@ function Ledger({ onCounts }: { onCounts: (counts: AccessLedger["counts"]) => vo
             {e.purpose && <div className="flex justify-between gap-4"><dt className="text-graphite">Purpose</dt><dd className="text-right">{e.purpose}</dd></div>}
             {e.consent_id && <div className="flex justify-between gap-4"><dt className="text-graphite">Basis</dt><dd>Your consent</dd></div>}
           </dl>
-          <Link href={recordHref("/app/patient/privacy/access", "eventId", e.id)} className="mt-1 inline-flex min-h-11 items-center text-[10px] font-semibold text-botanical">View receipt →</Link>
+          <Link href={recordHref("/app/patient/privacy/access", "eventId", e.id)} className="mt-1 inline-flex min-h-11 items-center text-xs font-semibold text-botanical">View receipt →</Link>
         </article>
       ))}
       {status === "loading" && <p role="status" className="text-xs text-graphite">Loading ledger…</p>}
@@ -251,11 +251,11 @@ function Removals() {
           {r.reason && <p className="mt-2 text-xs">Your reason: {r.reason}</p>}
           {r.resolution_note && <p className="mt-2 text-xs">Doctor&apos;s reason: {r.resolution_note}</p>}
           {r.decisions.length > 0 && <ul className="mt-2 space-y-1 text-xs">{r.decisions.map((d, i) => <li key={i}>{d.label ?? d.resource_type}: {d.decision === "REMOVE" ? "removal approved" : "retained"}</li>)}</ul>}
-          {r.status !== "OPEN" && r.status !== "ROUTED" && <p className="mt-2 text-[10px] text-graphite">The decision is recorded. Changes to what appears in your views are applied separately.</p>}
+          {r.status !== "OPEN" && r.status !== "ROUTED" && <p className="mt-2 text-xs text-graphite">The decision is recorded. Changes to what appears in your views are applied separately.</p>}
         </article>
       ))}
       <button ref={triggerRef} type="button" onClick={() => { setError(null); setOpen(true); }} disabled={doctors.length === 0} className="min-h-11 w-full rounded-xl border border-sage text-xs disabled:opacity-50">Request record removal</button>
-      {doctors.length === 0 && circle.status === "ready" && <p className="text-[10px] text-graphite">Add a doctor to your care circle to send a request.</p>}
+      {doctors.length === 0 && circle.status === "ready" && <p className="text-xs text-graphite">Add a doctor to your care circle to send a request.</p>}
       {open && (
         <VaultDialog titleId="removal-title" returnFocusRef={triggerRef} busy={busy} onClose={() => setOpen(false)}>
           <h2 id="removal-title" className="text-xl">Request record removal</h2>

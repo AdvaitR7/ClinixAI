@@ -40,7 +40,7 @@ test("manifest has the required fields and every icon resolves", async ({ page }
   const href = await page.locator('link[rel="manifest"]').getAttribute("href");
   expect(href).toBeTruthy();
   const manifest = await (await page.request.get(href!)).json();
-  expect(manifest).toMatchObject({ name: "CliniX AI", short_name: "CliniX", start_url: "/", display: "standalone", orientation: "portrait", theme_color: "#12352C", background_color: "#F7F2E9" });
+  expect(manifest).toMatchObject({ name: "CliniX AI", short_name: "CliniX", start_url: "/", display: "standalone", orientation: "portrait", theme_color: "#F2F6F6", background_color: "#F2F6F6" });
   const purposes = manifest.icons.map((icon: { sizes: string; purpose: string }) => `${icon.sizes}:${icon.purpose}`);
   expect(purposes).toEqual(expect.arrayContaining(["192x192:any", "512x512:any", "512x512:maskable"]));
   for (const icon of manifest.icons as { src: string }[]) {
@@ -52,7 +52,7 @@ test("manifest has the required fields and every icon resolves", async ({ page }
 
 test("theme colour, viewport cover and iOS web-app metadata are present", async ({ page }) => {
   await page.goto("/sign-in");
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#12352C");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#F2F6F6");
   await expect(page.locator('meta[name="viewport"]')).toHaveAttribute("content", /viewport-fit=cover/);
   await expect(page.locator('meta[name="mobile-web-app-capable"], meta[name="apple-mobile-web-app-capable"]').first()).toHaveAttribute("content", "yes");
   await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", /apple-180\.png/);

@@ -7,9 +7,9 @@ import { useApiData } from "@/lib/api";
 import { StaffShell } from "@/components/staff-shell";
 import { clinicTime, useApiWrite } from "@/lib/staff";
 
-const card = "rounded-[18px] border border-copper bg-graphite p-4";
-const label = "text-[9px] uppercase text-copper";
-const field = "min-h-11 w-full rounded-xl border border-copper/60 bg-ink px-3 text-sm";
+const card = "rounded-[18px] border border-clear-divider bg-clear-surface p-4";
+const label = "text-xs uppercase text-clear-action";
+const field = "min-h-11 w-full rounded-xl border border-clear-divider bg-clear-surface px-3 text-sm";
 
 type Doctor = { doctor_id: string; name: string; speciality: string | null };
 type Patient = { patient_id: string; full_name: string };
@@ -52,54 +52,54 @@ function BookContent() {
   const freeSlots = slots.status === "ready" ? slots.data.slots : [];
   return (
     <StaffShell role={null} active="schedule" title="Book appointment">
-      <Link href="/app/staff" className="min-h-11 text-xs text-evidence">← Back to dashboard</Link>
+      <Link href="/app/staff" className="min-h-11 text-xs text-clear-info">← Back to dashboard</Link>
       <div>
         <p className={label}>Clinic operations · book appointment</p>
         <h1 className="mt-2 text-[28px] leading-tight">Book for a patient</h1>
       </div>
       <section className={card}>
-        <label className="text-[10px]">Patient
+        <label className="text-xs">Patient
           <select aria-label="Patient" value={patientId} onChange={(e) => setPatientId(e.target.value)} className={`${field} mt-1`}>
             <option value="">Select a patient</option>
             {patients.status === "ready" && patients.data.map((p) => <option key={p.patient_id} value={p.patient_id}>{p.full_name}</option>)}
           </select>
         </label>
-        <p className="mt-2 text-[10px] text-surface/75">Chosen from this practice&apos;s patients only. Booking grants no record access.</p>
+        <p className="mt-2 text-xs text-clear-secondary">Chosen from this practice&apos;s patients only. Booking grants no record access.</p>
       </section>
       <section className={card}>
-        <label className="text-[10px]">Doctor
+        <label className="text-xs">Doctor
           <select aria-label="Doctor" value={doctorId} onChange={(e) => { setDoctorId(e.target.value); setSlot(""); }} className={`${field} mt-1`}>
             <option value="">Select a doctor</option>
             {doctors.status === "ready" && doctors.data.map((d) => <option key={d.doctor_id} value={d.doctor_id}>{d.name}{d.speciality ? ` · ${d.speciality}` : ""}</option>)}
           </select>
         </label>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="text-[10px]">Type
+          <label className="text-xs">Type
             <select value={type} onChange={(e) => { setType(e.target.value as typeof type); setSlot(""); }} className={`${field} mt-1`}>
               <option value="IN_PERSON">In clinic</option>
               <option value="ONLINE">Online</option>
             </select>
           </label>
-          <label className="text-[10px]">Date
+          <label className="text-xs">Date
             <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setSlot(""); }} className={`${field} mt-1`} />
           </label>
         </div>
         {doctorId && (
           <div className="mt-3" role="group" aria-label="Available times">
             {slots.status === "loading" && <p role="status" className="text-xs">Loading times…</p>}
-            {slots.status === "ready" && freeSlots.length === 0 && <p className="text-xs text-surface/75">No published times on this date.</p>}
+            {slots.status === "ready" && freeSlots.length === 0 && <p className="text-xs text-clear-secondary">No published times on this date.</p>}
             <div className="flex flex-wrap gap-2">
               {freeSlots.map((s) => (
-                <button key={s.start} type="button" aria-pressed={slot === s.start} onClick={() => setSlot(s.start)} className={`min-h-11 rounded-full border px-3 text-xs ${slot === s.start ? "border-copper bg-copper text-ink" : "border-copper/60"}`}>{clinicTime(s.start)}</button>
+                <button key={s.start} type="button" aria-pressed={slot === s.start} onClick={() => setSlot(s.start)} className={`min-h-11 rounded-full border px-3 text-xs ${slot === s.start ? "border-clear-divider bg-clear-action text-white" : "border-clear-divider"}`}>{clinicTime(s.start)}</button>
               ))}
             </div>
           </div>
         )}
-        <p className="mt-2 text-[10px] text-surface/75">Times come from the doctor&apos;s published availability. A taken time shows an error, never a double booking.</p>
-        <label className="mt-3 block text-[10px]">Reason (optional)<input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} className={`${field} mt-1`} /></label>
+        <p className="mt-2 text-xs text-clear-secondary">Times come from the doctor&apos;s published availability. A taken time shows an error, never a double booking.</p>
+        <label className="mt-3 block text-xs">Reason (optional)<input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} className={`${field} mt-1`} /></label>
       </section>
       {error && <p role="alert" className="text-xs text-critical">{error}</p>}
-      <button type="button" disabled={busy || !patientId || !doctorId || !slot} onClick={() => void book()} className="min-h-12 w-full rounded-2xl bg-copper px-4 text-sm font-semibold text-ink disabled:opacity-50">Request appointment</button>
+      <button type="button" disabled={busy || !patientId || !doctorId || !slot} onClick={() => void book()} className="min-h-12 w-full rounded-2xl bg-clear-action px-4 text-sm font-semibold text-white disabled:opacity-50">Request appointment</button>
     </StaffShell>
   );
 }

@@ -8,7 +8,7 @@ export function AuthShell({
   orientation,
   children,
   tone = "patient",
-  appearance = "legacy",
+  appearance = "clear",
 }: {
   eyebrow: string;
   title: string;

@@ -23,14 +23,14 @@ describe("UiIcon", () => {
 });
 
 describe("ClinixBrand", () => {
-  it("keeps the legacy mark by default", () => {
-    const { container } = render(<ClinixBrand />);
+  it("keeps the legacy mark when asked", () => {
+    const { container } = render(<ClinixBrand appearance="legacy" />);
     expect(container.querySelector("[data-brand='clear']")).toBeNull();
     expect(screen.getByLabelText("ClinixAI")).toBeInTheDocument();
   });
 
-  it("renders the Clear plus mark only when requested", () => {
-    const { container } = render(<ClinixBrand appearance="clear" />);
+  it("renders the Clear plus mark by default", () => {
+    const { container } = render(<ClinixBrand />);
     expect(container.querySelector("[data-brand='clear']")).not.toBeNull();
     expect(screen.getByLabelText("ClinixAI")).toBeInTheDocument();
   });

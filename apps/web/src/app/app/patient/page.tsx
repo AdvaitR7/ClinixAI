@@ -81,8 +81,8 @@ export default function PatientPage() {
                     index === 0 ? "bg-botanical text-surface" : "border border-sage bg-surface text-ink"
                   }`}
                 >
-                  <span className="font-sans text-[9px] font-semibold">{date.weekday}</span>
-                  <span className="font-mono text-xl font-bold">{date.date}</span>
+                  <span className="font-sans text-xs font-semibold">{date.weekday}</span>
+                  <span className="font-sans tabular-nums text-xl font-bold">{date.date}</span>
                 </div>
               ))}
             </div>
@@ -91,7 +91,7 @@ export default function PatientPage() {
           <section aria-labelledby="today-title">
             <div className="mb-3 flex items-center justify-between">
               <h2 id="today-title" className="clinix-label text-botanical">Next appointment</h2>
-              <span className="font-sans text-[10px] font-semibold uppercase text-graphite">
+              <span className="font-sans text-xs font-semibold uppercase text-graphite">
                 {state.data.upcoming_appointment ? "1 item" : "No items"}
               </span>
             </div>
@@ -101,8 +101,8 @@ export default function PatientPage() {
               </h3>
               {state.data.upcoming_appointment ? (
                 <div className="mt-4 flex items-center gap-3 rounded-2xl bg-canvas p-3.5">
-                  <div className="w-16 shrink-0">
-                    <p className="font-mono text-lg font-bold text-botanical">
+                  <div className="min-w-16 shrink-0">
+                    <p className="whitespace-nowrap font-sans tabular-nums text-lg font-bold text-botanical">
                       {fmtTime(state.data.upcoming_appointment.scheduled_start)}
                     </p>
                   </div>
@@ -128,12 +128,12 @@ export default function PatientPage() {
           <section aria-labelledby="care-plan-title">
             <div className="mb-3 flex items-center justify-between">
               <h2 id="care-plan-title" className="clinix-label text-graphite">Care plan</h2>
-              <span className="rounded-full border border-hairline px-2 py-1 font-sans text-[9px] font-bold uppercase text-graphite">{patientDashboardDemo.label}</span>
+              <span className="rounded-full border border-hairline px-2 py-1 font-sans text-xs font-bold uppercase text-graphite">{patientDashboardDemo.label}</span>
             </div>
             <div className="rounded-3xl bg-botanical p-[18px] text-surface shadow-[0_10px_20px_rgba(18,53,44,0.1)]">
               <p className="font-sans text-sm font-semibold">Care plan tools are not connected yet</p>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/15">
-                <div className="h-full rounded-full bg-copper" style={{ width: `${patientDashboardDemo.data.carePlanProgress}%` }} />
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-clear-selection">
+                <div className="h-full rounded-full bg-clear-action text-white" style={{ width: `${patientDashboardDemo.data.carePlanProgress}%` }} />
               </div>
               <p className="mt-2 font-sans text-xs text-surface/75">This preview is read-only and contains no clinical facts.</p>
             </div>
@@ -162,7 +162,7 @@ export default function PatientPage() {
                 <span className="mt-1 block font-sans text-xs text-graphite">Current and past records</span>
               </Link>
             </div>
-            <Link href="/app/patient/book" className="mt-3 block min-h-[58px] rounded-[1.25rem] bg-copper px-4 py-[18px] text-center font-sans text-sm font-bold uppercase text-ink">
+            <Link href="/app/patient/book" className="mt-3 block min-h-[58px] rounded-[1.25rem] bg-clear-action px-4 py-[18px] text-center font-sans text-sm font-bold uppercase text-white">
               Book a doctor
             </Link>
           </section>
@@ -174,7 +174,7 @@ export default function PatientPage() {
                 {state.data.recent_timeline.map((item, index) => (
                   <li key={`${item.at}-${index}`} className="flex min-h-12 items-center justify-between gap-3 py-2">
                     <span className="font-sans text-sm text-ink">{item.label}</span>
-                    <span className="font-mono text-xs text-graphite">
+                    <span className="font-sans tabular-nums text-xs text-graphite">
                       {new Date(item.at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" })}
                     </span>
                   </li>

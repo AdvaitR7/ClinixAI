@@ -12,7 +12,7 @@ import { VaultSourcePreview } from "@/components/vault-source-preview";
 
 const DOC_TYPES = ["LAB_REPORT", "PRESCRIPTION", "IMAGING_REPORT", "DISCHARGE_SUMMARY", "CONSULTATION_NOTE", "OTHER"] as const;
 const nav = patientVisitNav.map((item) => ({ ...item, active: item.label === "Reports" }));
-const actionClass = "min-h-11 text-[10px] text-botanical underline-offset-4 hover:underline disabled:opacity-40";
+const actionClass = "min-h-11 text-xs text-botanical underline-offset-4 hover:underline disabled:opacity-40";
 
 /** Shows a source date without inventing collection metadata or page counts. */
 function dateLabel(value: string) {
@@ -75,11 +75,11 @@ function Sparkline({ points, testName }: { points: LabTrendPoint[]; testName: st
   const coords = points.map((point, i) => ({ x: 12 + i * 276 / Math.max(points.length - 1, 1), y: 105 - (point.value_numeric - min) * 80 / range }));
   return <>
     <svg viewBox="0 0 300 145" role="img" aria-label={`${testName} recorded values: ${values.join(", ")}`} className="mt-4 h-auto w-full">
-      {[25, 65, 105].map((y) => <line key={y} x1="10" x2="290" y1={y} y2={y} stroke="#e6e0d6" />)}
-      <polyline points={coords.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#12352c" strokeWidth="2" />
-      {coords.map((point, i) => <g key={i}><circle cx={point.x} cy={point.y} r="4" fill={i === coords.length - 1 ? "#12352c" : "#fffdfc"} stroke="#12352c" /><text x={point.x} y="135" textAnchor="middle" fontSize="8" fill="#3d4640">{new Date(points[i].observed_at).toLocaleDateString("en-GB", { month: "short", year: "2-digit" })}</text></g>)}
+      {[25, 65, 105].map((y) => <line key={y} x1="10" x2="290" y1={y} y2={y} stroke="#dce5e6" />)}
+      <polyline points={coords.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#075f56" strokeWidth="2" />
+      {coords.map((point, i) => <g key={i}><circle cx={point.x} cy={point.y} r="4" fill={i === coords.length - 1 ? "#075f56" : "#ffffff"} stroke="#075f56" /><text x={point.x} y="135" textAnchor="middle" fontSize="8" fill="#3d4640">{new Date(points[i].observed_at).toLocaleDateString("en-GB", { month: "short", year: "2-digit" })}</text></g>)}
     </svg>
-    <p className="mt-2 break-words text-[11px]">{values.join(" → ")}</p>
+    <p className="mt-2 break-words text-xs">{values.join(" → ")}</p>
   </>;
 }
 
@@ -121,10 +121,10 @@ function ObservationCorrection({ observation, onSaved }: { observation: LabObser
     finally { saving.current = false; setBusy(false); }
   }
   return <div className="mt-3 border-t border-hairline pt-3">
-    <label htmlFor={`value-${observation.id}`} className="block text-[10px]">Correct {observation.test_name} value</label>
+    <label htmlFor={`value-${observation.id}`} className="block text-xs">Correct {observation.test_name} value</label>
     <div className="mt-1 flex flex-wrap gap-2">
       <input id={`value-${observation.id}`} value={value} onChange={(event) => setValue(event.target.value)} disabled={busy} className="min-h-11 w-24 min-w-0 rounded-xl border border-sage bg-surface px-2 text-xs" />
-      <button type="button" disabled={busy} onClick={() => void confirm()} className="min-h-11 rounded-xl border border-sage px-3 text-[10px] text-botanical disabled:opacity-50">{busy ? "Saving…" : "Confirm value"}</button>
+      <button type="button" disabled={busy} onClick={() => void confirm()} className="min-h-11 rounded-xl border border-sage px-3 text-xs text-botanical disabled:opacity-50">{busy ? "Saving…" : "Confirm value"}</button>
     </div>
     {error && <p role="alert" className="mt-2 text-xs text-critical">{error}</p>}
   </div>;
@@ -218,9 +218,9 @@ function VaultWorkspace() {
   }
 
   return <WorkspaceShell workspace="Patient" title="Health Vault" nav={nav} focused flowNavigation hideHeading
-    headerContent={<PatientVisitHeader backHref="/app/patient" action={<button type="button" onClick={(event) => open("upload", event.currentTarget)} className="min-h-11 rounded-full border border-sage bg-surface px-3 text-[10px] text-evidence">＋ Upload</button>} />}>
+    headerContent={<PatientVisitHeader backHref="/app/patient" action={<button type="button" onClick={(event) => open("upload", event.currentTarget)} className="min-h-11 rounded-full border border-sage bg-surface px-3 text-xs text-clear-info">＋ Upload</button>} />}>
     <div>
-      <p className="text-[10px] tracking-[0.12em] text-graphite">PATIENT RECORD · SOURCE DOCUMENTS</p>
+      <p className="text-xs tracking-[0.12em] text-graphite">PATIENT RECORD · SOURCE DOCUMENTS</p>
       <h1 className="mt-3 text-[30px] font-normal leading-tight text-botanical">Health Vault</h1>
       <p className="mt-2 text-xs leading-[19px] text-graphite">Keep original documents, extracted observations, and trends together — with the source always one tap away.</p>
     </div>
@@ -229,63 +229,63 @@ function VaultWorkspace() {
     {notice && <p role="status" className="text-xs text-botanical">{notice}</p>}
     <section aria-label="Vault status" className="rounded-[28px] bg-sage/20 p-[5px]">
       <div className="clinix-card flex items-center justify-between gap-3 p-4">
-        <div><p className="text-[9px] tracking-wider text-graphite">VAULT STATUS</p>
+        <div><p className="text-xs tracking-wider text-graphite">VAULT STATUS</p>
           <p className="mt-2 text-lg">{data.documents ? `${docs.length} source documents` : "Loading sources…"}</p>
-          <p className="mt-1 text-[11px] text-graphite">{docs.filter((doc) => doc.processing_status === "COMPLETE").length} complete · {docs.filter((doc) => doc.processing_status === "PROCESSING").length} processing · {docs.filter((doc) => doc.processing_status === "NEEDS_REVIEW").length} needs review</p>
-        </div><span className="rounded-full bg-botanical px-4 py-2 text-[9px] text-surface">PRIVATE</span>
+          <p className="mt-1 text-xs text-graphite">{docs.filter((doc) => doc.processing_status === "COMPLETE").length} complete · {docs.filter((doc) => doc.processing_status === "PROCESSING").length} processing · {docs.filter((doc) => doc.processing_status === "NEEDS_REVIEW").length} needs review</p>
+        </div><span className="rounded-full bg-botanical px-4 py-2 text-xs text-surface">PRIVATE</span>
       </div>
     </section>
     <section aria-label="Document shelf">
-      <p className="text-[10px] tracking-[0.12em] text-graphite">DOCUMENT SHELF</p>
+      <p className="text-xs tracking-[0.12em] text-graphite">DOCUMENT SHELF</p>
       <div className="mt-1 flex items-center justify-between gap-3"><h2 className="text-[21px]">Recent sources</h2><button type="button" onClick={(event) => open("shelf", event.currentTarget)} disabled={!docs.length} className={actionClass}>View all {docs.length}</button></div>
       {!data.documents && !data.error && <Skeleton className="mt-3 h-40 rounded-2xl" />}
       {data.documents && !docs.length && <p className="clinix-card mt-3 p-5 text-xs">No source documents yet. Upload a document to get started.</p>}
       <div className="mt-2 grid grid-cols-[minmax(0,1.85fr)_minmax(0,1fr)] gap-3">
         {docs.slice(0, 3).map((doc, index) => <button key={doc.document_id} type="button" onClick={(event) => open({ documentId: doc.document_id }, event.currentTarget)} className={`clinix-card flex min-w-0 flex-col items-start justify-start text-left ${index === 0 ? "row-span-2 p-4" : "p-3"}`}>
-          <span className={index === 0 ? "inline-block rounded-full bg-botanical px-4 py-1.5 text-[9px] text-surface" : "text-[8px] text-graphite"}>{doc.mime_type === "application/pdf" ? "PDF" : "PHOTO"}</span>
+          <span className={index === 0 ? "inline-block rounded-full bg-botanical px-4 py-1.5 text-xs text-surface" : "text-xs text-graphite"}>{doc.mime_type === "application/pdf" ? "PDF" : "PHOTO"}</span>
           <p className={`mt-3 break-words ${index === 0 ? "text-base" : "text-xs"}`}>{doc.original_filename}</p>
-          <p className="mt-2 text-[9px] text-graphite">{dateLabel(doc.created_at)}</p>
-          {index === 0 && <p className="mt-4 text-[10px] text-evidence">Preview source →</p>}
+          <p className="mt-2 text-xs text-graphite">{dateLabel(doc.created_at)}</p>
+          {index === 0 && <p className="mt-4 text-xs text-clear-info">Preview source →</p>}
         </button>)}
       </div>
     </section>
     <section aria-label="Processing documents">
-      <p className="mb-4 text-[10px] tracking-[0.12em] text-graphite">UPLOAD QUEUE + OCR</p>
-      <div className="clinix-card p-[18px]"><div className="flex justify-between gap-3"><h2 className="text-base">Processing documents</h2><span className="text-[10px] text-graphite">{queue.length} pending</span></div>
+      <p className="mb-4 text-xs tracking-[0.12em] text-graphite">UPLOAD QUEUE + OCR</p>
+      <div className="clinix-card p-[18px]"><div className="flex justify-between gap-3"><h2 className="text-base">Processing documents</h2><span className="text-xs text-graphite">{queue.length} pending</span></div>
         {!queue.length && <p className="mt-4 text-xs text-graphite">No documents awaiting processing or review.</p>}
         <ul className="divide-y divide-hairline">{queue.map((doc) => <li key={doc.document_id} className="py-4 text-xs">
           <div className="flex items-start justify-between gap-2"><p className="min-w-0 break-words">{doc.original_filename}</p>
-            {doc.processing_status === "NEEDS_REVIEW" && <button type="button" onClick={(event) => review(doc, event.currentTarget)} className="min-h-11 shrink-0 rounded-full border border-review px-4 text-[8px] text-review">REVIEW</button>}
+            {doc.processing_status === "NEEDS_REVIEW" && <button type="button" onClick={(event) => review(doc, event.currentTarget)} className="min-h-11 shrink-0 rounded-full border border-review px-4 text-xs text-review">REVIEW</button>}
           </div>
-          <p className={`mt-2 text-[10px] ${["NEEDS_REVIEW", "FAILED"].includes(doc.processing_status) ? "text-review" : "text-graphite"}`}>{doc.processing_status === "PROCESSING" ? "Extracting text…" : doc.processing_status === "UPLOADED" ? "Awaiting upload completion" : doc.processing_status === "NEEDS_REVIEW" ? "OCR complete · review required" : "Processing failed"}</p>
+          <p className={`mt-2 text-xs ${["NEEDS_REVIEW", "FAILED"].includes(doc.processing_status) ? "text-review" : "text-graphite"}`}>{doc.processing_status === "PROCESSING" ? "Extracting text…" : doc.processing_status === "UPLOADED" ? "Awaiting upload completion" : doc.processing_status === "NEEDS_REVIEW" ? "OCR complete · review required" : "Processing failed"}</p>
           {["FAILED", "UPLOADED"].includes(doc.processing_status) && <button type="button" disabled={!!retrying} onClick={() => void retryProcessing(doc.document_id)} className={actionClass}>{retrying === doc.document_id ? "Requesting…" : doc.processing_status === "UPLOADED" ? "Check uploaded file" : "Retry processing"}</button>}
         </li>)}</ul>
       </div>
     </section>
     <section ref={observationsRef} tabIndex={-1} aria-label="Extracted observations">
-      <p className="text-[10px] tracking-[0.12em] text-graphite">EXTRACTED OBSERVATIONS</p>
+      <p className="text-xs tracking-[0.12em] text-graphite">EXTRACTED OBSERVATIONS</p>
       <div className="mt-1 flex items-center justify-between gap-3"><h2 className="min-w-0 break-words text-[21px]">{report ? `From ${source?.original_filename ?? report.laboratory_name ?? "lab report"}` : "Lab observations"}</h2>
         {report && <button type="button" onClick={(event) => open({ documentId: report.source_document_id }, event.currentTarget)} className={`${actionClass} shrink-0`}>Open source</button>}
       </div>
-      {reports.length > 1 && <div className="my-3"><label htmlFor="report-select" className="text-[10px]">Select report</label><select id="report-select" value={report?.report_id ?? ""} onChange={(event) => setReportId(event.target.value)} className="clinix-field mt-1 text-xs">{reports.map((item) => <option key={item.report_id} value={item.report_id}>{docs.find((doc) => doc.document_id === item.source_document_id)?.original_filename ?? item.laboratory_name ?? "Lab report"} · {item.collection_date ?? "Collection date unavailable"}</option>)}</select></div>}
+      {reports.length > 1 && <div className="my-3"><label htmlFor="report-select" className="text-xs">Select report</label><select id="report-select" value={report?.report_id ?? ""} onChange={(event) => setReportId(event.target.value)} className="clinix-field mt-1 text-xs">{reports.map((item) => <option key={item.report_id} value={item.report_id}>{docs.find((doc) => doc.document_id === item.source_document_id)?.original_filename ?? item.laboratory_name ?? "Lab report"} · {item.collection_date ?? "Collection date unavailable"}</option>)}</select></div>}
       <div className="clinix-card mt-3 overflow-hidden p-4">
         {!data.reports && !data.error && <Skeleton className="h-40 rounded-2xl" />}
         {!report && data.reports && <p className="py-4 text-xs">No extracted lab observations yet.</p>}
         {report && <>
-          <table className="w-full table-fixed text-left"><colgroup><col className="w-[44%]" /><col className="w-[29%]" /><col className="w-[27%]" /></colgroup><thead><tr className="border-b border-hairline text-[9px] tracking-wider text-graphite"><th className="pb-3 font-normal">TEST</th><th className="pb-3 font-normal">RESULT</th><th className="pb-3 font-normal">REFERENCE</th></tr></thead>
-            <tbody>{report.observations.map((field) => <tr key={field.id} className="border-b border-hairline last:border-0"><td className="py-4 pr-2 align-top text-xs"><p className="break-words">{field.test_name}</p><p className={`mt-2 text-[9px] ${field.flag ? "text-review" : "text-botanical"}`}>{field.flag === "LOW" ? "Below range" : field.flag === "HIGH" ? "Above range" : field.flag ?? ""}</p>{field.confirmed_at && <p className="mt-1 text-[9px] text-botanical">Patient confirmed</p>}{field.needs_review && <ObservationCorrection key={`${field.id}-${field.confirmed_at}`} observation={field} onSaved={corrected} />}</td><td className="break-words py-4 pr-2 align-top text-xs">{field.value_numeric ?? field.value_text ?? "—"} {field.unit}</td><td className="break-words py-4 align-top text-[11px] text-graphite">{field.reference_text ?? "Not supplied"}</td></tr>)}</tbody>
+          <table className="w-full table-fixed text-left"><colgroup><col className="w-[44%]" /><col className="w-[29%]" /><col className="w-[27%]" /></colgroup><thead><tr className="border-b border-hairline text-xs tracking-wider text-graphite"><th className="pb-3 font-normal">TEST</th><th className="pb-3 font-normal">RESULT</th><th className="pb-3 font-normal">REFERENCE</th></tr></thead>
+            <tbody>{report.observations.map((field) => <tr key={field.id} className="border-b border-hairline last:border-0"><td className="py-4 pr-2 align-top text-xs"><p className="break-words">{field.test_name}</p><p className={`mt-2 text-xs ${field.flag ? "text-review" : "text-botanical"}`}>{field.flag === "LOW" ? "Below range" : field.flag === "HIGH" ? "Above range" : field.flag ?? ""}</p>{field.confirmed_at && <p className="mt-1 text-xs text-botanical">Patient confirmed</p>}{field.needs_review && <ObservationCorrection key={`${field.id}-${field.confirmed_at}`} observation={field} onSaved={corrected} />}</td><td className="break-words py-4 pr-2 align-top text-xs">{field.value_numeric ?? field.value_text ?? "—"} {field.unit}</td><td className="break-words py-4 align-top text-xs text-graphite">{field.reference_text ?? "Not supplied"}</td></tr>)}</tbody>
           </table>
           {!report.observations.length && <p className="py-4 text-xs">No observations were extracted from this report.</p>}
-          <p className="mt-3 text-[9px] leading-[14px] text-graphite">Values are transcribed from the selected source. Review the original if anything looks wrong.</p>
+          <p className="mt-3 text-xs leading-[14px] text-graphite">Values are transcribed from the selected source. Review the original if anything looks wrong.</p>
         </>}
       </div>
     </section>
-    <section aria-label="Longitudinal trends"><p className="mb-4 text-[10px] tracking-[0.12em] text-graphite">LONGITUDINAL TRENDS</p><div className="clinix-card p-[18px]">
+    <section aria-label="Longitudinal trends"><p className="mb-4 text-xs tracking-[0.12em] text-graphite">LONGITUDINAL TRENDS</p><div className="clinix-card p-[18px]">
       <h2 className="text-lg">{measurement ?? "Measurements"}</h2>
-      <div className="mt-3 flex flex-wrap gap-2" aria-label="Trend measurements">{measurements.map((name) => <button key={name} type="button" aria-pressed={name === measurement} onClick={() => setTrendName(name)} className={`min-h-11 rounded-full border border-sage px-4 text-[9px] ${name === measurement ? "bg-botanical text-surface" : "text-graphite"}`}>{name}</button>)}</div>
+      <div className="mt-3 flex flex-wrap gap-2" aria-label="Trend measurements">{measurements.map((name) => <button key={name} type="button" aria-pressed={name === measurement} onClick={() => setTrendName(name)} className={`min-h-11 rounded-full border border-sage px-4 text-xs ${name === measurement ? "bg-botanical text-surface" : "text-graphite"}`}>{name}</button>)}</div>
       {measurement ? <TrendPanel key={`${measurement}-${trendRevision}-${reports.flatMap((item) => item.observations.filter((field) => field.test_name === measurement).map((field) => `${field.id}:${field.value_numeric}:${field.unit}`)).join("|")}`} name={measurement} units={new Set(reports.flatMap((item) => item.observations.filter((field) => field.test_name === measurement).map((field) => field.unit ?? "")))} /> : <p className="py-5 text-xs">Trends appear after dated numeric lab values are extracted.</p>}
     </div></section>
-    <div className="clinix-card flex items-center gap-5 rounded-2xl p-4 text-[10px] leading-4 text-graphite"><span aria-hidden="true" className="text-botanical">i</span><p>Original files are preserved. Extracted values always link back to their source.</p></div>
+    <div className="clinix-card flex items-center gap-5 rounded-2xl p-4 text-xs leading-4 text-graphite"><span aria-hidden="true" className="text-botanical">i</span><p>Original files are preserved. Extracted values always link back to their source.</p></div>
     {dialog && <VaultDialog titleId="vault-dialog-title" returnFocusRef={returnFocusRef} onClose={() => setDialog(null)} busy={uploading}>
       {typeof dialog === "object" ? <VaultSourcePreview key={dialog.documentId} documentId={dialog.documentId} reports={reports} onClose={() => setDialog(null)} onObservations={showObservations} /> : <>
         <div className="flex items-center justify-between gap-3"><h2 id="vault-dialog-title" className="text-xl">{dialog === "upload" ? "Upload medical document" : "All sources"}</h2><button type="button" aria-label="Close" disabled={uploading} onClick={() => setDialog(null)} className="size-11 text-2xl disabled:opacity-40">×</button></div>
@@ -295,7 +295,7 @@ function VaultWorkspace() {
           {file && <p className="break-words text-xs">{file.name}</p>}
           {uploadError && <p role="alert" className="text-xs text-critical">{uploadError}</p>}
           <button type="button" onClick={() => void upload()} disabled={uploading || !file} className="min-h-12 w-full rounded-2xl bg-botanical px-3 text-xs text-surface disabled:opacity-50">{uploading ? "Uploading…" : "Upload to vault"}</button>
-        </div> : <ul className="mt-4 divide-y divide-hairline">{docs.map((doc) => <li key={doc.document_id}><button type="button" onClick={() => setDialog({ documentId: doc.document_id })} className="min-h-16 w-full py-3 text-left"><p className="break-words text-xs">{doc.original_filename}</p><p className="mt-2 text-[10px] text-graphite">{dateLabel(doc.created_at)} · {doc.processing_status.replaceAll("_", " ")}</p></button></li>)}</ul>}
+        </div> : <ul className="mt-4 divide-y divide-hairline">{docs.map((doc) => <li key={doc.document_id}><button type="button" onClick={() => setDialog({ documentId: doc.document_id })} className="min-h-16 w-full py-3 text-left"><p className="break-words text-xs">{doc.original_filename}</p><p className="mt-2 text-xs text-graphite">{dateLabel(doc.created_at)} · {doc.processing_status.replaceAll("_", " ")}</p></button></li>)}</ul>}
       </>}
     </VaultDialog>}
   </WorkspaceShell>;

@@ -22,7 +22,7 @@ import {
 } from "@/components/patient-visit-header";
 
 const card = "rounded-[24px] border border-sage bg-surface p-4 shadow-sm";
-const label = "text-[10px] text-graphite uppercase";
+const label = "text-xs text-graphite uppercase";
 
 /** Formats appointment times in the prototype's fixed India timezone. */
 function visitTime(iso: string) {
@@ -354,7 +354,7 @@ function BookingForm({
           : "Booking this visit does not grant access to your check-ins, reports, medicines or timeline unless you choose to share them."}
       </p>
       {doctor && (
-        <Link href={shareHref} className="mt-3 flex min-h-11 w-full items-center justify-end text-[10px] text-evidence">
+        <Link href={shareHref} className="mt-3 flex min-h-11 w-full items-center justify-end text-xs text-clear-info">
           {sharing ? "Change what is shared →" : "Choose what to share →"}
         </Link>
       )}
@@ -417,7 +417,7 @@ function BookingForm({
       }
     >
       <div>
-        <p className="w-fit rounded-full border border-sage bg-surface px-5 py-2 text-[9px] uppercase">
+        <p className="w-fit rounded-full border border-sage bg-surface px-5 py-2 text-xs uppercase">
           {reviewing
             ? "Review before booking"
             : "Consultation booking · packet"}
@@ -449,19 +449,19 @@ function BookingForm({
                 <h2 className="text-base">
                   {doctor ? `Dr. ${doctor.name}` : "Choose a doctor"}
                 </h2>
-                <p className="mt-1 text-[10px] text-graphite">
+                <p className="mt-1 text-xs text-graphite">
                   {doctor?.speciality ?? "Speciality unavailable"}
                 </p>
               </div>
               {doctor && (
-                <span className="rounded-full border border-evidence px-2 py-1 text-[9px] text-graphite">
+                <span className="rounded-full border border-clear-info px-2 py-1 text-xs text-graphite">
                   {doctor.verification_status?.replaceAll("_", " ") ??
                     "VERIFICATION UNKNOWN"}
                 </span>
               )}
             </div>
             {doctor && doctor.verification_status !== "VERIFIED" && (
-              <p className="mt-3 text-[10px] text-graphite">
+              <p className="mt-3 text-xs text-graphite">
                 Booking is permitted under the demo policy; verification is not
                 confirmed.
               </p>
@@ -469,7 +469,7 @@ function BookingForm({
             <button
               type="button"
               onClick={(e) => openDialog("doctor", e.currentTarget)}
-              className="mt-2 min-h-11 w-full text-right text-[10px] text-evidence"
+              className="mt-2 min-h-11 w-full text-right text-xs text-clear-info"
             >
               {doctor ? "Change doctor →" : "Select doctor →"}
             </button>
@@ -501,7 +501,7 @@ function BookingForm({
                   <span className="mt-2 block text-sm">
                     {value === "ONLINE" ? "Online video" : "In-person"}
                   </span>
-                  <span className="mt-1 block text-[10px]">
+                  <span className="mt-1 block text-xs">
                     {value === "ONLINE"
                       ? "Video provider unavailable"
                       : "Clinic address unavailable"}
@@ -509,7 +509,7 @@ function BookingForm({
                 </button>
               ))}
             </div>
-            <p className="mt-3 rounded-2xl bg-surface p-3 text-[11px] leading-relaxed text-graphite">
+            <p className="mt-3 rounded-2xl bg-surface p-3 text-xs leading-relaxed text-graphite">
               {mode === "ONLINE"
                 ? "Online appointments can be requested. This app cannot create a video join link."
                 : "Clinic location has not been provided. Directions cannot be generated."}
@@ -549,7 +549,7 @@ function BookingForm({
                   }}
                   className={`min-h-[70px] rounded-[18px] border p-2 ${date === day.date ? "border-botanical bg-botanical text-surface" : "border-sage bg-surface"}`}
                 >
-                  <span className="block text-[9px] uppercase">
+                  <span className="block text-xs uppercase">
                     {day.weekday}
                   </span>
                   <span className="mt-1 block text-xl">{day.number}</span>
@@ -576,7 +576,7 @@ function BookingForm({
           <section>
             <h2 className={label}>3 · Reason for visit</h2>
             <div className={`${card} mt-3`}>
-              <p className="text-[9px] text-graphite uppercase">
+              <p className="text-xs text-graphite uppercase">
                 Chief complaint · optional
               </p>
               <p className="mt-3 break-words text-base">
@@ -585,7 +585,7 @@ function BookingForm({
               <button
                 type="button"
                 onClick={(e) => openDialog("reason", e.currentTarget)}
-                className="mt-2 min-h-11 w-full text-right text-[10px] text-evidence"
+                className="mt-2 min-h-11 w-full text-right text-xs text-clear-info"
               >
                 Edit reason →
               </button>
@@ -620,7 +620,7 @@ function BookingForm({
             >
               Save as draft unavailable
             </button>
-            <p className="text-[10px] text-graphite">
+            <p className="text-xs text-graphite">
               Draft storage is not supported. Leaving this page discards
               unsubmitted details.
             </p>
@@ -631,7 +631,7 @@ function BookingForm({
           <section className={card}>
             <p className={label}>Visit details</p>
             <h2 className="mt-4 text-lg">Dr. {doctor?.name}</h2>
-            <p className="mt-1 text-[10px] text-graphite">
+            <p className="mt-1 text-xs text-graphite">
               {doctor?.speciality ?? "Speciality unavailable"} ·{" "}
               {doctor?.verification_status ?? "Verification unknown"}
             </p>
@@ -661,7 +661,7 @@ function BookingForm({
               type="button"
               onClick={editBooking}
               disabled={busy}
-              className="mt-3 min-h-11 w-full text-right text-[10px] text-evidence disabled:opacity-50"
+              className="mt-3 min-h-11 w-full text-right text-xs text-clear-info disabled:opacity-50"
             >
               Edit visit details →
             </button>
@@ -699,7 +699,7 @@ function BookingForm({
             type="button"
             onClick={editBooking}
             disabled={busy}
-            className="min-h-11 w-full text-xs text-evidence disabled:opacity-50"
+            className="min-h-11 w-full text-xs text-clear-info disabled:opacity-50"
           >
             Back to edit
           </button>
@@ -760,7 +760,7 @@ function BookingForm({
               <button
                 type="button"
                 onClick={() => setDialog(null)}
-                className="mt-4 min-h-11 rounded-xl bg-copper px-4 text-sm text-ink"
+                className="mt-4 min-h-11 rounded-xl bg-clear-action px-4 text-sm text-white"
               >
                 Use this reason
               </button>

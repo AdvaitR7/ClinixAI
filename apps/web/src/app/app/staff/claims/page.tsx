@@ -7,8 +7,8 @@ import { useApiData } from "@/lib/api";
 import { StaffShell } from "@/components/staff-shell";
 import { clinicDate, useApiWrite } from "@/lib/staff";
 
-const card = "rounded-[18px] border border-copper bg-graphite p-4";
-const label = "text-[9px] uppercase text-copper";
+const card = "rounded-[18px] border border-clear-divider bg-clear-surface p-4";
+const label = "text-xs uppercase text-clear-action";
 
 type Claim = { patient_id: string; patient_name: string; invited_at: string | null; state: "NONE" | "OPEN" | "EXPIRED" | "USED" };
 
@@ -40,7 +40,7 @@ function ClaimsContent() {
   const rows = claims.status === "ready" ? claims.data : [];
   return (
     <StaffShell role={null} active="home" title="Claim invitations">
-      <Link href="/app/staff" className="min-h-11 text-xs text-evidence">← Back to dashboard</Link>
+      <Link href="/app/staff" className="min-h-11 text-xs text-clear-info">← Back to dashboard</Link>
       <div>
         <p className={label}>Clinic operations · claim invitations</p>
         <h1 className="mt-2 text-[28px] leading-tight">{rows.length} awaiting claim</h1>
@@ -52,9 +52,9 @@ function ClaimsContent() {
         {rows.map((c) => (
           <li key={c.patient_id} className={card}>
             <p className="text-sm font-semibold">{c.patient_name || "Patient"} · {c.state === "NONE" ? "NOT INVITED" : c.state}{c.invited_at ? ` · ${clinicDate(c.invited_at)}` : ""}</p>
-            <p className="mt-1 text-xs text-surface/75">Contact status and resend only. Staff cannot view or claim the patient&apos;s record.</p>
-            <button type="button" onClick={() => void resend(c.patient_id)} className="mt-2 min-h-11 text-xs font-semibold text-copper">{c.state === "NONE" ? "Send invitation →" : "Resend invitation →"}</button>
-            {link?.id === c.patient_id && <p role="status" className="mt-2 break-all text-[10px] text-copper">Claim code (shown once): {link.url}</p>}
+            <p className="mt-1 text-xs text-clear-secondary">Contact status and resend only. Staff cannot view or claim the patient&apos;s record.</p>
+            <button type="button" onClick={() => void resend(c.patient_id)} className="mt-2 min-h-11 text-xs font-semibold text-clear-action">{c.state === "NONE" ? "Send invitation →" : "Resend invitation →"}</button>
+            {link?.id === c.patient_id && <p role="status" className="mt-2 break-all text-xs text-clear-action">Claim code (shown once): {link.url}</p>}
           </li>
         ))}
       </ul>

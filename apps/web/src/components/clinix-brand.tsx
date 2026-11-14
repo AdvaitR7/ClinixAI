@@ -2,13 +2,13 @@ import { UiIcon } from "@/components/ui-icon";
 
 /**
  * Renders the shared brand, including the text mark used by focused clinical frames.
- * `appearance="clear"` swaps in the approved Clear v2 mark (30px jade tile with a plus);
- * the default keeps the legacy mark until the Phase 8 default switch.
+ * The default is the approved Clear v2 mark (30px jade tile with a plus); `appearance="legacy"` keeps the old mark
+ * and is retained for one review cycle before removal.
  */
 export function ClinixBrand({
   inverted = false,
   monogram = false,
-  appearance = "legacy",
+  appearance = "clear",
 }: {
   inverted?: boolean;
   monogram?: boolean;

@@ -28,19 +28,19 @@ export default function PrescriptionPreviewPage() {
     <WorkspaceShell workspace="Doctor" title="Prescription preview" nav={nav}>
       {state.status === "loading" && <Skeleton className="h-40 rounded-2xl" />}
       {state.status === "error" && (
-        <section role="alert" className="clinix-doctor-card p-5 font-sans text-sm text-critical">
+        <section role="alert" className="clear-card p-5 font-sans text-sm text-critical">
           <p>{state.error}</p>
-          <button type="button" onClick={() => void state.refresh()} className="mt-2 min-h-11 text-xs font-semibold text-copper underline">Retry preview</button>
+          <button type="button" onClick={() => void state.refresh()} className="mt-2 min-h-11 text-xs font-semibold text-clear-action underline">Retry preview</button>
         </section>
       )}
       {state.status === "ready" && (
         <>
           <div className="flex flex-wrap gap-3 print:hidden">
-            <Link href={back} className="flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-white/10 bg-doctor-panel font-sans text-xs font-semibold uppercase text-surface">Back to draft</Link>
-            <button type="button" onClick={() => window.print()} className="min-h-12 flex-1 rounded-2xl bg-copper font-sans text-xs font-semibold uppercase text-ink">Print preview</button>
+            <Link href={back} className="flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-clear-divider bg-clear-surface font-sans text-xs font-semibold uppercase text-clear-ink">Back to draft</Link>
+            <button type="button" onClick={() => window.print()} className="min-h-12 flex-1 rounded-2xl bg-clear-action font-sans text-xs font-semibold uppercase text-white">Print preview</button>
           </div>
-          <article aria-label="Printable prescription preview" className="rounded-2xl border border-copper bg-white p-6 font-sans text-ink">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-critical">
+          <article aria-label="Printable prescription preview" className="rounded-2xl border border-clear-divider bg-white p-6 font-sans text-clear-ink">
+            <p className="text-xs font-bold uppercase tracking-widest text-critical">
               {state.data.status === "APPROVED" ? "Finalized draft" : "Draft preview — not a finalized prescription"}
             </p>
             <h2 className="mt-3 text-2xl font-bold">{state.data.patient_name || "Patient name unavailable"}</h2>
@@ -55,7 +55,7 @@ export default function PrescriptionPreviewPage() {
                 </li>
               ))}
             </ol>
-            <p className="mt-6 text-[11px]">Shows the last saved draft. Unsaved edits appear only after saving.</p>
+            <p className="mt-6 text-xs">Shows the last saved draft. Unsaved edits appear only after saving.</p>
           </article>
         </>
       )}

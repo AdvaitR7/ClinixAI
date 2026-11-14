@@ -18,7 +18,7 @@ type NavItem = {
 };
 
 /** Provides account access and sign-out in the original workspace header. `appearance="clear"` only recolours the trigger. */
-export function AccountMenu({ appearance = "legacy" }: { appearance?: "legacy" | "clear" }) {
+export function AccountMenu({ appearance = "clear" }: { appearance?: "legacy" | "clear" }) {
   const { user, signOut } = useAuth();
   const install = useInstallState();
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +141,7 @@ function ClearWorkspaceShell({
         <div className="absolute -left-[95px] top-[130px] h-[250px] w-[360px] rounded-full bg-[radial-gradient(closest-side,#91cac1db,transparent)]" />
       </div>
 
-      <header className={`relative z-[1] mx-auto flex w-full ${width} items-center justify-between px-6 pb-3 pt-[max(1.25rem,env(safe-area-inset-top))]`}>
+      <header className={`relative z-20 mx-auto flex w-full ${width} items-center justify-between px-6 pb-3 pt-[max(1.25rem,env(safe-area-inset-top))]`}>
         {headerContent ?? <>
         <ClinixBrand appearance="clear" />
         {headerAction ?? <div className="flex items-center gap-2">
@@ -230,7 +230,7 @@ export function WorkspaceShell({
   headerAction,
   headerContent,
   flowNavigation = false,
-  appearance = "legacy",
+  appearance = "clear",
 }: ShellProps & { appearance?: "legacy" | "clear" }) {
   if (appearance === "clear") {
     return (

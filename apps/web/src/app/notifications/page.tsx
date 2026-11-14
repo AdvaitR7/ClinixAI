@@ -65,7 +65,7 @@ function NotificationList() {
       {state.status === "error" && (
         <section className="clinix-card p-5">
           <p role="alert" className="font-sans text-sm text-critical">We could not load your notifications.</p>
-          <button type="button" onClick={() => void state.refresh()} className="mt-4 min-h-11 font-sans text-xs font-semibold uppercase text-evidence">Try again</button>
+          <button type="button" onClick={() => void state.refresh()} className="mt-4 min-h-11 font-sans text-xs font-semibold uppercase text-clear-info">Try again</button>
         </section>
       )}
       {state.status === "ready" && items.length === 0 && (
@@ -88,10 +88,10 @@ function NotificationList() {
                 >
                   <span className="flex items-center justify-between gap-3">
                     <span className={`font-sans text-sm text-ink ${item.read ? "font-medium" : "font-bold"}`}>{item.title}</span>
-                    <span className={`shrink-0 font-sans text-[10px] uppercase ${item.read ? "text-graphite" : "font-bold text-botanical"}`}>{item.read ? "Read" : "Unread"}</span>
+                    <span className={`shrink-0 font-sans text-xs uppercase ${item.read ? "text-graphite" : "font-bold text-botanical"}`}>{item.read ? "Read" : "Unread"}</span>
                   </span>
                   <span className="mt-1 block font-sans text-xs leading-5 text-graphite">{item.body}</span>
-                  <span className="mt-2 block font-mono text-[10px] text-graphite">{new Date(item.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="mt-2 block font-sans tabular-nums text-xs text-graphite">{new Date(item.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                 </button>
               </li>
             ))}

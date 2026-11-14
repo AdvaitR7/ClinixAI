@@ -172,7 +172,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
           <button
             type="button"
             onClick={retry}
-            className="mt-5 min-h-11 rounded-xl bg-ink px-5 text-sm text-surface"
+            className="mt-5 min-h-11 rounded-xl bg-clear-action px-5 text-sm text-white"
           >
             Retry status
           </button>
@@ -188,7 +188,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
     return (
       <main className={`${checkinTypography} min-h-dvh bg-canvas px-6 py-12`}>
         <div className="mx-auto max-w-[345px] text-center">
-          <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-ink text-xl text-surface">
+          <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-clear-action text-xl text-white">
             C
           </div>
           <h1 className="mt-6 text-2xl text-ink">
@@ -205,7 +205,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
             <button
               type="button"
               onClick={retry}
-              className="mt-5 min-h-11 rounded-xl bg-ink px-5 text-sm text-surface"
+              className="mt-5 min-h-11 rounded-xl bg-clear-action px-5 text-sm text-white"
             >
               Check status again
             </button>
@@ -229,7 +229,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
     ) ?? [];
   return (
     <main
-      className={`${checkinTypography} min-h-dvh bg-[#f6f0e6] px-6 pb-12 pt-6 text-[#1f1f1f]`}
+      className={`${checkinTypography} min-h-dvh bg-clear-canvas px-6 pb-12 pt-6 text-clear-ink`}
     >
       <div className="mx-auto max-w-[345px]">
         <header className="flex items-center gap-3">
@@ -240,51 +240,51 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
           >
             ←
           </Link>
-          <span className="grid size-[38px] place-items-center rounded-xl bg-[#1f1f1f] text-lg text-[#fbf8f1]">
+          <span className="grid size-[38px] place-items-center rounded-xl bg-clear-action text-lg text-white">
             C
           </span>
           <span className="text-2xl">ClinixAI</span>
           <Link
             href="/app/patient"
-            className="ml-auto py-3 text-xs text-[#b8a06b]"
+            className="ml-auto py-3 text-xs text-clear-action"
           >
             Done
           </Link>
         </header>
-        <p className="mt-6 w-fit rounded-full border border-[#e7dccb] bg-[#fbf8f1] px-3 py-1.5 text-[9px] text-[#5f5a52]">
+        <p className="mt-6 w-fit rounded-full border border-clear-divider bg-clear-surface px-3 py-1.5 text-xs text-clear-secondary">
           ◆ AI-ASSISTED RESULT
         </p>
         <h1 className="mt-6 text-[32px] leading-tight">Check-in complete</h1>
-        <p className="mt-3 text-xs leading-relaxed text-[#5f5a52]">
+        <p className="mt-3 text-xs leading-relaxed text-clear-secondary">
           Review the result separately from your answers, then choose what
           happens next.
         </p>
         <section className="mt-6">
-          <p className="text-[9px] tracking-wider uppercase">
+          <p className="text-xs tracking-wider uppercase">
             AI ASSISTANCE · {review ? "DOCTOR REVIEW" : "CHECKED GUIDANCE"}
           </p>
-          <div className="mt-3 rounded-[24px] bg-[#fbf8f1] p-5 shadow-sm">
+          <div className="mt-3 rounded-[24px] bg-clear-surface p-5 shadow-sm">
             <span
-              className={`inline-block rounded-full px-3 py-1.5 text-[10px] text-surface ${review ? "bg-review" : "bg-[#1f1f1f]"}`}
+              className={`inline-block rounded-full px-3 py-1.5 text-xs text-surface ${review ? "bg-review" : "bg-clear-action"}`}
             >
               {review ? "DOCTOR REVIEW" : "SELF-CARE GUIDANCE"}
             </span>
             <h2 className="mt-4 text-xl">{outcome.summary}</h2>
-            <p className="mt-3 text-xs leading-relaxed text-[#5f5a52]">
+            <p className="mt-3 text-xs leading-relaxed text-clear-secondary">
               Uncertainty: {outcome.uncertainty_level.toLowerCase()}. This is
               not a diagnosis; seek care if symptoms worsen or change.
             </p>
             <button
               type="button"
               onClick={(event) => openDialog("basis", event.currentTarget)}
-              className="mt-4 min-h-11 w-full text-right text-[10px] text-[#b8a06b]"
+              className="mt-4 min-h-11 w-full text-right text-xs text-clear-action"
             >
               View result basis
             </button>
           </div>
         </section>
         <section className="mt-6">
-          <p className="text-[10px] tracking-wider text-[#5f5a52] uppercase">
+          <p className="text-xs tracking-wider text-clear-secondary uppercase">
             {review ? "NEXT STEPS" : "NEXT 24–48 HOURS"}
           </p>
           <h2 className="mt-3 text-xl">
@@ -294,18 +294,18 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
             {outcome.low_risk_guidance.map((guide, index) => (
               <p
                 key={index}
-                className="rounded-[20px] bg-[#fbf8f1] p-4 text-sm shadow-sm"
+                className="rounded-[20px] bg-clear-surface p-4 text-sm shadow-sm"
               >
                 {guide}
               </p>
             ))}
             {!outcome.low_risk_guidance.length && (
-              <p className="rounded-[20px] bg-[#fbf8f1] p-4 text-sm">
+              <p className="rounded-[20px] bg-clear-surface p-4 text-sm">
                 No self-care guidance was included in the checked result.
               </p>
             )}
             <aside className="rounded-[20px] border border-review bg-review/5 p-4">
-              <h3 className="text-[10px] font-semibold text-review uppercase">
+              <h3 className="text-xs font-semibold text-review uppercase">
                 Important medication warning
               </h3>
               <p className="mt-2 text-xs leading-relaxed">
@@ -315,13 +315,13 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
           </div>
         </section>
         <section className="mt-6">
-          <p className="text-[10px] tracking-wider text-[#5f5a52] uppercase">
+          <p className="text-xs tracking-wider text-clear-secondary uppercase">
             PATIENT RECORD
           </p>
-          <div className="mt-3 rounded-[24px] bg-[#fbf8f1] p-5 shadow-sm">
+          <div className="mt-3 rounded-[24px] bg-clear-surface p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3 border-b border-hairline pb-3">
               <h2 className="text-base">Similar past episodes</h2>
-              <span className="text-[10px]">
+              <span className="text-xs">
                 {outcome.historical_matches.length} found
               </span>
             </div>
@@ -334,7 +334,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
                       : "Date unavailable"}{" "}
                     · {match.chief_concern ?? "Past episode"}
                   </p>
-                  <p className="mt-2 text-[10px] text-[#5f5a52]">
+                  <p className="mt-2 text-xs text-clear-secondary">
                     {match.similarity_label.replaceAll("_", " ")}
                   </p>
                   {match.supporting_features.length > 0 && (
@@ -354,25 +354,25 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
               ))}
             </div>
             {!outcome.historical_matches.length && (
-              <p className="mt-3 text-xs text-[#5f5a52]">
+              <p className="mt-3 text-xs text-clear-secondary">
                 No previous matching episodes recorded.
               </p>
             )}
             <Link
               href="/app/patient/timeline"
-              className="mt-3 block min-h-11 pt-3 text-right text-[10px] text-[#b8a06b]"
+              className="mt-3 block min-h-11 pt-3 text-right text-xs text-clear-action"
             >
               View timeline →
             </Link>
           </div>
         </section>
         <section className="mt-6">
-          <p className="text-[10px] tracking-wider text-[#5f5a52] uppercase">
+          <p className="text-xs tracking-wider text-clear-secondary uppercase">
             RELEVANT LABS
           </p>
-          <div className="mt-3 rounded-[24px] bg-[#fbf8f1] p-5 shadow-sm">
+          <div className="mt-3 rounded-[24px] bg-clear-surface p-5 shadow-sm">
             <h2 className="text-base">Linked records</h2>
-            <p className="mt-1 text-[10px] text-[#5f5a52]">
+            <p className="mt-1 text-xs text-clear-secondary">
               From the frozen check-in evidence
             </p>
             <div className="mt-3 divide-y divide-hairline border-t border-hairline">
@@ -386,7 +386,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
               ))}
             </div>
             {!labs.length && (
-              <p className="mt-3 text-xs text-[#5f5a52]">
+              <p className="mt-3 text-xs text-clear-secondary">
                 {evidence
                   ? "No lab observations linked."
                   : "Open result basis to load linked evidence."}
@@ -394,20 +394,20 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
             )}
             <Link
               href="/app/patient/vault"
-              className="mt-3 block min-h-11 pt-3 text-right text-[10px] text-[#b8a06b]"
+              className="mt-3 block min-h-11 pt-3 text-right text-xs text-clear-action"
             >
               Review reports →
             </Link>
           </div>
         </section>
         <section className="mt-6">
-          <h2 className="text-[10px] tracking-wider text-[#5f5a52] uppercase">
+          <h2 className="text-xs tracking-wider text-clear-secondary uppercase">
             MISSING INFORMATION
           </h2>
-          <p className="mt-3 text-xs text-[#5f5a52]">
+          <p className="mt-3 text-xs text-clear-secondary">
             Optional measurements cannot yet be added to this saved analysis.
           </p>
-          <div className="mt-3 rounded-[24px] bg-[#fbf8f1] p-5 text-xs shadow-sm">
+          <div className="mt-3 rounded-[24px] bg-clear-surface p-5 text-xs shadow-sm">
             {outcome.questions_for_doctor.length ? (
               <ul className="list-disc space-y-3 pl-4">
                 {outcome.questions_for_doctor.map((question, i) => (
@@ -421,10 +421,10 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
             )}
           </div>
         </section>
-        <section className="mt-6 rounded-[24px] border-[5px] border-[#ece2d1] bg-[#fbf8f1] p-5">
-          <p className="text-[9px] uppercase">CONSULTATION PACKET</p>
+        <section className="mt-6 rounded-[24px] border-[5px] border-clear-divider bg-clear-surface p-5">
+          <p className="text-xs uppercase">CONSULTATION PACKET</p>
           <h2 className="mt-3 text-xl">Not shared</h2>
-          <p className="mt-3 text-xs leading-relaxed text-[#5f5a52]">
+          <p className="mt-3 text-xs leading-relaxed text-clear-secondary">
             This result is saved to your record. Booking a visit does not share
             it. To let a doctor see it, choose what to share; you control the
             scope and expiry and can revoke at any time.
@@ -432,7 +432,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
           <button
             type="button"
             onClick={(event) => openDialog("scope", event.currentTarget)}
-            className="mt-3 min-h-11 w-full text-right text-[10px] text-[#b8a06b]"
+            className="mt-3 min-h-11 w-full text-right text-xs text-clear-action"
           >
             What sharing includes
           </button>
@@ -440,26 +440,26 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
         <div className="mt-6 space-y-3">
           <Link
             href={`/app/patient/book?encounterId=${encodeURIComponent(session?.encounter_id ?? "")}`}
-            className="flex min-h-[64px] items-center justify-between rounded-[20px] bg-[#1f1f1f] px-5 text-sm text-[#fbf8f1]"
+            className="flex min-h-[64px] items-center justify-between rounded-[20px] bg-clear-action px-5 text-sm text-white"
           >
             BOOK DOCTOR{" "}
             <span
               aria-hidden="true"
-              className="grid size-8 place-items-center rounded-full bg-[#fbf8f1] text-xl text-ink"
+              className="grid size-8 place-items-center rounded-full bg-clear-surface text-xl text-ink"
             >
               →
             </span>
           </Link>
           <Link
             href="/app/patient/timeline"
-            className="flex min-h-[54px] items-center justify-between rounded-[18px] border border-hairline bg-[#fbf8f1] px-5 text-xs"
+            className="flex min-h-[54px] items-center justify-between rounded-[18px] border border-hairline bg-clear-surface px-5 text-xs"
           >
             SAVED TO RECORD · VIEW TIMELINE <span>→</span>
           </Link>
           <div className="flex gap-3">
             <Link
               href="/app/patient/care"
-              className="grid min-h-[48px] flex-1 place-items-center rounded-2xl bg-[#fbf8f1] text-xs"
+              className="grid min-h-[48px] flex-1 place-items-center rounded-2xl bg-clear-surface text-xs"
             >
               SHARE WITH DOCTOR
             </Link>
@@ -467,7 +467,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
               type="button"
               disabled={evidenceLoading}
               onClick={() => void downloadResult()}
-              className="min-h-[48px] flex-1 rounded-2xl bg-[#fbf8f1] text-xs disabled:opacity-50"
+              className="min-h-[48px] flex-1 rounded-2xl bg-clear-surface text-xs disabled:opacity-50"
             >
               DOWNLOAD RESULT
             </button>
@@ -478,7 +478,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
             </p>
           )}
         </div>
-        <p className="mt-6 text-center text-[9px] text-[#5f5a52]">
+        <p className="mt-6 text-center text-xs text-clear-secondary">
           AI-assisted result · not a diagnosis · based on your answers and
           selected records
         </p>
@@ -531,7 +531,7 @@ function CheckinResult({ sessionId }: { sessionId: string }) {
                     key={i}
                     className="rounded-xl border border-hairline p-3 text-sm"
                   >
-                    <p className="text-[10px] text-graphite">
+                    <p className="text-xs text-graphite">
                       {source.resource_type.replaceAll("_", " ")}
                     </p>
                     <p className="mt-2 break-words">{source.description}</p>

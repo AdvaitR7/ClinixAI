@@ -9,8 +9,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { clinicDate, clinicTime, useApiWrite, type StaffAppointment } from "@/lib/staff";
 import { recordHref } from "@/lib/route-params";
 
-const card = "rounded-[18px] border border-copper bg-graphite p-4";
-const label = "text-[9px] uppercase text-copper";
+const card = "rounded-[18px] border border-clear-divider bg-clear-surface p-4";
+const label = "text-xs uppercase text-clear-action";
 
 type Tab = "schedule" | "patients" | "intake";
 type ScheduleResponse = { date: string; role: string; appointments: StaffAppointment[] };
@@ -36,9 +36,9 @@ function ScheduleContent() {
         <p className={label}>Clinic operations · practice scoped</p>
         <h1 className="mt-2 text-[28px] leading-tight">Schedule &amp; patients</h1>
       </div>
-      <nav aria-label="Operational views" className="flex justify-between rounded-[22px] border border-copper bg-graphite p-2 text-xs">
+      <nav aria-label="Operational views" className="flex justify-between rounded-[22px] border border-clear-divider bg-clear-surface p-2 text-xs">
         {([["schedule", "Schedule", "/app/staff/schedule"], ["patients", "Patients", "/app/staff/schedule?tab=patients"], ...(role === "ASSISTANT" ? [["intake", "Intake", "/app/staff/schedule?tab=intake"]] : [])] as const).map(([key, text, href]) => (
-          <Link key={key} href={href} aria-current={tab === key ? "page" : undefined} className={`flex min-h-11 flex-1 items-center justify-center rounded-full ${tab === key ? "font-semibold text-copper" : ""}`}>{text}</Link>
+          <Link key={key} href={href} aria-current={tab === key ? "page" : undefined} className={`flex min-h-11 flex-1 items-center justify-center rounded-full ${tab === key ? "font-semibold text-clear-action" : ""}`}>{text}</Link>
         ))}
       </nav>
       {practiceId ? (
@@ -48,7 +48,7 @@ function ScheduleContent() {
       ) : (
         <p role="status" className="text-sm">Loading…</p>
       )}
-      <section className="rounded-[18px] border border-copper bg-surface p-4 text-ink">
+      <section className="rounded-[18px] border border-clear-divider bg-surface p-4 text-clear-ink">
         <p className="text-xs">Operational only. No clinical history, diagnoses, records or prescriptions are shown. Patient names are logged to the access ledger.</p>
       </section>
     </StaffShell>
@@ -76,9 +76,9 @@ function ScheduleTab({ practiceId, intakeOnly, role }: { practiceId: string; int
   const rows = intakeOnly ? all.filter((a) => a.intake_status !== null) : all;
   return (
     <section aria-labelledby="sched">
-      <h2 id="sched" className="text-[10px] font-semibold uppercase text-copper">{intakeOnly ? "Intake queue · today" : "Schedule · today"}</h2>
+      <h2 id="sched" className="text-xs font-semibold uppercase text-clear-action">{intakeOnly ? "Intake queue · today" : "Schedule · today"}</h2>
       {schedule.status === "loading" && <p role="status" className="mt-3 text-sm">Loading schedule…</p>}
-      {schedule.status === "error" && <div role="alert" className={`${card} mt-3`}><p className="text-sm">{schedule.error}</p><button type="button" onClick={() => void schedule.refresh()} className="mt-2 min-h-11 text-xs text-evidence">Retry</button></div>}
+      {schedule.status === "error" && <div role="alert" className={`${card} mt-3`}><p className="text-sm">{schedule.error}</p><button type="button" onClick={() => void schedule.refresh()} className="mt-2 min-h-11 text-xs text-clear-info">Retry</button></div>}
       {schedule.status === "ready" && rows.length === 0 && <p className={`${card} mt-3 text-sm`}>{intakeOnly ? "No patients have arrived for intake." : "No appointments today."}</p>}
       {error && <p role="alert" className="mt-2 text-xs text-critical">{error}</p>}
       <ul className="mt-3 space-y-3">
@@ -88,11 +88,11 @@ function ScheduleTab({ practiceId, intakeOnly, role }: { practiceId: string; int
               <p className="text-sm font-semibold">{clinicTime(a.scheduled_start)} · {a.patient_name || "Patient"}</p>
               <StatusBadge status={a.intake_status ?? a.status} />
             </div>
-            <p className="mt-1 text-xs text-surface/75">{a.reason ?? "Consultation"} · Payment {a.payment_status.toLowerCase()}</p>
+            <p className="mt-1 text-xs text-clear-secondary">{a.reason ?? "Consultation"} · Payment {a.payment_status.toLowerCase()}</p>
             <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              {!a.intake_status && ["REQUESTED", "CONFIRMED"].includes(a.status) && <button type="button" onClick={() => void mark(a.id, "arrive")} className="min-h-11 rounded-full border border-copper px-4">Mark arrival</button>}
-              {a.intake_status === "ARRIVED" && <button type="button" onClick={() => void mark(a.id, "waiting")} className="min-h-11 rounded-full border border-copper px-4">Mark waiting</button>}
-              {a.intake_status && <Link href={recordHref("/app/staff/intake", "appointmentId", a.id, { practice_id: practiceId })} className="inline-flex min-h-11 items-center rounded-full bg-copper px-4 font-semibold text-ink">{role === "ASSISTANT" ? "Open intake" : "Arrival details"}</Link>}
+              {!a.intake_status && ["REQUESTED", "CONFIRMED"].includes(a.status) && <button type="button" onClick={() => void mark(a.id, "arrive")} className="min-h-11 rounded-full border border-clear-divider px-4">Mark arrival</button>}
+              {a.intake_status === "ARRIVED" && <button type="button" onClick={() => void mark(a.id, "waiting")} className="min-h-11 rounded-full border border-clear-divider px-4">Mark waiting</button>}
+              {a.intake_status && <Link href={recordHref("/app/staff/intake", "appointmentId", a.id, { practice_id: practiceId })} className="inline-flex min-h-11 items-center rounded-full bg-clear-action px-4 font-semibold text-white">{role === "ASSISTANT" ? "Open intake" : "Arrival details"}</Link>}
             </div>
           </li>
         ))}
@@ -107,9 +107,9 @@ function PatientsTab({ practiceId }: { practiceId: string }) {
   const patients = useApiData<OperationalPatient[]>(`/staff/patients?practice_id=${practiceId}${q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ""}`);
   return (
     <section aria-labelledby="pts">
-      <h2 id="pts" className="text-[10px] font-semibold uppercase text-copper">Patients · operational view</h2>
-      <Link href={`/app/staff/patients/new?practice_id=${practiceId}`} className="mt-3 flex min-h-11 items-center justify-center rounded-2xl border border-copper px-4 text-sm font-semibold text-copper">Add patient</Link>
-      <input aria-label="Search by name" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name" className="mt-3 min-h-11 w-full rounded-2xl border border-evidence bg-graphite px-4 text-sm" />
+      <h2 id="pts" className="text-xs font-semibold uppercase text-clear-action">Patients · operational view</h2>
+      <Link href={`/app/staff/patients/new?practice_id=${practiceId}`} className="mt-3 flex min-h-11 items-center justify-center rounded-2xl border border-clear-divider px-4 text-sm font-semibold text-clear-action">Add patient</Link>
+      <input aria-label="Search by name" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name" className="mt-3 min-h-11 w-full rounded-2xl border border-clear-info bg-clear-surface px-4 text-sm" />
       {patients.status === "loading" && <p role="status" className="mt-3 text-sm">Loading patients…</p>}
       {patients.status === "error" && <div role="alert" className={`${card} mt-3`}><p className="text-sm">{patients.error}</p></div>}
       {patients.status === "ready" && patients.data.length === 0 && <p className={`${card} mt-3 text-sm`}>No patients found.</p>}
@@ -117,7 +117,7 @@ function PatientsTab({ practiceId }: { practiceId: string }) {
         {patients.status === "ready" && patients.data.map((p) => (
           <li key={p.patient_id} className={card}>
             <p className="text-sm font-semibold">{p.full_name} · {p.claim_status} · {p.phone_hint}</p>
-            <p className="mt-1 text-xs text-surface/75">{p.next_appointment_at ? `Next visit ${clinicDate(p.next_appointment_at)} ${clinicTime(p.next_appointment_at)}` : "No upcoming visit"} · Contact and arrival only</p>
+            <p className="mt-1 text-xs text-clear-secondary">{p.next_appointment_at ? `Next visit ${clinicDate(p.next_appointment_at)} ${clinicTime(p.next_appointment_at)}` : "No upcoming visit"} · Contact and arrival only</p>
           </li>
         ))}
       </ul>

@@ -29,7 +29,7 @@ export function CheckinSafety({
           </span>
           <span className="text-2xl">ClinixAI</span>
         </div>
-        <p className="mt-7 w-fit rounded-full border border-critical px-3 py-1.5 text-[10px] text-critical">
+        <p className="mt-7 w-fit rounded-full border border-critical px-3 py-1.5 text-xs text-critical">
           SAFETY CHECK
         </p>
         <div className="mt-6 grid size-[54px] place-items-center rounded-[18px] bg-critical text-3xl text-surface">
@@ -43,7 +43,7 @@ export function CheckinSafety({
           check-in is paused.
         </p>
         <section className="mt-10 rounded-[22px] border border-critical p-5 ring-4 ring-critical/10">
-          <h2 className="text-[9px] text-critical uppercase">
+          <h2 className="text-xs text-critical uppercase">
             Why this appeared
           </h2>
           <p className="mt-3 text-xs text-graphite">{alert.message}</p>
@@ -85,7 +85,7 @@ export function CheckinSafety({
           ref={reviewRef}
           type="button"
           onClick={() => setReviewing(true)}
-          className="mt-5 min-h-11 w-full text-center text-xs text-evidence underline"
+          className="mt-5 min-h-11 w-full text-center text-xs text-clear-info underline"
         >
           Review the answers that triggered this alert
         </button>

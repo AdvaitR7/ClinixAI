@@ -339,7 +339,7 @@ export default function PatientCheckinPage() {
   if (!started) {
     return (
       <main
-        className={`${checkinTypography} min-h-dvh bg-[#f6f1e8] px-6 py-6 md:py-10`}
+        className={`${checkinTypography} min-h-dvh bg-clear-canvas px-6 py-6 md:py-10`}
       >
         <div className="mx-auto max-w-[345px]">
           {/* Header */}
@@ -351,7 +351,7 @@ export default function PatientCheckinPage() {
               ←
             </Link>
             <div className="flex items-center gap-2">
-              <div className="grid size-[38px] place-items-center rounded-[12px] bg-ink font-sans text-lg font-bold text-surface">
+              <div className="grid size-[38px] place-items-center rounded-[12px] bg-clear-action font-sans text-lg font-bold text-white">
                 C
               </div>
               <span className="font-sans text-2xl font-semibold text-ink">
@@ -360,7 +360,7 @@ export default function PatientCheckinPage() {
             </div>
             <Link
               href="/app/patient"
-              className="font-sans text-xs font-semibold text-[#b89b6a] hover:underline"
+              className="font-sans text-xs font-semibold text-clear-action hover:underline"
             >
               Exit
             </Link>
@@ -368,7 +368,7 @@ export default function PatientCheckinPage() {
 
           {/* AI Chip */}
           <div className="mt-8 flex items-center justify-between">
-            <span className="inline-block rounded-full border border-[#b89b6a]/60 bg-canvas px-3 py-1 font-sans text-[9px] font-semibold tracking-wider text-ink uppercase">
+            <span className="inline-block rounded-full border border-clear-divider/60 bg-canvas px-3 py-1 font-sans text-xs font-semibold tracking-wider text-ink uppercase">
               ◆ AI-assisted check-in
             </span>
           </div>
@@ -410,7 +410,7 @@ export default function PatientCheckinPage() {
               </p>
             )}
 
-            <p className="font-sans text-[10px] text-graphite/80">
+            <p className="font-sans text-xs text-graphite/80">
               AI assistance structures this check-in; it does not provide a
               diagnosis.
             </p>
@@ -418,7 +418,7 @@ export default function PatientCheckinPage() {
             <button
               type="submit"
               disabled={loading || !chiefConcern.trim()}
-              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[18px] bg-ink px-6 py-3 font-sans text-sm font-semibold tracking-wide text-surface shadow transition-transform active:translate-y-px disabled:opacity-50"
+              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[18px] bg-clear-action px-6 py-3 font-sans text-sm font-semibold tracking-wide text-white shadow transition-transform active:translate-y-px disabled:opacity-50"
             >
               <span>
                 {loading
@@ -443,7 +443,7 @@ export default function PatientCheckinPage() {
   // --- Render Screen 6: Adaptive Question Block (Figma Node 15:2) ---
   return (
     <main
-      className={`${checkinTypography} min-h-dvh bg-[#f6f1e8] px-6 py-6 md:py-10`}
+      className={`${checkinTypography} min-h-dvh bg-clear-canvas px-6 py-6 md:py-10`}
     >
       <div className="mx-auto max-w-[345px]">
         {/* Top Header */}
@@ -458,7 +458,7 @@ export default function PatientCheckinPage() {
             ←
           </button>
           <div className="flex items-center gap-2">
-            <div className="grid size-[38px] place-items-center rounded-[12px] bg-ink font-sans text-lg font-bold text-surface">
+            <div className="grid size-[38px] place-items-center rounded-[12px] bg-clear-action font-sans text-lg font-bold text-white">
               C
             </div>
             <span className="font-sans text-2xl font-semibold text-ink">
@@ -467,7 +467,7 @@ export default function PatientCheckinPage() {
           </div>
           <Link
             href="/app/patient"
-            className="font-sans text-xs font-semibold text-[#b89b6a] hover:underline"
+            className="font-sans text-xs font-semibold text-clear-action hover:underline"
           >
             Exit
           </Link>
@@ -475,10 +475,10 @@ export default function PatientCheckinPage() {
 
         {/* Subheader: Chip & Step */}
         <div className="mt-7 flex items-center justify-between">
-          <span className="rounded-full border border-[#b89b6a]/60 bg-canvas px-3 py-1 font-sans text-[9px] font-semibold tracking-wider text-ink uppercase">
+          <span className="rounded-full border border-clear-divider/60 bg-canvas px-3 py-1 font-sans text-xs font-semibold tracking-wider text-ink uppercase">
             ◆ AI-assisted check-in
           </span>
-          <span className="font-mono text-[10px] font-semibold tracking-wider text-graphite uppercase">
+          <span className="font-sans tabular-nums text-xs font-semibold tracking-wider text-graphite uppercase">
             STEP {stepNumber} OF {totalSteps}
           </span>
         </div>
@@ -489,19 +489,19 @@ export default function PatientCheckinPage() {
             <div
               key={i}
               className={`h-[7px] flex-1 rounded-[4px] transition-colors ${
-                i < stepNumber ? "bg-ink" : "bg-[#dfd3bd]"
+                i < stepNumber ? "bg-clear-action" : "bg-clear-divider"
               }`}
             />
           ))}
         </div>
 
         {/* Current Symptom Eyebrow */}
-        <p className="mt-6 font-sans text-[10px] font-semibold tracking-widest text-graphite uppercase">
+        <p className="mt-6 font-sans text-xs font-semibold tracking-widest text-graphite uppercase">
           CURRENT SYMPTOM · {chiefConcern.slice(0, 30).toUpperCase()}
         </p>
 
         {/* Title */}
-        <h1 className="mt-2 font-serif text-[30px] font-bold leading-tight text-ink md:text-[30px]">
+        <h1 className="mt-2 font-sans text-[30px] font-bold leading-tight text-ink md:text-[30px]">
           {activeBlock?.title ?? "How long have you had this symptom?"}
         </h1>
 
@@ -512,16 +512,16 @@ export default function PatientCheckinPage() {
         </p>
 
         {/* "Why This Question" Callout Tray */}
-        <div className="mt-5 rounded-[20px] border border-[#b89b6a] bg-[#f6f1e8] p-4 ring-[5px] ring-[#dfd3bd]/70">
+        <div className="mt-5 rounded-[20px] border border-clear-divider bg-clear-canvas p-4 ring-[5px] ring-clear-divider/70">
           <div className="flex items-center justify-between">
-            <span className="font-sans text-[9px] font-semibold tracking-wider text-ink uppercase">
+            <span className="font-sans text-xs font-semibold tracking-wider text-ink uppercase">
               Why this question
             </span>
             <button
               type="button"
               aria-expanded={showBasis}
               onClick={() => setShowBasis(!showBasis)}
-              className="font-sans text-[10px] font-semibold text-[#b89b6a] hover:underline"
+              className="font-sans text-xs font-semibold text-clear-action hover:underline"
             >
               {showBasis ? "Hide basis" : "View basis"}
             </button>
@@ -530,7 +530,7 @@ export default function PatientCheckinPage() {
             Based on &ldquo;{chiefConcern}&rdquo; and your earlier answers.
           </p>
           {showBasis && (
-            <p className="mt-2 border-t border-hairline pt-2 font-sans text-[11px] text-graphite/90">
+            <p className="mt-2 border-t border-hairline pt-2 font-sans text-xs text-graphite/90">
               This question is part of the configured check-in sequence. Your
               saved concern is “{chiefConcern}”.{" "}
               {
@@ -545,7 +545,7 @@ export default function PatientCheckinPage() {
 
         {/* Options Section */}
         <div className="mt-6">
-          <p className="font-sans text-[10px] font-semibold tracking-wider text-graphite uppercase">
+          <p className="font-sans text-xs font-semibold tracking-wider text-graphite uppercase">
             SELECT ONE
           </p>
 
@@ -564,14 +564,14 @@ export default function PatientCheckinPage() {
                   }}
                   className={`flex w-full items-center gap-3 rounded-[18px] border p-4 text-left transition-all ${
                     isSelected
-                      ? "border-ink bg-[#f6f1e8] font-medium text-ink"
-                      : "border-[#d8d0c4] bg-[#f6f1e8] text-ink/90 hover:bg-surface"
+                      ? "border-ink bg-clear-canvas font-medium text-ink"
+                      : "border-clear-divider bg-clear-canvas text-ink/90 hover:bg-surface"
                   }`}
                 >
                   <span
                     aria-hidden="true"
                     className={`text-lg leading-none ${
-                      isSelected ? "text-ink font-bold" : "text-[#b89b6a]"
+                      isSelected ? "text-ink font-bold" : "text-clear-action"
                     }`}
                   >
                     {isSelected ? "●" : "○"}
@@ -613,7 +613,7 @@ export default function PatientCheckinPage() {
         )}
 
         {/* Disclaimer */}
-        <p className="mt-5 font-sans text-[10px] leading-relaxed text-graphite/80">
+        <p className="mt-5 font-sans text-xs leading-relaxed text-graphite/80">
           AI assistance structures this check-in; it does not provide a
           diagnosis.
         </p>
@@ -632,7 +632,7 @@ export default function PatientCheckinPage() {
             type="button"
             onClick={handleContinue}
             disabled={loading}
-            className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-[18px] bg-ink px-6 font-sans text-xs font-semibold tracking-wider text-surface shadow transition-transform active:translate-y-px disabled:opacity-50"
+            className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-[18px] bg-clear-action px-6 font-sans text-xs font-semibold tracking-wider text-white shadow transition-transform active:translate-y-px disabled:opacity-50"
           >
             <span>
               {loading ? "SAVING..." : ready ? "START ANALYSIS" : "CONTINUE"}

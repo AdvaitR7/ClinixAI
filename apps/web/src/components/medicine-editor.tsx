@@ -62,7 +62,7 @@ export function MedicineEditor({
   items,
   onChange,
   blankItem = { medicine_name: "" },
-  appearance = "legacy",
+  appearance = "clear",
 }: {
   items: EditorItem[];
   onChange: (items: EditorItem[]) => void;

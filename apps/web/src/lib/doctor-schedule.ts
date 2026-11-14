@@ -7,9 +7,9 @@ export const scheduleNav = [
   { label: "Patients", href: "/app/doctor/patients" },
   { label: "Drafts", href: "/app/doctor/drafts" },
 ];
-export const scheduleCard = "rounded-[20px] border border-copper bg-[#3d4640] p-4";
-/** Clear v2 equivalent of scheduleCard (opaque white, divider border). Screens switch to it as they migrate. */
-export const clearScheduleCard = "clear-card p-4";
+/** Opaque white schedule card (Clear v2). */
+export const scheduleCard = "clear-card p-4";
+export const clearScheduleCard = scheduleCard;
 export const scheduleStatuses = ["REQUESTED", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"] as const;
 export type ScheduleState = { date: string; view: "day" | "week"; status: string; tab: "schedule" | "availability" };
 

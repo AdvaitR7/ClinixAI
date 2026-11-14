@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
           <button type="submit" disabled={busy} className="min-h-[57px] w-full rounded-[18px] bg-botanical font-sans text-sm font-bold uppercase text-surface disabled:opacity-60">{busy ? "Sending…" : "Send reset link"}</button>
         </form>
       )}
-      <Link href="/sign-in" className="mt-5 block text-center font-sans text-xs font-semibold uppercase text-evidence">Back to sign in</Link>
+      <Link href="/sign-in" className="mt-3 flex min-h-11 items-center justify-center font-sans text-xs font-semibold uppercase text-clear-info">Back to sign in</Link>
     </AuthShell>
   );
 }

@@ -21,7 +21,7 @@ export default function DoctorFollowupDetailPage() {
   const id = useRouteParam("id");
   return (
     <WorkspaceShell workspace="Doctor" title="Follow-up task" nav={nav} focused hideHeading>
-      <Link href="/app/doctor/followups" className="min-h-11 text-xs text-evidence">← Worklist</Link>
+      <Link href="/app/doctor/followups" className="min-h-11 text-xs text-clear-info">← Worklist</Link>
       <FollowupDetail id={id} isDoctor />
     </WorkspaceShell>
   );

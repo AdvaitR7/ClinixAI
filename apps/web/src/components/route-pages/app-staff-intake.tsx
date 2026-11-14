@@ -10,9 +10,9 @@ import { useApiData } from "@/lib/api";
 import { StaffShell } from "@/components/staff-shell";
 import { clinicTime, useApiWrite, type StaffIntake } from "@/lib/staff";
 
-const card = "rounded-[18px] border border-copper bg-graphite p-4";
-const label = "text-[9px] uppercase text-copper";
-const input = "min-h-11 w-full rounded-xl border border-copper/60 bg-ink px-3 text-sm";
+const card = "rounded-[18px] border border-clear-divider bg-clear-surface p-4";
+const label = "text-xs uppercase text-clear-action";
+const input = "min-h-11 w-full rounded-xl border border-clear-divider bg-clear-surface px-3 text-sm";
 
 const FIELDS = [
   ["temperature_c", "Temperature (°C)", "0.1"],
@@ -78,16 +78,16 @@ function IntakeContent() {
 
   return (
     <StaffShell role={locked ? "RECEPTION" : "ASSISTANT"} active={locked ? "patients" : "intake"} title="Patient intake">
-      <Link href="/app/staff" className="min-h-11 text-xs text-evidence">← Back to dashboard</Link>
+      <Link href="/app/staff" className="min-h-11 text-xs text-clear-info">← Back to dashboard</Link>
       {intake.status === "loading" && <p role="status" className="text-sm">Loading intake…</p>}
-      {intake.status === "error" && <div role="alert" className={card}><p className="text-sm">{intake.error}</p><button type="button" onClick={() => void intake.refresh()} className="mt-2 min-h-11 text-xs text-evidence">Retry</button></div>}
+      {intake.status === "error" && <div role="alert" className={card}><p className="text-sm">{intake.error}</p><button type="button" onClick={() => void intake.refresh()} className="mt-2 min-h-11 text-xs text-clear-info">Retry</button></div>}
       {data && (
         <>
           <div>
             <p className={label}>{locked ? "Arrival only" : "Clinical assistant · intake"}</p>
             <h1 className="mt-2 text-[28px] leading-tight">{data.patient_name || "Patient"}</h1>
-            <p className="text-xs text-surface/75">{clinicTime(data.scheduled_start)} · {data.reason ?? "Consultation"}</p>
-            <p className="mt-2 inline-flex rounded-full border border-copper px-3 py-1 text-[9px] uppercase">{data.intake_status ?? "Not arrived"}</p>
+            <p className="text-xs text-clear-secondary">{clinicTime(data.scheduled_start)} · {data.reason ?? "Consultation"}</p>
+            <p className="mt-2 inline-flex rounded-full border border-clear-divider px-3 py-1 text-xs uppercase">{data.intake_status ?? "Not arrived"}</p>
           </div>
           {locked ? (
             <section className={card}>
@@ -101,17 +101,17 @@ function IntakeContent() {
                 <h2 id="vitals-heading" className="mt-1 text-lg">Record vitals</h2>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   {FIELDS.map(([key, text, step]) => (
-                    <label key={key} className="text-[10px] text-surface/80">
+                    <label key={key} className="text-xs text-clear-secondary">
                       {text}
                       <input type="number" inputMode="decimal" step={step} value={values[key] ?? ""} onChange={(e) => setValues({ ...values, [key]: e.target.value })} className={`${input} mt-1`} />
                     </label>
                   ))}
                 </div>
-                <label className="mt-3 block text-[10px] text-surface/80">
+                <label className="mt-3 block text-xs text-clear-secondary">
                   Intake note
                   <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} rows={3} className={`${input} mt-1 py-2`} />
                 </label>
-                <button type="button" disabled={busy} onClick={() => void saveVitals()} className="mt-3 min-h-11 w-full rounded-2xl bg-copper px-4 text-sm font-semibold text-ink disabled:opacity-60">Save vitals</button>
+                <button type="button" disabled={busy} onClick={() => void saveVitals()} className="mt-3 min-h-11 w-full rounded-2xl bg-clear-action px-4 text-sm font-semibold text-white disabled:opacity-60">Save vitals</button>
               </section>
               {data.vitals.length > 0 && (
                 <section aria-labelledby="saved-heading">
@@ -122,17 +122,17 @@ function IntakeContent() {
                         <p className="text-xs">
                           {[v.temperature_c !== null && `${v.temperature_c} °C`, v.pulse_bpm !== null && `${v.pulse_bpm} bpm`, v.systolic_mmhg !== null && `${v.systolic_mmhg}/${v.diastolic_mmhg ?? "–"} mmHg`, v.spo2_percent !== null && `SpO₂ ${v.spo2_percent}%`, v.weight_kg !== null && `${v.weight_kg} kg`].filter(Boolean).join(" · ")}
                         </p>
-                        <p className="mt-1 text-[10px] text-copper">Clinical assistant entered · {clinicTime(v.recorded_at)}</p>
-                        {v.needs_doctor_review && <p className="mt-1 text-[10px] font-semibold text-review">Needs doctor review</p>}
+                        <p className="mt-1 text-xs text-clear-action">Clinical assistant entered · {clinicTime(v.recorded_at)}</p>
+                        {v.needs_doctor_review && <p className="mt-1 text-xs font-semibold text-review">Needs doctor review</p>}
                       </li>
                     ))}
                   </ul>
                 </section>
               )}
-              <button type="button" disabled={busy || data.vitals.length === 0 || data.intake_status === "READY_FOR_DOCTOR"} onClick={() => void ready()} className="min-h-12 w-full rounded-2xl border border-copper px-4 text-sm font-semibold disabled:opacity-50">
+              <button type="button" disabled={busy || data.vitals.length === 0 || data.intake_status === "READY_FOR_DOCTOR"} onClick={() => void ready()} className="min-h-12 w-full rounded-2xl border border-clear-divider px-4 text-sm font-semibold disabled:opacity-50">
                 {data.intake_status === "READY_FOR_DOCTOR" ? "Ready for doctor" : "Mark ready for doctor"}
               </button>
-              <p className="text-[10px] text-surface/70">No diagnosis, assessment, treatment or prescription controls are available here.</p>
+              <p className="text-xs text-clear-secondary">No diagnosis, assessment, treatment or prescription controls are available here.</p>
             </>
           )}
           {error && <p role="alert" className="text-xs text-critical">{error}</p>}

@@ -199,7 +199,7 @@ function PrescriptionDraft() {
   if (state.status === "error") {
     return (
       <WorkspaceShell workspace="Doctor" title="Prescription draft" nav={nav}>
-        <section className="clinix-doctor-card p-5">
+        <section className="clear-card p-5">
           <p className="font-sans text-sm text-critical">{state.error}</p>
         </section>
       </WorkspaceShell>
@@ -222,7 +222,7 @@ function PrescriptionDraft() {
         />
       </fieldset>
       <PrescriptionSafetyPanel patientId={draft.patient_id} riskFlags={draft.risk_flags} overallConfidence={draft.overall_confidence} />
-      {saved && <p role="status" className="font-sans text-sm text-doctor-muted">Draft saved.</p>}
+      {saved && <p role="status" className="font-sans text-sm text-clear-secondary">Draft saved.</p>}
       {error && <p role="alert" className="font-sans text-sm font-medium text-critical">{error}</p>}
       {!finalized && (
         <div className="flex flex-wrap gap-3">
@@ -230,7 +230,7 @@ function PrescriptionDraft() {
             type="button"
             onClick={() => save()}
             disabled={busy}
-            className="min-h-12 flex-1 rounded-2xl border border-white/10 bg-doctor-panel font-sans text-xs font-semibold uppercase tracking-wider text-surface disabled:opacity-60"
+            className="min-h-12 flex-1 rounded-2xl border border-clear-divider bg-clear-surface font-sans text-xs font-semibold uppercase tracking-wider text-clear-ink disabled:opacity-60"
           >
             Save draft
           </button>
@@ -238,7 +238,7 @@ function PrescriptionDraft() {
             type="button"
             onClick={() => void preview()}
             disabled={busy}
-            className="min-h-12 flex-1 rounded-2xl border border-copper bg-doctor-panel font-sans text-xs font-semibold uppercase tracking-wider text-copper disabled:opacity-60"
+            className="min-h-12 flex-1 rounded-2xl border border-clear-divider bg-clear-surface font-sans text-xs font-semibold uppercase tracking-wider text-clear-action disabled:opacity-60"
           >
             Preview
           </button>
@@ -247,7 +247,7 @@ function PrescriptionDraft() {
             type="button"
             onClick={() => save(true)}
             disabled={busy}
-            className="min-h-12 flex-1 rounded-2xl bg-copper font-sans text-xs font-semibold uppercase tracking-wider text-ink transition-transform active:translate-y-px disabled:opacity-60"
+            className="min-h-12 flex-1 rounded-2xl bg-clear-action font-sans text-xs font-semibold uppercase tracking-wider text-white transition-transform active:translate-y-px disabled:opacity-60"
           >
             Finalize prescription
           </button>
@@ -263,46 +263,46 @@ function PrescriptionDraft() {
           onClose={() => setConfirming(false)}
         >
           <div>
-            <span className="rounded-full border border-copper/50 px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-copper">
+            <span className="rounded-full border border-clear-divider px-2.5 py-1 font-sans text-xs font-bold uppercase text-clear-action">
               Final Review
             </span>
-            <h3 id="finalize-dialog-title" className="mt-5 font-sans text-[28px] leading-tight font-semibold text-surface">
+            <h3 id="finalize-dialog-title" className="mt-5 font-sans text-[28px] leading-tight font-semibold text-clear-ink">
               Finalize prescription?
             </h3>
-            <p className="mt-2 font-sans text-xs leading-5 text-doctor-muted/75">
+            <p className="mt-2 font-sans text-xs leading-5 text-clear-secondary">
               Confirm the doctor-authored record before it becomes finalized.
             </p>
-            <section className="mt-6 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+            <section className="mt-6 rounded-[22px] border border-clear-divider bg-clear-surface p-4 font-sans text-xs text-clear-ink">
               <div className="flex items-center justify-between gap-3">
                 <h4 className="text-xl">{draft.patient_name}</h4>
-                <span className="rounded-full border border-evidence px-3 py-2 text-[10px]">Version 1</span>
+                <span className="rounded-full border border-clear-info px-3 py-2 text-xs">Version 1</span>
               </div>
               <dl className="mt-4 space-y-2">
-                <div className="flex gap-3"><dt className="w-20 text-copper">Source</dt><dd>{draft.source}</dd></div>
-                <div className="flex gap-3"><dt className="w-20 text-copper">Medicines</dt><dd>{reviewedItems?.length}</dd></div>
+                <div className="flex gap-3"><dt className="w-20 text-clear-action">Source</dt><dd>{draft.source}</dd></div>
+                <div className="flex gap-3"><dt className="w-20 text-clear-action">Medicines</dt><dd>{reviewedItems?.length}</dd></div>
               </dl>
             </section>
-            <div className="mt-6 space-y-3 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+            <div className="mt-6 space-y-3 rounded-[22px] border border-clear-divider bg-clear-surface p-4 font-sans text-xs text-clear-ink">
               <p>Saved medicines ({reviewedItems?.length})</p>
               <ul className="max-h-60 space-y-2 overflow-y-auto">
                 {reviewedItems?.map((item, index) => (
                   <li key={index} className="whitespace-pre-wrap break-words">
-                    <strong className="text-surface">{item.medicine_name}</strong>
+                    <strong className="text-clear-ink">{item.medicine_name}</strong>
                     <p>{[item.strength, item.dose, item.route, item.frequency, item.timing, item.duration, item.instructions].filter(Boolean).join(" · ")}</p>
                   </li>
                 ))}
               </ul>
             </div>
-            <section aria-label="Before finalizing" className="mt-6 space-y-1 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+            <section aria-label="Before finalizing" className="mt-6 space-y-1 rounded-[22px] border border-clear-divider bg-clear-surface p-4 font-sans text-xs text-clear-ink">
               <h4 className="text-lg">Before finalizing</h4>
               {draft.source === "OCR" && (
-                <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="size-5 accent-copper" checked={checks.source} onChange={(e) => setChecks({ ...checks, source: e.target.checked })} />Medicines match the original source</label>
+                <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="size-5 accent-clear-action" checked={checks.source} onChange={(e) => setChecks({ ...checks, source: e.target.checked })} />Medicines match the original source</label>
               )}
-              <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="size-5 accent-copper" checked={checks.safety} onChange={(e) => setChecks({ ...checks, safety: e.target.checked })} />Allergies and current medicines reviewed with the patient</label>
-              <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="size-5 accent-copper" checked={checks.preview} onChange={(e) => setChecks({ ...checks, preview: e.target.checked })} />Printable preview checked</label>
-              <Link href={recordHref("/app/doctor/prescription-drafts", "draftId", params.draftId, {}, "/preview")} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-copper underline">Open full printable preview →</Link>
+              <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="size-5 accent-clear-action" checked={checks.safety} onChange={(e) => setChecks({ ...checks, safety: e.target.checked })} />Allergies and current medicines reviewed with the patient</label>
+              <label className="flex min-h-11 items-center gap-3"><input type="checkbox" className="size-5 accent-clear-action" checked={checks.preview} onChange={(e) => setChecks({ ...checks, preview: e.target.checked })} />Printable preview checked</label>
+              <Link href={recordHref("/app/doctor/prescription-drafts", "draftId", params.draftId, {}, "/preview")} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-clear-action underline">Open full printable preview →</Link>
             </section>
-            <section className="mt-6 rounded-[22px] border border-evidence bg-graphite p-4 font-sans text-xs leading-5 text-surface">
+            <section className="mt-6 rounded-[22px] border border-clear-info bg-clear-surface p-4 font-sans text-xs leading-5 text-clear-ink">
               <h4 className="text-lg">Edits become amendments</h4>
               <p className="mt-2">Finalization preserves this version. Later corrections create a dated amendment or a new version; the original cannot be silently replaced.</p>
             </section>
@@ -311,7 +311,7 @@ function PrescriptionDraft() {
                 type="button"
                 onClick={finalize}
                 disabled={busy || !checks.safety || !checks.preview || (draft.source === "OCR" && !checks.source)}
-                className="min-h-[60px] rounded-[18px] bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
+                className="min-h-[60px] rounded-[18px] bg-clear-action font-sans text-xs font-semibold uppercase text-white disabled:opacity-60"
               >
                 {busy ? "Finalizing…" : "Finalize prescription"}
               </button>
@@ -319,7 +319,7 @@ function PrescriptionDraft() {
                 type="button"
                 onClick={() => setConfirming(false)}
                 disabled={busy}
-                className="min-h-[52px] rounded-[18px] border border-copper font-sans text-xs font-semibold text-surface"
+                className="min-h-[52px] rounded-[18px] border border-clear-divider font-sans text-xs font-semibold text-clear-ink"
               >
                 Return to draft
               </button>
@@ -332,53 +332,53 @@ function PrescriptionDraft() {
 
   return (
     <WorkspaceShell workspace="Doctor" title="Prescription draft review" nav={nav}>
-      <header className="clinix-doctor-card border-copper p-5">
+      <header className="clear-card border-clear-divider p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="clinix-label text-copper">Draft review</p>
-            <h2 className="mt-1 font-sans text-xl font-bold text-surface">{draft.patient_name}</h2>
-            <p className="mt-1 font-mono text-xs text-doctor-muted/65">Provenance: {draft.source}</p>
+            <p className="clinix-label text-clear-action">Draft review</p>
+            <h2 className="mt-1 font-sans text-xl font-bold text-clear-ink">{draft.patient_name}</h2>
+            <p className="mt-1 font-sans tabular-nums text-xs text-clear-secondary">Provenance: {draft.source}</p>
           </div>
           <StatusBadge status={draft.status} />
         </div>
       </header>
 
       {finalized ? (
-        <section className="clinix-doctor-card p-5">
-          <p className="font-sans text-sm text-doctor-muted/80">
+        <section className="clear-card p-5">
+          <p className="font-sans text-sm text-clear-secondary">
             This draft has been finalized and can no longer be edited directly.
           </p>
         </section>
       ) : sourceDocId ? (
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="clinix-doctor-card p-4 md:sticky md:top-4 md:self-start">
-            <p className="clinix-label text-copper">
+          <div className="clear-card p-4 md:sticky md:top-4 md:self-start">
+            <p className="clinix-label text-clear-action">
               Source document
             </p>
             {sourceError ? (
               <div role="alert" className="mt-3 font-sans text-xs text-critical">
                 <p>Source unavailable: {sourceError}</p>
-                <button type="button" onClick={() => { setSourceError(null); setSourceTry((n) => n + 1); }} className="mt-1 min-h-11 font-semibold text-copper underline">Retry source</button>
+                <button type="button" onClick={() => { setSourceError(null); setSourceTry((n) => n + 1); }} className="mt-1 min-h-11 font-semibold text-clear-action underline">Retry source</button>
               </div>
             ) : !sourceDoc ? (
-              <p role="status" className="mt-3 font-sans text-xs text-doctor-muted/60">Loading source…</p>
+              <p role="status" className="mt-3 font-sans text-xs text-clear-secondary">Loading source…</p>
             ) : sourceDoc.view_url && sourceDoc.mime_type.startsWith("image/") ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={sourceDoc.view_url} alt="Source prescription" className="mt-3 w-full rounded-2xl border border-white/10" />
-                <a href={sourceDoc.view_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center font-sans text-xs font-semibold text-copper hover:underline">Open original source →</a>
+                <img src={sourceDoc.view_url} alt="Source prescription" className="mt-3 w-full rounded-2xl border border-clear-divider" />
+                <a href={sourceDoc.view_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-11 items-center font-sans text-xs font-semibold text-clear-action hover:underline">Open original source →</a>
               </>
             ) : sourceDoc.view_url ? (
               <a
                 href={sourceDoc.view_url}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-3 inline-block font-sans text-xs font-semibold text-copper hover:underline"
+                className="mt-3 inline-block font-sans text-xs font-semibold text-clear-action hover:underline"
               >
                 Open original source →
               </a>
             ) : (
-              <p className="mt-3 font-sans text-xs text-doctor-muted/60">Source preview unavailable.</p>
+              <p className="mt-3 font-sans text-xs text-clear-secondary">Source preview unavailable.</p>
             )}
           </div>
           <div className="space-y-6">{editor}</div>

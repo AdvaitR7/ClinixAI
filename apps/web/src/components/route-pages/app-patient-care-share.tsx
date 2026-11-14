@@ -102,7 +102,7 @@ function ScopePicker() {
 
   return (
     <WorkspaceShell workspace="Patient" title="Choose what to share" nav={careNav()} focused flowNavigation hideHeading
-      headerContent={<PatientVisitHeader backHref={closeHref} action={<a href={closeHref} className="text-xs">Close</a>} />}>
+      headerContent={<PatientVisitHeader backHref={closeHref} action={<a href={closeHref} className="inline-flex min-h-11 items-center text-xs">Close</a>} />}>
       <div>
         <p className={privacyLabel}>Consent · record sharing</p>
         <h1 className="mt-4 text-[30px] leading-tight">Choose what to share</h1>
@@ -135,7 +135,7 @@ function ScopePicker() {
         <h2 className={privacyLabel}>Access expiry</h2>
         <div className="mt-3 grid grid-cols-3 gap-2" role="group" aria-label="Access expiry">
           {EXPIRIES.map((item) => (
-            <button key={item.value} type="button" aria-pressed={expiry === item.value} onClick={() => setExpiry(item.value)} className={`min-h-11 rounded-full border px-1 text-[10px] ${expiry === item.value ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{item.label}</button>
+            <button key={item.value} type="button" aria-pressed={expiry === item.value} onClick={() => setExpiry(item.value)} className={`min-h-11 rounded-full border px-1 text-xs ${expiry === item.value ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{item.label}</button>
           ))}
         </div>
         <p className="mt-3 text-xs text-graphite">{expiryInfo.text}</p>

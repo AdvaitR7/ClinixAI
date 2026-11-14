@@ -9,7 +9,7 @@ import { unreadCount } from "@/lib/notifications";
  * Header bell that links to the notifications screen and shows the unread count as text.
  * A failed or pending fetch shows no count rather than blocking the header.
  */
-export function NotificationBell({ doctor, appearance = "legacy" }: { doctor: boolean; appearance?: "legacy" | "clear" }) {
+export function NotificationBell({ doctor, appearance = "clear" }: { doctor: boolean; appearance?: "legacy" | "clear" }) {
   const state = useApiData<NotificationView[]>("/notifications");
   // Tolerate any non-list payload so a bad response can never break the header.
   const unread = state.status === "ready" && Array.isArray(state.data) ? unreadCount(state.data) : 0;
@@ -28,7 +28,7 @@ export function NotificationBell({ doctor, appearance = "legacy" }: { doctor: bo
         <path d="M10 21h4" />
       </svg>
       {unread > 0 && (
-        <span aria-hidden="true" className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-critical px-1 font-sans text-[10px] font-bold leading-5 text-surface">
+        <span aria-hidden="true" className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-critical px-1 font-sans text-xs font-bold leading-5 text-surface">
           {unread > 9 ? "9+" : unread}
         </span>
       )}

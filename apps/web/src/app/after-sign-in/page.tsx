@@ -38,7 +38,7 @@ export default function AfterSignInPage() {
       title="Opening your workspace"
       orientation="Checking your account and loading the right workspace."
     >
-      {state.status === "error" ? <div><p role="alert" className="font-sans text-sm text-critical">We could not load your account. Please try again.</p><button type="button" onClick={() => void state.refresh()} className="mt-4 font-sans text-xs font-semibold uppercase text-evidence">Try again</button></div> : (
+      {state.status === "error" ? <div><p role="alert" className="font-sans text-sm text-critical">We could not load your account. Please try again.</p><button type="button" onClick={() => void state.refresh()} className="mt-4 font-sans text-xs font-semibold uppercase text-clear-info">Try again</button></div> : (
         <div className="space-y-3" aria-hidden="true">
           <div className="h-12 animate-pulse rounded-xl bg-hairline" />
           <div className="h-12 animate-pulse rounded-xl bg-hairline" />

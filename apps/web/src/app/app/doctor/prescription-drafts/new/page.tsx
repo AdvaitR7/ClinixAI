@@ -75,11 +75,11 @@ function NewPrescriptionForm() {
   if (!encounterId || !patientId) {
     return (
       <WorkspaceShell workspace="Doctor" title="New prescription" nav={nav}>
-        <section className="clinix-doctor-card border-critical p-5">
+        <section className="clear-card border-critical p-5">
           <p className="font-sans text-sm font-semibold text-critical">
             Missing consultation context.
           </p>
-          <p className="mt-1 font-sans text-xs text-doctor-muted/70">
+          <p className="mt-1 font-sans text-xs text-clear-secondary">
             Direct prescription drafts must be initiated from an active patient consultation encounter.
           </p>
         </section>
@@ -89,16 +89,16 @@ function NewPrescriptionForm() {
 
   return (
     <WorkspaceShell workspace="Doctor" title="Direct prescription entry" nav={nav}>
-      <header className="clinix-doctor-card border-copper p-5">
+      <header className="clear-card border-clear-divider p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="clinix-label text-copper">Direct Entry Draft</p>
-            <h2 className="mt-1 font-sans text-lg font-bold text-surface">Prescription authoring</h2>
-            <p className="mt-1 font-mono text-xs text-doctor-muted/65">
+            <p className="clinix-label text-clear-action">Direct Entry Draft</p>
+            <h2 className="mt-1 font-sans text-lg font-bold text-clear-ink">Prescription authoring</h2>
+            <p className="mt-1 font-sans tabular-nums text-xs text-clear-secondary">
               Encounter: {encounterId.slice(0, 8)}… · Patient: {patientId.slice(0, 8)}…
             </p>
           </div>
-          <span className="rounded-full border border-copper/50 bg-copper/10 px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-copper">
+          <span className="rounded-full border border-clear-divider bg-clear-selection px-2.5 py-1 font-sans text-xs font-bold uppercase text-clear-action">
             Draft
           </span>
         </div>
@@ -114,7 +114,7 @@ function NewPrescriptionForm() {
             type="button"
             onClick={() => void save("preview")}
             disabled={busy}
-            className="min-h-[54px] rounded-[1.25rem] border border-copper bg-doctor-panel px-4 font-sans text-sm font-semibold uppercase tracking-wider text-copper disabled:opacity-60"
+            className="min-h-[54px] rounded-[1.25rem] border border-clear-divider bg-clear-surface px-4 font-sans text-sm font-semibold uppercase tracking-wider text-clear-action disabled:opacity-60"
           >
             Preview
           </button>
@@ -122,7 +122,7 @@ function NewPrescriptionForm() {
             type="button"
             onClick={() => void save("finalize")}
             disabled={busy}
-            className="min-h-[54px] rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase tracking-wider text-ink transition-transform active:translate-y-px disabled:opacity-60"
+            className="min-h-[54px] rounded-[1.25rem] bg-clear-action px-4 font-sans text-sm font-semibold uppercase tracking-wider text-white transition-transform active:translate-y-px disabled:opacity-60"
           >
             Finalize prescription
           </button>
@@ -131,11 +131,11 @@ function NewPrescriptionForm() {
           type="button"
           onClick={() => void save()}
           disabled={busy}
-          className="min-h-[54px] w-full rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold uppercase tracking-wider text-surface disabled:opacity-60"
+          className="min-h-[54px] w-full rounded-[1.25rem] border border-clear-divider bg-clear-surface px-4 font-sans text-sm font-semibold uppercase tracking-wider text-clear-ink disabled:opacity-60"
         >
           {busy ? "Saving draft…" : "Save draft for review →"}
         </button>
-        <p className="font-sans text-xs text-doctor-muted/70">Finalizing opens the final review first; nothing is finalized until you confirm there.</p>
+        <p className="font-sans text-xs text-clear-secondary">Finalizing opens the final review first; nothing is finalized until you confirm there.</p>
       </div>
     </WorkspaceShell>
   );

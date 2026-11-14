@@ -13,9 +13,9 @@ const nav = [
   { label: "Drafts", href: "/app/doctor/drafts" },
   { label: "Follow-ups", href: "/app/doctor/followups" },
 ];
-const card = "rounded-[18px] border border-copper bg-graphite p-4";
-const label = "text-[9px] uppercase text-copper";
-const field = "min-h-11 w-full rounded-xl border border-copper/60 bg-ink px-3 text-sm";
+const card = "rounded-[18px] border border-clear-divider bg-clear-surface p-4";
+const label = "text-xs uppercase text-clear-action";
+const field = "min-h-11 w-full rounded-xl border border-clear-divider bg-clear-surface px-3 text-sm";
 
 type Practice = { practice_id: string; name: string; phone: string | null; address: string | null; can_edit: boolean };
 
@@ -26,7 +26,7 @@ export default function PracticeSettingsPage() {
   const practice = useApiData<Practice>(manager ? `/practices/${manager.practice_id}` : null);
   return (
     <WorkspaceShell workspace="Doctor" title="Practice settings" nav={nav} focused hideHeading>
-      <Link href="/app/doctor/team" className="min-h-11 text-xs text-evidence">← Practice team</Link>
+      <Link href="/app/doctor/team" className="min-h-11 text-xs text-clear-info">← Practice team</Link>
       <div>
         <p className={label}>Practice owner · settings</p>
         <h1 className="mt-2 text-[28px] leading-tight">{manager?.practice_name ?? "Practice settings"}</h1>
@@ -37,8 +37,8 @@ export default function PracticeSettingsPage() {
       {practice.status === "ready" && <PracticeForm initial={practice.data} />}
       <section className={card}>
         <p className="text-sm font-semibold">Record governance owner</p>
-        <p className="mt-1 text-xs text-surface/75">Removal and retention requests route to the owner and authorized doctors. Staff can route a request but cannot decide it.</p>
-        <Link href="/app/doctor/requests" className="mt-2 inline-flex min-h-11 items-center text-xs text-evidence">Open removal requests →</Link>
+        <p className="mt-1 text-xs text-clear-secondary">Removal and retention requests route to the owner and authorized doctors. Staff can route a request but cannot decide it.</p>
+        <Link href="/app/doctor/requests" className="mt-2 inline-flex min-h-11 items-center text-xs text-clear-info">Open removal requests →</Link>
       </section>
     </WorkspaceShell>
   );
@@ -64,15 +64,15 @@ function PracticeForm({ initial }: { initial: Practice }) {
   return (
     <section className={card}>
       <p className={label}>Practice name and location</p>
-      <label className="mt-2 block text-[10px]">Name<input value={draft.name} disabled={!draft.can_edit} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={`${field} mt-1`} /></label>
-      <label className="mt-3 block text-[10px]">Phone<input value={draft.phone ?? ""} disabled={!draft.can_edit} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} className={`${field} mt-1`} /></label>
-      <label className="mt-3 block text-[10px]">Address<input value={draft.address ?? ""} disabled={!draft.can_edit} onChange={(e) => setDraft({ ...draft, address: e.target.value })} className={`${field} mt-1`} /></label>
+      <label className="mt-2 block text-xs">Name<input value={draft.name} disabled={!draft.can_edit} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={`${field} mt-1`} /></label>
+      <label className="mt-3 block text-xs">Phone<input value={draft.phone ?? ""} disabled={!draft.can_edit} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} className={`${field} mt-1`} /></label>
+      <label className="mt-3 block text-xs">Address<input value={draft.address ?? ""} disabled={!draft.can_edit} onChange={(e) => setDraft({ ...draft, address: e.target.value })} className={`${field} mt-1`} /></label>
       {draft.can_edit ? (
-        <button type="button" disabled={status === "saving" || draft.name.trim().length < 2} onClick={() => void save()} className="mt-3 min-h-12 w-full rounded-2xl bg-copper px-4 text-sm font-semibold text-ink">Save settings</button>
+        <button type="button" disabled={status === "saving" || draft.name.trim().length < 2} onClick={() => void save()} className="mt-3 min-h-12 w-full rounded-2xl bg-clear-action px-4 text-sm font-semibold text-white">Save settings</button>
       ) : (
-        <p className="mt-3 text-[10px] text-surface/75">Editable by the practice owner only.</p>
+        <p className="mt-3 text-xs text-clear-secondary">Editable by the practice owner only.</p>
       )}
-      {status === "saved" && <p role="status" className="mt-2 text-xs text-copper">Saved.</p>}
+      {status === "saved" && <p role="status" className="mt-2 text-xs text-clear-action">Saved.</p>}
       {status === "error" && <p role="alert" className="mt-2 text-xs text-critical">Could not save. Nothing changed.</p>}
     </section>
   );

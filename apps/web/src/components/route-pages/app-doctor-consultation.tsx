@@ -182,7 +182,7 @@ export default function ConsultationPage() {
   if (state.status === "error") {
     return (
       <WorkspaceShell workspace="Doctor" title="Consultation" nav={nav}>
-        <section className="clinix-doctor-card p-5">
+        <section className="clear-card p-5">
           <p className="font-sans text-sm text-critical">{state.error}</p>
         </section>
       </WorkspaceShell>
@@ -194,25 +194,25 @@ export default function ConsultationPage() {
 
   return (
     <WorkspaceShell workspace="Doctor" title="Consultation workspace" nav={nav}>
-      <header className="clinix-doctor-card border-copper p-5">
+      <header className="clear-card border-clear-divider p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="clinix-label text-copper">Encounter</p>
-            <h2 className="mt-1 font-sans text-xl font-bold text-surface">{ctx.appointment.patient_name}</h2>
-            <p className="mt-1 font-mono text-xs text-doctor-muted/70">
+            <p className="clinix-label text-clear-action">Encounter</p>
+            <h2 className="mt-1 font-sans text-xl font-bold text-clear-ink">{ctx.appointment.patient_name}</h2>
+            <p className="mt-1 font-sans tabular-nums text-xs text-clear-secondary">
               {fmtAt(ctx.appointment.scheduled_start)} · {ctx.appointment.appointment_type}
               {ctx.appointment.reason ? ` · ${ctx.appointment.reason}` : ""}
             </p>
           </div>
           <StatusBadge status={ctx.appointment.status} />
         </div>
-        <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3">
+        <div className="mt-4 flex items-center justify-between border-t border-clear-divider pt-3">
           <div className="flex items-center gap-2">
-            <span className="font-sans text-xs text-doctor-muted/70">Payment</span>
+            <span className="font-sans text-xs text-clear-secondary">Payment</span>
             <select
               value={ctx.appointment.payment_status}
               onChange={(e) => setPayment(e.target.value)}
-              className="h-11 rounded-lg border border-white/10 bg-doctor-panel px-2 font-sans text-xs text-surface outline-none"
+              className="h-11 rounded-lg border border-clear-divider bg-clear-surface px-2 font-sans text-xs text-clear-ink outline-none"
             >
               {PAYMENT_OPTIONS.map((p) => (
                 <option key={p} value={p}>
@@ -221,14 +221,14 @@ export default function ConsultationPage() {
               ))}
             </select>
           </div>
-          <span className="font-sans text-[11px] text-doctor-muted/60">
+          <span className="font-sans text-xs text-clear-secondary">
             {readOnly ? "Note is finalized (immutable)" : saving ? "Saving…" : dirty ? "Unsaved changes" : savedAt ? `Saved ${savedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : "No changes"}
           </span>
         </div>
       </header>
 
       {error && (
-        <div role="alert" className="clinix-doctor-card p-4 font-sans text-sm text-critical">
+        <div role="alert" className="clear-card p-4 font-sans text-sm text-critical">
           <p>{error}</p>
           {dirty && !readOnly && !confirmComplete && (
             <button type="button" disabled={busy || saving} onClick={() => {
@@ -239,10 +239,10 @@ export default function ConsultationPage() {
       )}
 
       {/* Structured clinical note */}
-      <section className="clinix-doctor-card p-5">
+      <section className="clear-card p-5">
         <div className="flex items-center justify-between">
-          <p className="clinix-label text-copper">Clinical note</p>
-          <span className="font-sans text-[11px] text-doctor-muted/60">
+          <p className="clinix-label text-clear-action">Clinical note</p>
+          <span className="font-sans text-xs text-clear-secondary">
             {readOnly ? "Read-only" : "800ms autosave"}
           </span>
         </div>
@@ -250,9 +250,9 @@ export default function ConsultationPage() {
         {readOnly && !amending ? (
           <dl className="mt-4 space-y-3 font-sans text-sm">
             {SECTIONS.map((s) => (
-              <div key={s.key} className="border-t border-white/5 pt-2.5">
-                <dt className="font-semibold text-surface">{s.label}</dt>
-                <dd className="mt-1 text-doctor-muted/80 whitespace-pre-wrap">
+              <div key={s.key} className="border-t border-clear-divider pt-2.5">
+                <dt className="font-semibold text-clear-ink">{s.label}</dt>
+                <dd className="mt-1 text-clear-secondary whitespace-pre-wrap">
                   {ctx.note?.[s.key] || "—"}
                 </dd>
               </div>
@@ -262,7 +262,7 @@ export default function ConsultationPage() {
           <fieldset disabled={busy || confirmComplete} className="mt-4 min-w-0 space-y-4">
             {SECTIONS.map((s) => (
               <div key={s.key}>
-                <label htmlFor={`note-${s.key}`} className="font-sans text-xs font-semibold uppercase tracking-wider text-doctor-muted/75">
+                <label htmlFor={`note-${s.key}`} className="font-sans text-xs font-semibold uppercase tracking-wider text-clear-secondary">
                   {s.label}
                 </label>
                 <textarea
@@ -275,7 +275,7 @@ export default function ConsultationPage() {
                     setDirty(true);
                   }}
                   rows={3}
-                  className="mt-1.5 w-full rounded-2xl border border-white/10 bg-doctor-panel px-3.5 py-2.5 font-sans text-sm text-surface outline-none focus:border-copper"
+                  className="mt-1.5 w-full rounded-2xl border border-clear-divider bg-clear-surface px-3.5 py-2.5 font-sans text-sm text-clear-ink outline-none focus:border-clear-action"
                 />
               </div>
             ))}
@@ -284,17 +284,17 @@ export default function ConsultationPage() {
       </section>
 
       {ctx.note_amendments && ctx.note_amendments.length > 0 && (
-        <section className="clinix-doctor-card p-5">
-          <p className="clinix-label text-copper">Amendment history</p>
+        <section className="clear-card p-5">
+          <p className="clinix-label text-clear-action">Amendment history</p>
           {ctx.note_amendments.map((amendment) => (
-            <article key={amendment.id} className="mt-4 border-t border-white/10 pt-3 font-sans text-sm text-doctor-muted/80">
+            <article key={amendment.id} className="mt-4 border-t border-clear-divider pt-3 font-sans text-sm text-clear-secondary">
               <p>{fmtAt(amendment.created_at)}</p>
               <p className="break-all text-xs">Doctor: {amendment.doctor_id}</p>
               <p className="mt-1 whitespace-pre-wrap">Reason: {amendment.reason}</p>
               <dl className="mt-2 space-y-2">
                 {SECTIONS.map((section) => (
                   <div key={section.key}>
-                    <dt className="font-semibold text-surface">{section.label}</dt>
+                    <dt className="font-semibold text-clear-ink">{section.label}</dt>
                     <dd className="whitespace-pre-wrap">{amendment.sections[section.key] || "—"}</dd>
                   </div>
                 ))}
@@ -305,16 +305,16 @@ export default function ConsultationPage() {
       )}
 
       {/* Current medications */}
-      <section className="clinix-doctor-card p-5">
-        <p className="clinix-label text-copper">Current medications</p>
+      <section className="clear-card p-5">
+        <p className="clinix-label text-clear-action">Current medications</p>
         {ctx.current_medications.length === 0 ? (
-          <p className="mt-2 font-sans text-xs text-doctor-muted/60">None recorded.</p>
+          <p className="mt-2 font-sans text-xs text-clear-secondary">None recorded.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {ctx.current_medications.map((m, i) => (
-              <li key={i} className="rounded-xl border border-white/5 bg-black/20 p-2.5 font-sans text-xs text-surface">
+              <li key={i} className="rounded-xl border border-clear-divider bg-clear-canvas p-2.5 font-sans text-xs text-clear-ink">
                 <span className="font-semibold">{m.medicine_name}</span>
-                <span className="text-doctor-muted/70">
+                <span className="text-clear-secondary">
                   {" · "}{[m.dose, m.route, m.frequency].filter(Boolean).join(" · ") || "No details"}
                 </span>
               </li>
@@ -332,16 +332,16 @@ export default function ConsultationPage() {
               `/app/doctor/prescription-drafts/new?encounterId=${ctx.encounter_id}&patientId=${ctx.appointment.patient_id}`,
             )
           }
-          className="min-h-[52px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink transition-transform active:translate-y-px"
+          className="min-h-[52px] w-full rounded-[1.25rem] bg-clear-action px-4 font-sans text-sm font-semibold uppercase text-white transition-transform active:translate-y-px"
         >
           Create prescription
         </button>
 
         {readOnly ? (
           amending ? (
-            <section className="clinix-doctor-card border-copper p-5">
-              <p className="clinix-label text-copper">Amend note</p>
-              <label htmlFor="amend-reason" className="mt-2 block font-sans text-xs text-doctor-muted/80">Reason for amendment *</label>
+            <section className="clear-card border-clear-divider p-5">
+              <p className="clinix-label text-clear-action">Amend note</p>
+              <label htmlFor="amend-reason" className="mt-2 block font-sans text-xs text-clear-secondary">Reason for amendment *</label>
               <input
                 id="amend-reason"
                 disabled={busy}
@@ -349,14 +349,14 @@ export default function ConsultationPage() {
                 value={amendReason}
                 onChange={(e) => setAmendReason(e.target.value)}
                 placeholder="Clinical reason for this change"
-                className="mt-1.5 min-h-[46px] w-full rounded-xl border border-white/10 bg-doctor-panel px-3 font-sans text-sm text-surface outline-none focus:border-copper"
+                className="mt-1.5 min-h-[46px] w-full rounded-xl border border-clear-divider bg-clear-surface px-3 font-sans text-sm text-clear-ink outline-none focus:border-clear-action"
               />
               <div className="mt-4 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setAmending(false)}
                   disabled={busy}
-                  className="min-h-11 flex-1 rounded-xl border border-white/10 bg-doctor-panel font-sans text-xs font-semibold text-surface"
+                  className="min-h-11 flex-1 rounded-xl border border-clear-divider bg-clear-surface font-sans text-xs font-semibold text-clear-ink"
                 >
                   Cancel
                 </button>
@@ -364,7 +364,7 @@ export default function ConsultationPage() {
                   type="button"
                   onClick={amend}
                   disabled={busy || !amendReason.trim()}
-                  className="min-h-11 flex-1 rounded-xl bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
+                  className="min-h-11 flex-1 rounded-xl bg-clear-action font-sans text-xs font-semibold uppercase text-white disabled:opacity-60"
                 >
                   Save amendment
                 </button>
@@ -379,7 +379,7 @@ export default function ConsultationPage() {
                 latestSections.current = latest;
                 setAmending(true);
               }}
-              className="min-h-[52px] w-full rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold text-surface"
+              className="min-h-[52px] w-full rounded-[1.25rem] border border-clear-divider bg-clear-surface px-4 font-sans text-sm font-semibold text-clear-ink"
             >
               Amend note
             </button>
@@ -389,7 +389,7 @@ export default function ConsultationPage() {
             ref={completeButton}
             type="button"
             onClick={() => setConfirmComplete(true)}
-            className="min-h-[52px] w-full rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold text-surface"
+            className="min-h-[52px] w-full rounded-[1.25rem] border border-clear-divider bg-clear-surface px-4 font-sans text-sm font-semibold text-clear-ink"
           >
             Complete consultation
           </button>
@@ -405,24 +405,24 @@ export default function ConsultationPage() {
           onClose={() => setConfirmComplete(false)}
         >
           <div>
-            <span className="rounded-full border border-copper/50 px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-copper">
+            <span className="rounded-full border border-clear-divider px-2.5 py-1 font-sans text-xs font-bold uppercase text-clear-action">
               Final Review
             </span>
-            <h3 id="complete-consult-title" className="mt-5 font-sans text-[28px] leading-tight font-semibold text-surface">
+            <h3 id="complete-consult-title" className="mt-5 font-sans text-[28px] leading-tight font-semibold text-clear-ink">
               Complete consultation?
             </h3>
-            <p className="mt-2 font-sans text-xs leading-5 text-doctor-muted/75">
+            <p className="mt-2 font-sans text-xs leading-5 text-clear-secondary">
               Confirm the encounter record before it becomes completed.
             </p>
-            <section className="mt-6 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+            <section className="mt-6 rounded-[22px] border border-clear-divider bg-clear-surface p-4 font-sans text-xs text-clear-ink">
               <h4 className="text-xl">{ctx.appointment.patient_name}</h4>
               <dl className="mt-4 space-y-2">
-                <div className="flex gap-3"><dt className="w-20 text-copper">Time</dt><dd>{fmtAt(ctx.appointment.scheduled_start)}</dd></div>
-                <div className="flex gap-3"><dt className="w-20 text-copper">Reason</dt><dd>{ctx.appointment.reason || "—"}</dd></div>
-                <div className="flex gap-3"><dt className="w-20 text-copper">Payment</dt><dd>{ctx.appointment.payment_status}</dd></div>
+                <div className="flex gap-3"><dt className="w-20 text-clear-action">Time</dt><dd>{fmtAt(ctx.appointment.scheduled_start)}</dd></div>
+                <div className="flex gap-3"><dt className="w-20 text-clear-action">Reason</dt><dd>{ctx.appointment.reason || "—"}</dd></div>
+                <div className="flex gap-3"><dt className="w-20 text-clear-action">Payment</dt><dd>{ctx.appointment.payment_status}</dd></div>
               </dl>
             </section>
-            <div className="mt-6 space-y-3 rounded-[22px] border border-copper bg-graphite p-4 font-sans text-xs text-surface">
+            <div className="mt-6 space-y-3 rounded-[22px] border border-clear-divider bg-clear-surface p-4 font-sans text-xs text-clear-ink">
               <p>The latest note will be saved before completion.</p>
               <dl className="space-y-3">
                 {SECTIONS.map((section) => (
@@ -434,17 +434,17 @@ export default function ConsultationPage() {
               </dl>
             </div>
             {error && <p role="alert" className="mt-3 font-sans text-sm text-critical">{error}</p>}
-            <section className="mt-6 rounded-[22px] border border-evidence bg-graphite p-4 font-sans text-xs leading-5 text-surface">
+            <section className="mt-6 rounded-[22px] border border-clear-info bg-clear-surface p-4 font-sans text-xs leading-5 text-clear-ink">
               <h4 className="text-lg">Completed notes are locked</h4>
               <p className="mt-2">Later corrections are added as dated amendments. The original finalized note remains preserved.</p>
             </section>
-            <p className="mt-5 font-sans text-xs leading-5 text-surface">This changes the encounter and appointment status to Completed.</p>
+            <p className="mt-5 font-sans text-xs leading-5 text-clear-ink">This changes the encounter and appointment status to Completed.</p>
             <div className="mt-6 flex flex-col gap-3">
               <button
                 type="button"
                 onClick={complete}
                 disabled={busy}
-                className="min-h-[60px] rounded-[18px] bg-copper font-sans text-xs font-semibold uppercase text-ink disabled:opacity-60"
+                className="min-h-[60px] rounded-[18px] bg-clear-action font-sans text-xs font-semibold uppercase text-white disabled:opacity-60"
               >
                 {busy ? "Finalizing…" : "Complete consultation"}
               </button>
@@ -452,7 +452,7 @@ export default function ConsultationPage() {
                 type="button"
                 onClick={() => setConfirmComplete(false)}
                 disabled={busy}
-                className="min-h-[52px] rounded-[18px] border border-copper font-sans text-xs font-semibold text-surface"
+                className="min-h-[52px] rounded-[18px] border border-clear-divider font-sans text-xs font-semibold text-clear-ink"
               >
                 Return to draft
               </button>

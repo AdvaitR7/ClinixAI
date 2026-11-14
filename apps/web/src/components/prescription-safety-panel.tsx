@@ -17,7 +17,7 @@ export function PrescriptionSafetyPanel({
   patientId,
   riskFlags,
   overallConfidence,
-  appearance = "legacy",
+  appearance = "clear",
 }: {
   patientId: string;
   riskFlags?: unknown;
@@ -49,7 +49,7 @@ export function PrescriptionSafetyPanel({
         {typeof overallConfidence === "number" && <div><dt className={muted}>OCR confidence</dt><dd className="mt-1">{Math.round(overallConfidence * 100)}%</dd></div>}
         {flags.length > 0 && <div><dt className={muted}>Extraction flags</dt><dd className="mt-1">{flags.join(" · ")}</dd></div>}
       </dl>
-      <p className={`mt-3 text-[11px] leading-4 ${clear ? "text-clear-secondary" : "text-doctor-muted/75"}`}>No interaction or dose-range check is performed. Medicines recorded by other clinicians are not shown.</p>
+      <p className={`mt-3 text-xs leading-4 ${clear ? "text-clear-secondary" : "text-doctor-muted/75"}`}>No interaction or dose-range check is performed. Medicines recorded by other clinicians are not shown.</p>
     </section>
   );
 }

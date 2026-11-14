@@ -1,23 +1,26 @@
 @import "tailwindcss";
 
 @theme {
-  /* Palette — DESIGN.md §2 */
-  --color-canvas: #f7f2e9;
-  --color-surface: #fffdfc;
-  --color-botanical: #12352c;
-  --color-ink: #151919;
-  --color-graphite: #3d4640;
-  --color-sage: #afb88a;
-  --color-copper: #f5934f;
-  --color-evidence: #a5c3ff;
-  --color-review: #a65f11;
-  --color-critical: #b42318;
-  --color-hairline: #e6e0d6;
-  --color-doctor-panel: #202622;
-  --color-doctor-muted: #f4f1ea;
+  /*
+   * Legacy token names, now carrying Clear v2 values so every existing utility (bg-surface, text-graphite, ...)
+   * renders in the Clear palette. New code should prefer the clear-* names below.
+   */
+  --color-canvas: #f2f6f6;
+  --color-surface: #ffffff;
+  --color-botanical: #075f56;
+  --color-ink: #172b30;
+  --color-graphite: #566c73;
+  --color-sage: #dce5e6;
+  --color-copper: #075f56;
+  --color-evidence: #315b85;
+  --color-review: #865411;
+  --color-critical: #b13839;
+  --color-hairline: #dce5e6;
+  --color-doctor-panel: #ffffff;
+  --color-doctor-muted: #566c73;
 
-  /* Typography — DESIGN.md §3 */
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  /* Typography: Inter only (Clear v2). */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jbmono), ui-monospace, monospace;
 
   /* Clear v2 semantic tokens (FigCraft collection 3, aliases 32-41). Additive: legacy tokens above stay for unmigrated screens. */
@@ -69,28 +72,26 @@
   }
 
   :focus-visible {
-    outline: 3px solid var(--color-evidence);
+    outline: 3px solid var(--color-clear-info);
     outline-offset: 3px;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-copper) 35%, transparent);
+    background: var(--color-clear-selection);
   }
 }
 
 @layer utilities {
   .clinix-card {
-    border: 1px solid color-mix(in srgb, var(--color-sage) 78%, transparent);
-    border-radius: 1.5rem;
-    background: var(--color-surface);
-    box-shadow: 0 8px 18px rgb(18 53 44 / 7%);
+    border: 1px solid var(--color-clear-divider);
+    border-radius: var(--clear-card-radius);
+    background: var(--color-clear-surface);
   }
 
   .clinix-doctor-card {
-    border: 1px solid rgb(255 255 255 / 7%);
-    border-radius: 1.125rem;
-    background: var(--color-doctor-panel);
-    box-shadow: 0 8px 18px rgb(0 0 0 / 18%);
+    border: 1px solid var(--color-clear-divider);
+    border-radius: var(--clear-card-radius);
+    background: var(--color-clear-surface);
   }
 
   .clinix-label {
@@ -104,16 +105,16 @@
   .clinix-field {
     min-height: 3.375rem;
     width: 100%;
-    border: 1px solid var(--color-sage);
-    border-radius: 1rem;
-    background: var(--color-surface);
+    border: 1px solid var(--color-clear-divider);
+    border-radius: var(--clear-field-radius);
+    background: var(--clear-field-bg);
     padding: 0.875rem 1rem;
-    color: var(--color-ink);
+    color: var(--color-clear-ink);
+    font-size: 1rem;
   }
 
   .clinix-field::placeholder {
-    color: var(--color-graphite);
-    opacity: 0.65;
+    color: var(--color-clear-secondary);
   }
 }
 
@@ -122,6 +123,13 @@
  * unmigrated screens keep the legacy look until Phase 8 flips the default.
  * Glass is for optical controls only; reading, form and confirmation surfaces stay opaque.
  */
+/* Editable text stays 16px so iOS does not zoom on focus (exception AX-02). */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  font-size: max(1rem, 16px);
+}
+
 @layer components {
   [data-ui="clear"] {
     background: var(--color-clear-canvas);
@@ -250,7 +258,7 @@
     font-size: 0.75rem;
     font-weight: 600;
     line-height: 1.0625rem;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
   }
 
   .clear-status[data-tone="positive"] {
@@ -297,7 +305,9 @@
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.0625rem;
-  overflow-wrap: anywhere;
+  /* Wrap only at spaces: a single status word must never break mid-word, even in a narrow flex cell. */
+  overflow-wrap: normal;
+  flex-shrink: 0;
 }
 
 [data-ui="clear"] .clinix-badge[data-tone="positive"] {
@@ -319,6 +329,17 @@
   border-color: var(--color-clear-divider);
   background: var(--color-clear-canvas);
   color: var(--color-clear-secondary);
+}
+
+/* Heading hierarchy: titles bold, section headings semibold, regardless of the old serif-era weights. */
+[data-ui="clear"] h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+[data-ui="clear"] h2,
+[data-ui="clear"] h3 {
+  font-weight: 600;
 }
 
 /* Already-light legacy components adopt the Clear surface language when a screen opts in. */

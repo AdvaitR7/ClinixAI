@@ -46,7 +46,7 @@ export default function ResetPasswordPage() {
             <label htmlFor="password" className="font-sans text-sm font-medium text-ink">New password</label>
             <div className="relative mt-2">
               <input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} className="clinix-field font-sans text-sm pr-16" />
-              <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-[10px] font-bold uppercase text-evidence">{showPassword ? "Hide" : "Show"}</button>
+              <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-xs font-bold uppercase text-clear-info">{showPassword ? "Hide" : "Show"}</button>
             </div>
           </div>
           <div><label htmlFor="confirm-password" className="font-sans text-sm font-medium text-ink">Confirm password</label><input id="confirm-password" type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="clinix-field mt-2 font-sans text-sm" /></div>
@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
       ) : status === "loading" ? (
         <div role="status" className="h-12 animate-pulse rounded-xl bg-hairline" />
       ) : (
-        <div className="space-y-4"><p role="alert" className="font-sans text-sm leading-6 text-critical">This recovery link is invalid or expired. Request a new one to continue.</p><a href="/forgot-password" className="block text-center font-sans text-xs font-semibold uppercase text-evidence">Request another link</a></div>
+        <div className="space-y-4"><p role="alert" className="font-sans text-sm leading-6 text-critical">This recovery link is invalid or expired. Request a new one to continue.</p><a href="/forgot-password" className="flex min-h-11 items-center justify-center font-sans text-xs font-semibold uppercase text-clear-info">Request another link</a></div>
       )}
     </AuthShell>
   );

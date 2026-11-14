@@ -34,12 +34,12 @@ function PaymentBadge({ value }: { value: string }) {
     value === "PAID"
       ? "border-botanical bg-botanical text-surface"
       : value === "REQUESTED"
-        ? "border-evidence text-graphite"
+        ? "border-clear-info text-graphite"
         : value === "WAIVED"
           ? "border-sage text-graphite"
-          : "border-copper text-ink";
+          : "border-clear-divider text-ink";
   return (
-    <span className={`rounded-full border px-3 py-1 text-[9px] ${style}`}>
+    <span className={`rounded-full border px-3 py-1 text-xs ${style}`}>
       {value.replaceAll("_", " ")}
     </span>
   );
@@ -154,7 +154,7 @@ function Appointments() {
           action={
             <Link
               href="/app/patient/book"
-              className="inline-flex min-h-11 items-center rounded-full border border-botanical px-3 text-[10px] text-botanical"
+              className="inline-flex min-h-11 items-center rounded-full border border-botanical px-3 text-xs text-botanical"
             >
               + Book
             </Link>
@@ -163,7 +163,7 @@ function Appointments() {
       }
     >
       <div>
-        <p className="text-[9px] text-graphite uppercase">
+        <p className="text-xs text-graphite uppercase">
           Patient record · appointments
         </p>
         <h1 className="mt-4 text-[30px] leading-tight">Appointments</h1>
@@ -202,13 +202,13 @@ function Appointments() {
             aria-controls="visits-panel"
             aria-selected={tab === item}
             onClick={() => setTab(item)}
-            className={`min-h-11 rounded-full text-[10px] ${tab === item ? "bg-botanical text-surface" : "text-graphite"}`}
+            className={`min-h-11 rounded-full text-xs ${tab === item ? "bg-botanical text-surface" : "text-graphite"}`}
           >
             {item} · {rows.filter((row) => bucket(row) === item).length}
           </button>
         ))}
       </div>
-      <p className="rounded-2xl border border-hairline bg-surface p-4 text-[11px] leading-relaxed text-graphite">
+      <p className="rounded-2xl border border-hairline bg-surface p-4 text-xs leading-relaxed text-graphite">
         Payment status is set manually by the doctor or clinic; it is never
         inferred by AI.
       </p>
@@ -238,7 +238,7 @@ function Appointments() {
           aria-labelledby={`visits-${tab}`}
           className="space-y-5"
         >
-          <h2 className="text-[10px] text-botanical uppercase">{tab}</h2>
+          <h2 className="text-xs text-botanical uppercase">{tab}</h2>
           {!filtered.length && (
             <div className="rounded-[24px] border border-dashed border-sage bg-surface p-6 text-center">
               <p className="text-sm">No {tab.toLowerCase()} appointments</p>
@@ -261,7 +261,7 @@ function Appointments() {
                 className="rounded-[24px] border border-hairline bg-surface p-4 shadow-sm"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[9px] text-botanical uppercase">
+                  <p className="text-xs text-botanical uppercase">
                     {online ? "Online consultation" : "In-clinic visit"}
                   </p>
                   <PaymentBadge value={appointment.payment_status} />
@@ -271,12 +271,12 @@ function Appointments() {
                     ? `Dr. ${appointment.doctor_name}`
                     : "Doctor name unavailable"}
                 </h3>
-                <p className="mt-1 text-[11px] text-graphite">
+                <p className="mt-1 text-xs text-graphite">
                   {appointment.speciality ?? "Speciality unavailable"}
                 </p>
                 <div className="mt-4 flex justify-between gap-4 border-t border-hairline pt-3 text-xs">
                   <div>
-                    <p className="text-[9px] text-graphite uppercase">
+                    <p className="text-xs text-graphite uppercase">
                       Date &amp; time
                     </p>
                     <p className="mt-2">
@@ -303,7 +303,7 @@ function Appointments() {
                     )}
                   </p>
                 </div>
-                <p className="mt-4 text-[9px] text-graphite uppercase">
+                <p className="mt-4 text-xs text-graphite uppercase">
                   Reason
                 </p>
                 <p className="mt-2 break-words text-xs">
@@ -311,7 +311,7 @@ function Appointments() {
                 </p>
                 {!online && (
                   <div className="mt-4">
-                    <p className="text-[9px] text-graphite uppercase">
+                    <p className="text-xs text-graphite uppercase">
                       Clinic address
                     </p>
                     <div className="mt-2 rounded-2xl border border-hairline bg-canvas p-4 text-xs text-graphite">
@@ -321,7 +321,7 @@ function Appointments() {
                 )}
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="mb-2 text-[9px] text-graphite uppercase">
+                    <p className="mb-2 text-xs text-graphite uppercase">
                       Consultation
                     </p>
                     <StatusBadge status={appointment.status} />
@@ -330,7 +330,7 @@ function Appointments() {
                     <button
                       type="button"
                       disabled
-                      className="min-h-11 text-[10px] text-graphite/60"
+                      className="min-h-11 text-xs text-graphite/60"
                     >
                       Open directions unavailable
                     </button>
@@ -345,7 +345,7 @@ function Appointments() {
                     >
                       JOIN ONLINE CONSULTATION
                     </button>
-                    <p className="mt-2 text-[10px] text-graphite">
+                    <p className="mt-2 text-xs text-graphite">
                       Video provider unavailable; no join link is connected.
                     </p>
                   </>
@@ -357,7 +357,7 @@ function Appointments() {
                       onClick={(e) =>
                         openAction(appointment, true, e.currentTarget)
                       }
-                      className="min-h-11 text-[10px] text-botanical"
+                      className="min-h-11 text-xs text-botanical"
                     >
                       Reschedule
                     </button>
@@ -366,7 +366,7 @@ function Appointments() {
                       onClick={(e) =>
                         openAction(appointment, false, e.currentTarget)
                       }
-                      className="min-h-11 text-[10px] text-critical"
+                      className="min-h-11 text-xs text-critical"
                     >
                       Cancel appointment
                     </button>
@@ -378,7 +378,7 @@ function Appointments() {
         </section>
       )}
       <section>
-        <h2 className="text-[10px] text-graphite uppercase">Payment states</h2>
+        <h2 className="text-xs text-graphite uppercase">Payment states</h2>
         <div className="mt-3 rounded-2xl border border-sage bg-surface p-3">
           <div className="flex flex-wrap gap-2">
             {["PAID", "REQUESTED", "UNPAID", "WAIVED"].map(
@@ -387,7 +387,7 @@ function Appointments() {
               ),
             )}
           </div>
-          <p className="mt-3 text-[10px] text-graphite">
+          <p className="mt-3 text-xs text-graphite">
             Set manually by the doctor or clinic; never inferred by AI.
           </p>
         </div>
@@ -419,7 +419,7 @@ function Appointments() {
               : "This cancels the selected appointment and releases its slot. No payment refund is performed by this action."}
           </p>
           {error && (
-            <p role="alert" className="mt-4 text-sm text-copper">
+            <p role="alert" className="mt-4 text-sm text-clear-action">
               {error}
             </p>
           )}

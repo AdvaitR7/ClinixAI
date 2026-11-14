@@ -11,8 +11,8 @@ import { StaffShell } from "@/components/staff-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { clinicDate, clinicTime, useApiWrite } from "@/lib/staff";
 
-const card = "rounded-[18px] border border-copper bg-graphite p-4";
-const label = "text-[9px] uppercase text-copper";
+const card = "rounded-[18px] border border-clear-divider bg-clear-surface p-4";
+const label = "text-xs uppercase text-clear-action";
 const STATUSES = ["UNPAID", "REQUESTED", "PAID", "WAIVED"] as const;
 
 type Receipt = {
@@ -56,7 +56,7 @@ function ReceiptContent() {
 
   return (
     <StaffShell role={null} active="schedule" title="Payment receipt">
-      <Link href="/app/staff" className="min-h-11 text-xs text-evidence">← Back to dashboard</Link>
+      <Link href="/app/staff" className="min-h-11 text-xs text-clear-info">← Back to dashboard</Link>
       <div>
         <p className={label}>Clinic operations · payment receipt</p>
         <h1 className="mt-2 text-[28px] leading-tight">Payment receipt</h1>
@@ -70,14 +70,14 @@ function ReceiptContent() {
               <p className="text-sm font-semibold">{r.patient_name || "Patient"} · {clinicTime(r.scheduled_start)}</p>
               <StatusBadge status={r.payment_status} />
             </div>
-            <p className="mt-1 text-xs text-surface/75">{r.fee_inr !== null ? `Fee ₹${r.fee_inr}` : "Fee not published"} · Recorded manually by clinic staff</p>
+            <p className="mt-1 text-xs text-clear-secondary">{r.fee_inr !== null ? `Fee ₹${r.fee_inr}` : "Fee not published"} · Recorded manually by clinic staff</p>
           </section>
           <section className={card} aria-labelledby="upd">
             <p id="upd" className={label}>Update payment status</p>
-            <input aria-label="Reference note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Reference note (optional)" className="mt-2 min-h-11 w-full rounded-xl border border-copper/60 bg-ink px-3 text-sm" />
+            <input aria-label="Reference note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Reference note (optional)" className="mt-2 min-h-11 w-full rounded-xl border border-clear-divider bg-clear-surface px-3 text-sm" />
             <div className="mt-3 flex flex-wrap gap-2">
               {STATUSES.map((s) => (
-                <button key={s} type="button" disabled={busy || s === r.payment_status} onClick={() => void update(s)} className="min-h-11 rounded-full border border-copper px-4 text-xs disabled:opacity-50">{s.charAt(0) + s.slice(1).toLowerCase()}</button>
+                <button key={s} type="button" disabled={busy || s === r.payment_status} onClick={() => void update(s)} className="min-h-11 rounded-full border border-clear-divider px-4 text-xs disabled:opacity-50">{s.charAt(0) + s.slice(1).toLowerCase()}</button>
               ))}
             </div>
           </section>
@@ -88,13 +88,13 @@ function ReceiptContent() {
                 {r.events.map((e, i) => (
                   <li key={i} className={card}>
                     <p className="text-xs">{(e.old_status ?? "—").toLowerCase()} → {e.new_status.toLowerCase()} · {e.by}</p>
-                    <p className="text-[10px] text-copper">{clinicDate(e.at)} {clinicTime(e.at)}{e.note ? ` · ${e.note}` : ""}</p>
+                    <p className="text-xs text-clear-action">{clinicDate(e.at)} {clinicTime(e.at)}{e.note ? ` · ${e.note}` : ""}</p>
                   </li>
                 ))}
               </ul>
             </section>
           )}
-          <section className="rounded-[18px] border border-copper bg-surface p-4 text-ink">
+          <section className="rounded-[18px] border border-clear-divider bg-surface p-4 text-clear-ink">
             <p className="text-xs">Operational record only. No clinical details, diagnosis or prescription content is shown.</p>
           </section>
         </>

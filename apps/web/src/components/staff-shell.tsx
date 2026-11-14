@@ -15,7 +15,7 @@ export function StaffShell({
   active,
   title,
   children,
-  appearance = "legacy",
+  appearance = "clear",
 }: {
   role: StaffRole | null;
   active: Active;

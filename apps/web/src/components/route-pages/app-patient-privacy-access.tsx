@@ -28,7 +28,7 @@ export default function AccessReceiptPage() {
         <section className={privacyCard}>
           <p role="alert" className="text-sm text-critical">This receipt could not be loaded.</p>
           <div className="mt-3 flex gap-4">
-            <button type="button" onClick={() => void receipt.refresh()} className="min-h-11 text-xs font-semibold uppercase text-evidence">Try again</button>
+            <button type="button" onClick={() => void receipt.refresh()} className="min-h-11 text-xs font-semibold uppercase text-clear-info">Try again</button>
             <Link href="/app/patient/privacy" className="inline-flex min-h-11 items-center text-xs font-semibold text-botanical">Back to ledger</Link>
           </div>
         </section>
@@ -50,7 +50,7 @@ function Receipt({ receipt }: { receipt: AccessReceipt }) {
   if (receipt.legal_basis) rows.push(["Basis", receipt.legal_basis]);
   return (
     <article className={privacyCard}>
-      <span className="rounded-full border border-sage px-2 py-1 text-[9px] uppercase">{receipt.category === "AI" ? "AI inference audit" : `${receipt.category.toLowerCase()} access`}</span>
+      <span className="rounded-full border border-sage px-2 py-1 text-xs uppercase">{receipt.category === "AI" ? "AI inference audit" : `${receipt.category.toLowerCase()} access`}</span>
       <dl className="mt-4 space-y-3 text-sm">
         {rows.map(([label, value]) => (
           <div key={label} className="flex justify-between gap-4 border-b border-hairline pb-2 last:border-0">
@@ -68,7 +68,7 @@ function Receipt({ receipt }: { receipt: AccessReceipt }) {
           </ul>
         </section>
       )}
-      <p className="mt-4 text-[10px] leading-4 text-graphite">This receipt is read-only and part of your append-only ledger. It shows who accessed what, never the record itself.</p>
+      <p className="mt-4 text-xs leading-4 text-graphite">This receipt is read-only and part of your append-only ledger. It shows who accessed what, never the record itself.</p>
     </article>
   );
 }

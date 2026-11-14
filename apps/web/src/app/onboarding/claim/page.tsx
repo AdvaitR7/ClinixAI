@@ -62,7 +62,7 @@ export default function ClaimPage() {
             onChange={(e) => setToken(e.target.value)}
             placeholder="Enter claim code"
             autoComplete="off"
-            className="clinix-field mt-2 font-mono text-base tracking-wider"
+            className="clinix-field mt-2 font-sans tabular-nums text-base tracking-wider"
           />
         </div>
         <p className="rounded-2xl bg-sage/15 p-4 font-sans text-xs leading-5 text-graphite">

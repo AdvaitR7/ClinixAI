@@ -6,7 +6,7 @@ import { useEffect, useRef, type ReactNode, type RefObject } from "react";
  * Presents a light source drawer or patient record, containing focus and restoring its invoking control.
  * `appearance="clear"` only changes surface classes; focus, Escape, backdrop-click and busy behaviour are shared.
  */
-export function VaultDialog({ titleId, returnFocusRef, onClose, busy = false, fullScreen = false, appearance = "legacy", children }: {
+export function VaultDialog({ titleId, returnFocusRef, onClose, busy = false, fullScreen = false, appearance = "clear", children }: {
   titleId: string;
   returnFocusRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;

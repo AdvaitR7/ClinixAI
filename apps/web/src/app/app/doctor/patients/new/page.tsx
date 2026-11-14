@@ -21,7 +21,7 @@ const nav = [
 ];
 
 const inputClass =
-  "mt-1.5 min-h-[50px] w-full rounded-2xl border border-white/10 bg-doctor-panel px-3.5 font-sans text-sm text-surface outline-none focus:border-copper";
+  "mt-1.5 min-h-[50px] w-full rounded-2xl border border-clear-divider bg-clear-surface px-3.5 font-sans text-sm text-clear-ink outline-none focus:border-clear-action";
 
 /** Page 22 — Add Clinic Patient (SCREEN_CATALOG §7). */
 export default function AddPatientPage() {
@@ -104,35 +104,35 @@ export default function AddPatientPage() {
   if (created) {
     return (
       <WorkspaceShell workspace="Doctor" title="Patient created" nav={nav}>
-        <section className="clinix-doctor-card border-copper p-5">
-          <p className="clinix-label text-copper">Patient record created</p>
+        <section className="clear-card border-clear-divider p-5">
+          <p className="clinix-label text-clear-action">Patient record created</p>
           <dl className="mt-4 space-y-3 font-sans text-sm">
-            <div className="flex justify-between border-b border-white/5 pb-2">
-              <dt className="text-doctor-muted/70">Name</dt>
-              <dd className="font-semibold text-surface">{created.summary.full_name}</dd>
+            <div className="flex justify-between border-b border-clear-divider pb-2">
+              <dt className="text-clear-secondary">Name</dt>
+              <dd className="font-semibold text-clear-ink">{created.summary.full_name}</dd>
             </div>
-            <div className="flex justify-between border-b border-white/5 pb-2">
-              <dt className="text-doctor-muted/70">Date of birth</dt>
-              <dd className="font-mono text-surface">{created.summary.date_of_birth}</dd>
+            <div className="flex justify-between border-b border-clear-divider pb-2">
+              <dt className="text-clear-secondary">Date of birth</dt>
+              <dd className="font-sans tabular-nums text-clear-ink">{created.summary.date_of_birth}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-doctor-muted/70">Status</dt>
-              <dd className="text-surface">Unclaimed</dd>
+              <dt className="text-clear-secondary">Status</dt>
+              <dd className="text-clear-ink">Unclaimed</dd>
             </div>
           </dl>
         </section>
         {invite && (
-          <section role="status" className="clinix-doctor-card border-review p-5">
+          <section role="status" className="clear-card border-review p-5">
             <p className="clinix-label text-review">Claim code (shown once)</p>
-            <p className="mt-2 break-all font-mono text-sm text-surface">{invite.code}</p>
-            <p className="mt-2 font-sans text-xs text-doctor-muted/75">Give this code to the patient. It expires on {new Date(invite.expiresAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" })} and cannot be shown again.</p>
+            <p className="mt-2 break-all font-sans tabular-nums text-sm text-clear-ink">{invite.code}</p>
+            <p className="mt-2 font-sans text-xs text-clear-secondary">Give this code to the patient. It expires on {new Date(invite.expiresAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" })} and cannot be shown again.</p>
           </section>
         )}
         {inviteError && <p role="alert" className="font-sans text-sm font-medium text-critical">{inviteError}</p>}
         <div className="flex flex-col gap-3">
           <Link
             href={recordHref("/app/doctor/patients", "patientId", created.patientId)}
-            className="flex min-h-[52px] items-center justify-center rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink"
+            className="flex min-h-[52px] items-center justify-center rounded-[1.25rem] bg-clear-action px-4 font-sans text-sm font-semibold uppercase text-white"
           >
             Open workspace
           </Link>
@@ -141,7 +141,7 @@ export default function AddPatientPage() {
               type="button"
               disabled={inviting}
               onClick={() => void sendInvite()}
-              className="min-h-[52px] rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold text-surface disabled:opacity-60"
+              className="min-h-[52px] rounded-[1.25rem] border border-clear-divider bg-clear-surface px-4 font-sans text-sm font-semibold text-clear-ink disabled:opacity-60"
             >
               Send claim invitation
             </button>
@@ -155,16 +155,16 @@ export default function AddPatientPage() {
     <WorkspaceShell workspace="Doctor" title="Add clinic patient" nav={nav}>
       {!review ? (
         <form onSubmit={onSubmit} className="space-y-5" noValidate>
-          <div className="clinix-doctor-card border-copper p-4">
-            <p className="clinix-label text-copper">Professional-record boundary</p>
-            <p className="mt-1 font-sans text-xs leading-5 text-doctor-muted/75">
+          <div className="clear-card border-clear-divider p-4">
+            <p className="clinix-label text-clear-action">Professional-record boundary</p>
+            <p className="mt-1 font-sans text-xs leading-5 text-clear-secondary">
               This creates a clinic-managed record. The patient can link and claim this record
               into their private vault later.
             </p>
           </div>
 
           <div>
-            <label htmlFor="full_name" className="font-sans text-sm font-medium text-surface">
+            <label htmlFor="full_name" className="font-sans text-sm font-medium text-clear-ink">
               Full name *
             </label>
             <input id="full_name" type="text" className={inputClass} {...register("full_name")} />
@@ -173,7 +173,7 @@ export default function AddPatientPage() {
             )}
           </div>
           <div>
-            <label htmlFor="mobile" className="font-sans text-sm font-medium text-surface">
+            <label htmlFor="mobile" className="font-sans text-sm font-medium text-clear-ink">
               Mobile number *
             </label>
             <input id="mobile" type="tel" className={inputClass} {...register("mobile")} />
@@ -183,7 +183,7 @@ export default function AddPatientPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="date_of_birth" className="font-sans text-sm font-medium text-surface">
+              <label htmlFor="date_of_birth" className="font-sans text-sm font-medium text-clear-ink">
                 Date of birth *
               </label>
               <input id="date_of_birth" type="date" className={inputClass} {...register("date_of_birth")} />
@@ -192,7 +192,7 @@ export default function AddPatientPage() {
               )}
             </div>
             <div>
-              <label htmlFor="sex_at_registration" className="font-sans text-sm font-medium text-surface">
+              <label htmlFor="sex_at_registration" className="font-sans text-sm font-medium text-clear-ink">
                 Sex *
               </label>
               <input id="sex_at_registration" type="text" placeholder="Female / Male / Other" className={inputClass} {...register("sex_at_registration")} />
@@ -202,7 +202,7 @@ export default function AddPatientPage() {
             </div>
           </div>
           <div>
-            <label htmlFor="relationship_type" className="font-sans text-sm font-medium text-surface">
+            <label htmlFor="relationship_type" className="font-sans text-sm font-medium text-clear-ink">
               Care relationship
             </label>
             <select id="relationship_type" className={inputClass} {...register("relationship_type")}>
@@ -214,51 +214,51 @@ export default function AddPatientPage() {
               <option value="OTHER">Other</option>
             </select>
           </div>
-          <label className="flex cursor-pointer items-center gap-2.5 font-sans text-sm text-surface">
-            <input type="checkbox" {...register("preferred")} className="h-4 w-4 accent-copper" />
+          <label className="flex cursor-pointer items-center gap-2.5 font-sans text-sm text-clear-ink">
+            <input type="checkbox" {...register("preferred")} className="h-4 w-4 accent-clear-action" />
             Designate as preferred physician
           </label>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="min-h-[54px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink transition-transform active:translate-y-px disabled:opacity-60"
+            className="min-h-[54px] w-full rounded-[1.25rem] bg-clear-action px-4 font-sans text-sm font-semibold uppercase text-white transition-transform active:translate-y-px disabled:opacity-60"
           >
             Review patient details
           </button>
         </form>
       ) : (
         <div className="space-y-5">
-          <section className="clinix-doctor-card p-5">
-            <p className="clinix-label text-copper">Confirm patient record</p>
+          <section className="clear-card p-5">
+            <p className="clinix-label text-clear-action">Confirm patient record</p>
             <dl className="mt-4 space-y-3 font-sans text-sm">
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <dt className="text-doctor-muted/70">Name</dt>
-                <dd className="font-semibold text-surface">{review.full_name}</dd>
+              <div className="flex justify-between border-b border-clear-divider pb-2">
+                <dt className="text-clear-secondary">Name</dt>
+                <dd className="font-semibold text-clear-ink">{review.full_name}</dd>
               </div>
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <dt className="text-doctor-muted/70">Mobile</dt>
-                <dd className="font-mono text-surface">{review.mobile}</dd>
+              <div className="flex justify-between border-b border-clear-divider pb-2">
+                <dt className="text-clear-secondary">Mobile</dt>
+                <dd className="font-sans tabular-nums text-clear-ink">{review.mobile}</dd>
               </div>
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <dt className="text-doctor-muted/70">Date of birth</dt>
-                <dd className="font-mono text-surface">{review.date_of_birth}</dd>
+              <div className="flex justify-between border-b border-clear-divider pb-2">
+                <dt className="text-clear-secondary">Date of birth</dt>
+                <dd className="font-sans tabular-nums text-clear-ink">{review.date_of_birth}</dd>
               </div>
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <dt className="text-doctor-muted/70">Sex</dt>
-                <dd className="text-surface">{review.sex_at_registration}</dd>
+              <div className="flex justify-between border-b border-clear-divider pb-2">
+                <dt className="text-clear-secondary">Sex</dt>
+                <dd className="text-clear-ink">{review.sex_at_registration}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-doctor-muted/70">Relationship</dt>
-                <dd className="text-surface">{review.relationship_type ?? "PRIMARY_PHYSICIAN"}</dd>
+                <dt className="text-clear-secondary">Relationship</dt>
+                <dd className="text-clear-ink">{review.relationship_type ?? "PRIMARY_PHYSICIAN"}</dd>
               </div>
             </dl>
           </section>
 
           {candidates && candidates.length > 0 && (
-            <section className="clinix-doctor-card border-review p-5">
+            <section className="clear-card border-review p-5">
               <p className="clinix-label text-review">Possible duplicate records found</p>
-              <p className="mt-1 font-sans text-xs text-doctor-muted/75">
+              <p className="mt-1 font-sans text-xs text-clear-secondary">
                 A record with this mobile number already exists. Open the existing record or resolve.
               </p>
               <ul className="mt-3 space-y-2">
@@ -267,10 +267,10 @@ export default function AddPatientPage() {
                     <button
                       type="button"
                       onClick={() => router.replace(recordHref("/app/doctor/patients", "patientId", c.patient_id))}
-                      className="w-full rounded-xl border border-white/10 bg-black/20 p-3 text-left font-sans text-sm text-surface hover:border-copper"
+                      className="w-full rounded-xl border border-clear-divider bg-clear-canvas p-3 text-left font-sans text-sm text-clear-ink hover:border-clear-action"
                     >
                       <span className="font-semibold">{c.full_name}</span>
-                      <span className="text-doctor-muted/70"> — open existing patient dossier</span>
+                      <span className="text-clear-secondary"> — open existing patient dossier</span>
                     </button>
                   </li>
                 ))}
@@ -284,14 +284,14 @@ export default function AddPatientPage() {
             <button
               type="button"
               onClick={() => setReview(null)}
-              className="min-h-[52px] flex-1 rounded-[1.25rem] border border-white/10 bg-doctor-panel px-4 font-sans text-sm font-semibold text-surface"
+              className="min-h-[52px] flex-1 rounded-[1.25rem] border border-clear-divider bg-clear-surface px-4 font-sans text-sm font-semibold text-clear-ink"
             >
               Edit details
             </button>
             <button
               type="button"
               onClick={create}
-              className="min-h-[52px] flex-1 rounded-[1.25rem] bg-copper px-4 font-sans text-sm font-semibold uppercase text-ink transition-transform active:translate-y-px"
+              className="min-h-[52px] flex-1 rounded-[1.25rem] bg-clear-action px-4 font-sans text-sm font-semibold uppercase text-white transition-transform active:translate-y-px"
             >
               Create patient
             </button>

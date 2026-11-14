@@ -42,7 +42,7 @@ export default function SettingsPage() {
       {state.status === "error" && (
         <section className="clinix-card p-5">
           <p role="alert" className="font-sans text-sm text-critical">We could not load your account settings. Please try again.</p>
-          <button type="button" onClick={() => void state.refresh()} className="mt-4 font-sans text-xs font-semibold uppercase text-evidence">Try again</button>
+          <button type="button" onClick={() => void state.refresh()} className="mt-4 font-sans text-xs font-semibold uppercase text-clear-info">Try again</button>
         </section>
       )}
       {state.status === "ready" && (
@@ -54,9 +54,9 @@ export default function SettingsPage() {
                 <p className="mt-2 font-sans text-xl font-semibold text-ink">
                   {state.me.role.replace(/_/g, " ")}
                 </p>
-                <p className="mt-1 font-mono text-xs text-graphite">{state.me.profile_id}</p>
+                <p className="mt-1 font-sans tabular-nums text-xs text-graphite">{state.me.profile_id}</p>
               </div>
-              <span className="rounded-full border border-sage px-3 py-1 font-sans text-[10px] font-bold uppercase text-botanical">
+              <span className="rounded-full border border-sage px-3 py-1 font-sans text-xs font-bold uppercase text-botanical">
                 Active
               </span>
             </div>
@@ -78,7 +78,7 @@ export default function SettingsPage() {
           <section className="clinix-card p-5">
             <h2 className="clinix-label text-graphite">Account</h2>
             <p className="mt-2 font-sans text-sm font-semibold text-ink">{user?.email ?? "Email unavailable"}</p>
-            <Link href="/forgot-password" className="mt-4 inline-block font-sans text-xs font-semibold uppercase text-evidence">Reset password</Link>
+            <Link href="/forgot-password" className="mt-2 inline-flex min-h-11 items-center font-sans text-xs font-semibold uppercase text-clear-info">Reset password</Link>
           </section>
 
           <InstallApp />
@@ -86,7 +86,7 @@ export default function SettingsPage() {
           <section>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="clinix-label text-graphite">Account options</h2>
-              <span className="rounded-full border border-hairline px-2 py-1 font-sans text-[9px] font-bold uppercase text-graphite">Unavailable</span>
+              <span className="rounded-full border border-hairline px-2 py-1 font-sans text-xs font-bold uppercase text-graphite">Unavailable</span>
             </div>
             <div className="overflow-hidden rounded-3xl border border-sage bg-surface">
               {unavailableSettings.map(([label, copy], index) => (

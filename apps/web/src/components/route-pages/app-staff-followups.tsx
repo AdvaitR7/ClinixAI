@@ -19,7 +19,7 @@ function Content() {
   const practiceId = useSearchParams().get("practice_id");
   return (
     <StaffShell role={null} active="followups" title="Follow-up task">
-      <Link href="/app/staff/followups" className="min-h-11 text-xs text-evidence">← Worklist</Link>
+      <Link href="/app/staff/followups" className="min-h-11 text-xs text-clear-info">← Worklist</Link>
       <FollowupDetail id={id} practiceId={practiceId} isDoctor={false} />
     </StaffShell>
   );

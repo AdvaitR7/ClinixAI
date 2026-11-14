@@ -29,7 +29,7 @@ export default function CarePage() {
       focused
       flowNavigation
       hideHeading
-      headerContent={<PatientVisitHeader backHref="/app/patient" action={<Link href="/app/patient/privacy" className="inline-flex min-h-11 items-center rounded-full border border-botanical px-3 text-[10px] text-botanical">Privacy</Link>} />}
+      headerContent={<PatientVisitHeader backHref="/app/patient" action={<Link href="/app/patient/privacy" className="inline-flex min-h-11 items-center rounded-full border border-botanical px-3 text-xs text-botanical">Privacy</Link>} />}
     >
       <div>
         <p className={privacyLabel}>Patient record · care circle</p>
@@ -38,7 +38,7 @@ export default function CarePage() {
       <div className="grid grid-cols-2 gap-1 rounded-2xl bg-surface p-1 shadow-sm" role="tablist" aria-label="Care circle sections">
         {tabs.map((item) => (
           <button key={item} id={`care-tab-${item === tabs[0] ? "mine" : "discover"}`} type="button" role="tab" aria-selected={tab === item} onClick={() => setTab(item)}
-            className={`min-h-11 rounded-xl px-2 text-[11px] ${tab === item ? "bg-botanical text-surface" : "text-graphite"}`}>
+            className={`min-h-11 rounded-xl px-2 text-xs ${tab === item ? "bg-botanical text-surface" : "text-graphite"}`}>
             {item === tabs[0] ? `${item} · ${myCount}` : item}
           </button>
         ))}
@@ -62,7 +62,7 @@ function MyDoctors({ circle, consents }: { circle: ReturnType<typeof useApiData<
 
   if (circle.status === "loading") return <p role="status" className="text-sm text-graphite">Loading your care circle…</p>;
   if (circle.status === "error") {
-    return <div role="alert" className={privacyCard}><p className="text-sm">{circle.error}</p><button type="button" onClick={() => void circle.refresh()} className="mt-2 min-h-11 text-xs text-evidence">Retry</button></div>;
+    return <div role="alert" className={privacyCard}><p className="text-sm">{circle.error}</p><button type="button" onClick={() => void circle.refresh()} className="mt-2 min-h-11 text-xs text-clear-info">Retry</button></div>;
   }
   const active = consents.status === "ready" ? consents.data.filter((c) => c.status === "ACTIVE") : [];
 
@@ -162,13 +162,13 @@ function Discover({ circle, onAdded }: { circle: RelationshipView[]; onAdded: ()
       {specialities.length > 0 && (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by speciality">
           {[null, ...specialities].map((item) => (
-            <button key={item ?? "all"} type="button" aria-pressed={speciality === item} onClick={() => setSpeciality(item)} className={`min-h-11 rounded-full border px-3 text-[10px] ${speciality === item ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{item ?? "All"}</button>
+            <button key={item ?? "all"} type="button" aria-pressed={speciality === item} onClick={() => setSpeciality(item)} className={`min-h-11 rounded-full border px-3 text-xs ${speciality === item ? "border-botanical bg-botanical text-surface" : "border-sage"}`}>{item ?? "All"}</button>
           ))}
         </div>
       )}
       {error && <p role="alert" className="text-xs text-critical">{error}</p>}
       {doctors.status === "loading" && <p role="status" className="text-sm text-graphite">Searching…</p>}
-      {doctors.status === "error" && <div role="alert" className={privacyCard}><p className="text-sm">{doctors.error}</p><button type="button" onClick={() => void doctors.refresh()} className="mt-2 min-h-11 text-xs text-evidence">Retry</button></div>}
+      {doctors.status === "error" && <div role="alert" className={privacyCard}><p className="text-sm">{doctors.error}</p><button type="button" onClick={() => void doctors.refresh()} className="mt-2 min-h-11 text-xs text-clear-info">Retry</button></div>}
       {doctors.status === "ready" && shown.length === 0 && <p className={`${privacyCard} text-sm text-graphite`}>No verified doctors match.</p>}
       {shown.map((doctor) => {
         const member = circle.some((r) => r.doctor_id === doctor.doctor_id);
@@ -176,7 +176,7 @@ function Discover({ circle, onAdded }: { circle: RelationshipView[]; onAdded: ()
           <article key={doctor.doctor_id} className={privacyCard}>
             <div className="flex items-start justify-between gap-2">
               <h2 className="text-lg">Dr. {doctor.name}</h2>
-              <span className="rounded-full border border-sage px-2 py-1 text-[9px]">VERIFIED</span>
+              <span className="rounded-full border border-sage px-2 py-1 text-xs">VERIFIED</span>
             </div>
             <p className="mt-1 text-xs text-graphite">{doctor.speciality ?? "Speciality unavailable"}</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
@@ -187,7 +187,7 @@ function Discover({ circle, onAdded }: { circle: RelationshipView[]; onAdded: ()
                 <button type="button" disabled={adding === doctor.doctor_id} onClick={() => void add(doctor.doctor_id)} className="min-h-11 rounded-full border border-sage px-3 text-xs disabled:opacity-50">{adding === doctor.doctor_id ? "Adding…" : "Add to Care Circle"}</button>
               )}
             </div>
-            <button type="button" disabled className="mt-2 min-h-11 w-full text-right text-[10px] text-graphite/60">View profile unavailable</button>
+            <button type="button" disabled className="mt-2 min-h-11 w-full text-right text-xs text-graphite/60">View profile unavailable</button>
           </article>
         );
       })}

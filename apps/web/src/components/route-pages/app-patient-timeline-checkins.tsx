@@ -64,7 +64,7 @@ function CheckinTimeline({ sessionId }: { sessionId: string }) {
           <span className="text-2xl">ClinixAI</span>
           <Link
             href="/app/patient/timeline"
-            className="ml-auto py-3 text-sm text-[#b89b6a]"
+            className="ml-auto py-3 text-sm text-clear-action"
           >
             Close
           </Link>
@@ -90,7 +90,7 @@ function CheckinTimeline({ sessionId }: { sessionId: string }) {
         )}
         {session && (
           <>
-            <p className="mt-6 w-fit rounded-full border border-[#dfd3bd] bg-[#f1e8d8] px-3 py-1 text-xs text-botanical">
+            <p className="mt-6 w-fit rounded-full border border-clear-divider bg-clear-canvas px-3 py-1 text-xs text-botanical">
               AI check-in
             </p>
             <p className="mt-5 text-xs text-graphite">
@@ -99,20 +99,20 @@ function CheckinTimeline({ sessionId }: { sessionId: string }) {
                 : "Saved time unavailable"}
             </p>
             <h1 className="mt-4 text-[32px] leading-tight">Check-in record</h1>
-            <p className="mt-5 w-fit rounded-full bg-[#f1e8d8] px-3 py-1 text-xs text-botanical">
+            <p className="mt-5 w-fit rounded-full bg-clear-canvas px-3 py-1 text-xs text-botanical">
               AI-derived
             </p>
             <p className="mt-4 text-sm leading-relaxed text-graphite">
               This entry was generated from your check-in answers and saved as a
               separate AI-assisted record.
             </p>
-            <section className="mt-4 rounded-[20px] border border-[#dfd3bd] bg-canvas p-5 shadow-sm">
-              <div className="flex flex-wrap justify-between gap-2 text-[10px]">
-                <span className="rounded-full border border-[#dfd3bd] px-3 py-1">
+            <section className="mt-4 rounded-[20px] border border-clear-divider bg-canvas p-5 shadow-sm">
+              <div className="flex flex-wrap justify-between gap-2 text-xs">
+                <span className="rounded-full border border-clear-divider px-3 py-1">
                   Check-in result
                 </span>
                 <span
-                  className={`rounded-full border px-3 py-1 ${outcome?.disposition === "URGENT" ? "border-critical text-critical" : "border-[#dfd3bd]"}`}
+                  className={`rounded-full border px-3 py-1 ${outcome?.disposition === "URGENT" ? "border-critical text-critical" : "border-clear-divider"}`}
                 >
                   {label}
                 </span>
@@ -125,13 +125,13 @@ function CheckinTimeline({ sessionId }: { sessionId: string }) {
               </p>
               <Link
                 href={recordHref("/app/patient/checkin/result", "sessionId", sessionId)}
-                className="mt-3 inline-flex min-h-11 items-center text-sm text-[#b89b6a]"
+                className="mt-3 inline-flex min-h-11 items-center text-sm text-clear-action"
               >
                 Open full result →
               </Link>
             </section>
             <h2 className="mt-6 text-xl">Provenance</h2>
-            <dl className="mt-3 divide-y divide-hairline rounded-[20px] border border-[#dfd3bd] px-5 shadow-sm">
+            <dl className="mt-3 divide-y divide-hairline rounded-[20px] border border-clear-divider px-5 shadow-sm">
               {[
                 ["Derived from", "Your saved check-in answers"],
                 [
@@ -157,7 +157,7 @@ function CheckinTimeline({ sessionId }: { sessionId: string }) {
                 ref={answersRef}
                 type="button"
                 onClick={() => setAnswersOpen(true)}
-                className="flex min-h-[74px] w-full items-center justify-between rounded-[20px] border border-[#dfd3bd] p-4 text-left"
+                className="flex min-h-[74px] w-full items-center justify-between rounded-[20px] border border-clear-divider p-4 text-left"
               >
                 <span>
                   <span className="block text-sm">Check-in answers</span>
@@ -175,7 +175,7 @@ function CheckinTimeline({ sessionId }: { sessionId: string }) {
               </button>
               <Link
                 href={recordHref("/app/patient/checkin/result", "sessionId", sessionId)}
-                className="flex min-h-[74px] items-center justify-between rounded-[20px] border border-[#dfd3bd] p-4"
+                className="flex min-h-[74px] items-center justify-between rounded-[20px] border border-clear-divider p-4"
               >
                 <span>
                   <span className="block text-sm">Check-in result</span>
@@ -185,7 +185,7 @@ function CheckinTimeline({ sessionId }: { sessionId: string }) {
                 </span>
                 <span>›</span>
               </Link>
-              <div className="rounded-[20px] border border-[#dfd3bd] p-4">
+              <div className="rounded-[20px] border border-clear-divider p-4">
                 <p className="text-sm">Consultation packet</p>
                 <p className="mt-1 text-xs text-graphite">
                   No packet sharing is supported for this record.

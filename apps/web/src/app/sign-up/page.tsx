@@ -80,7 +80,7 @@ export default function SignUpPage() {
             try { await resendConfirmation(email.trim()); }
             catch { setError("We could not resend the confirmation email. Try again shortly."); }
             finally { setBusy(false); }
-          }} className="mt-4 font-sans text-xs font-bold uppercase text-evidence">Resend confirmation</button>
+          }} className="mt-4 font-sans text-xs font-bold uppercase text-clear-info">Resend confirmation</button>
           <FormError message={error} />
         </div>
       ) : (
@@ -97,7 +97,7 @@ export default function SignUpPage() {
             <label htmlFor="password" className="font-sans text-sm font-medium text-ink">Password</label>
             <div className="relative mt-2">
               <input id="password" type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} className="clinix-field font-sans text-sm pr-16" />
-              <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-[10px] font-bold uppercase text-evidence">{showPassword ? "Hide" : "Show"}</button>
+              <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)} className="absolute right-1 top-1/2 grid min-h-11 min-w-11 -translate-y-1/2 place-items-center px-2 font-sans text-xs font-bold uppercase text-clear-info">{showPassword ? "Hide" : "Show"}</button>
             </div>
           </div>
           <div>
@@ -106,7 +106,7 @@ export default function SignUpPage() {
           </div>
           <FormError message={error} />
           {accountExists && (
-            <div className="flex flex-wrap gap-4 font-sans text-sm font-semibold text-evidence">
+            <div className="flex flex-wrap gap-4 font-sans text-sm font-semibold text-clear-info">
               <Link href="/sign-in">Sign in to your account</Link>
               <Link href="/forgot-password">Reset your password</Link>
             </div>

@@ -29,16 +29,16 @@ describe("MedicineEditor in Clear appearance", () => {
   });
 
   it("defaults to the unchanged legacy look", () => {
-    const { container } = render(<MedicineEditor items={flagged} onChange={vi.fn()} />);
+    const { container } = render(<MedicineEditor appearance="legacy" items={flagged} onChange={vi.fn()} />);
     expect(container.querySelector(".clinix-doctor-card")).not.toBeNull();
   });
 });
 
-describe("additive Clear constants", () => {
-  it("leave the legacy constants untouched", () => {
-    expect(privacyCard).toContain("rounded-[28px]");
-    expect(scheduleCard).toContain("bg-[#3d4640]");
-    expect(clearPrivacyCard).toContain("clear-card");
-    expect(clearScheduleCard).toContain("clear-card");
+describe("Clear constants", () => {
+  it("resolve to the opaque Clear surface", () => {
+    expect(privacyCard).toContain("clear-card");
+    expect(scheduleCard).toContain("clear-card");
+    expect(clearPrivacyCard).toBe(privacyCard);
+    expect(clearScheduleCard).toBe(scheduleCard);
   });
 });

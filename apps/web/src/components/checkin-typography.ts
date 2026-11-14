@@ -1,10 +1,5 @@
-import { Inter, Playfair_Display } from "next/font/google";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-checkin-sans" });
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-checkin-serif",
-});
-
-// Source frames 766/815/843/1060 use Inter, with Playfair for the question heading.
-export const checkinTypography = `${inter.variable} ${playfair.variable} [font-family:var(--font-checkin-sans)] [&_.font-sans]:[font-family:var(--font-checkin-sans)] [&_.font-serif]:[font-family:var(--font-checkin-serif)]`;
+/**
+ * Check-in typography. The route-local Inter and Playfair loads were removed: Inter is now loaded once
+ * at the root, so this only keeps the exported class string (and its serif override) pointing at it.
+ */
+export const checkinTypography = "font-sans [&_.font-serif]:font-sans";

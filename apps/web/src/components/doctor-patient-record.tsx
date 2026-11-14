@@ -25,9 +25,9 @@ const nav = [
   { label: "Drafts", href: "/app/doctor/drafts" },
   { label: "Follow-ups", href: "/app/doctor", disabled: true },
 ];
-const card = "rounded-[22px] border border-copper bg-graphite p-4";
+const card = "rounded-[22px] border border-clear-divider bg-clear-surface p-4";
 const action =
-  "flex min-h-[52px] w-full items-center justify-center rounded-[18px] border border-copper px-4 text-center font-sans text-xs font-semibold uppercase disabled:opacity-50";
+  "flex min-h-[52px] w-full items-center justify-center rounded-[18px] border border-clear-divider px-4 text-center font-sans text-xs font-semibold uppercase disabled:opacity-50";
 const sections = ["Overview", "Timeline", "Reports", "Meds"] as const;
 
 /** Formats source timestamps without presenting a fabricated fallback date. */
@@ -61,7 +61,7 @@ function RecordSection({
     <section id={id} className="scroll-mt-6 space-y-3">
       <h2
         className={
-          condensed ? "sr-only" : "font-sans text-xl font-semibold text-surface"
+          condensed ? "sr-only" : "font-sans text-xl font-semibold text-clear-ink"
         }
       >
         {title}
@@ -328,13 +328,13 @@ export function DoctorPatientRecord({
           <button
             type="button"
             onClick={() => state.refresh()}
-            className="mt-3 min-h-11 text-evidence underline"
+            className="mt-3 min-h-11 text-clear-info underline"
           >
             Retry record
           </button>
           <Link
             href="/app/doctor/patients"
-            className="mt-3 block text-evidence"
+            className="mt-3 block text-clear-info"
           >
             Back to directory
           </Link>
@@ -381,7 +381,7 @@ export function DoctorPatientRecord({
     <div className={`${card} space-y-3`}>
       {compact && !all && (
         <>
-          <p className="clinix-label text-copper">Recent clinical record</p>
+          <p className="clinix-label text-clear-action">Recent clinical record</p>
           <h3 className="text-lg">Recent encounters</h3>
         </>
       )}
@@ -392,11 +392,11 @@ export function DoctorPatientRecord({
           (entry, index) => (
             <article
               key={`${entry.kind}-${entry.id ?? index}`}
-              className="border-b border-copper/30 pb-3 last:border-0"
+              className="border-b border-clear-divider pb-3 last:border-0"
             >
-              <time className="text-xs text-copper">{at(entry.at)}</time>
+              <time className="text-xs text-clear-action">{at(entry.at)}</time>
               <p className="mt-1">{entry.label}</p>
-              <p className="mt-1 text-xs text-evidence">
+              <p className="mt-1 text-xs text-clear-info">
                 {entry.provenance?.replaceAll("_", " ") ??
                   "Source not recorded"}
               </p>
@@ -408,7 +408,7 @@ export function DoctorPatientRecord({
         <button
           type="button"
           onClick={(event) => open("timeline", event.currentTarget)}
-          className="min-h-11 text-xs text-evidence"
+          className="min-h-11 text-xs text-clear-info"
         >
           Open full timeline →
         </button>
@@ -423,7 +423,7 @@ export function DoctorPatientRecord({
         medications.map((medicine, index) => (
           <article
             key={`${medicine.prescription_id}-${index}`}
-            className="border-b border-copper/30 pb-3 last:border-0"
+            className="border-b border-clear-divider pb-3 last:border-0"
           >
             <p className="font-semibold">{medicine.medicine_name}</p>
             <p className="mt-1 text-xs">
@@ -431,7 +431,7 @@ export function DoctorPatientRecord({
                 .filter(Boolean)
                 .join(" · ") || "Details not recorded"}
             </p>
-            <p className="mt-1 text-xs text-evidence">
+            <p className="mt-1 text-xs text-clear-info">
               {medicine.status === "UNKNOWN_STATUS"
                 ? "Current use not confirmed"
                 : medicine.status}{" "}
@@ -442,7 +442,7 @@ export function DoctorPatientRecord({
                 (rx) => rx.id === medicine.prescription_id,
               ) && (
                 <Link
-                  className="mt-2 inline-block min-h-11 py-3 text-xs text-evidence underline"
+                  className="mt-2 inline-block min-h-11 py-3 text-xs text-clear-info underline"
                   href={recordHref("/app/doctor/prescriptions", "prescriptionId", medicine.prescription_id)}
                 >
                   Open original prescription
@@ -466,23 +466,23 @@ export function DoctorPatientRecord({
         compact ? (
           <Link
             href="/app/doctor/patients"
-            className="inline-flex min-h-11 items-center text-xs text-evidence"
+            className="inline-flex min-h-11 items-center text-xs text-clear-info"
           >
             Close
           </Link>
         ) : undefined
       }
     >
-      <div className="mx-auto w-full max-w-[393px] space-y-6 pb-10 font-sans text-sm text-surface">
+      <div className="mx-auto w-full max-w-[393px] space-y-6 pb-10 font-sans text-sm text-clear-ink">
         <Link
           href="/app/doctor/patients"
           aria-label="Back to directory"
-          className="inline-flex min-h-11 items-center gap-3 text-xs text-copper"
+          className="inline-flex min-h-11 items-center gap-3 text-xs text-clear-action"
         >
           ← {compact ? "PATIENT CLINICAL WORKSPACE" : "Back to directory"}
         </Link>
         {!compact && (
-          <p className="clinix-label text-copper">
+          <p className="clinix-label text-clear-action">
             Patient record · Longitudinal clinical dossier
           </p>
         )}
@@ -490,7 +490,7 @@ export function DoctorPatientRecord({
           <div className="flex items-start gap-3">
             <span
               aria-hidden="true"
-              className="grid size-12 shrink-0 place-items-center rounded-full bg-copper font-semibold uppercase text-ink"
+              className="grid size-12 shrink-0 place-items-center rounded-full bg-clear-action font-semibold uppercase text-white"
             >
               {initials}
             </span>
@@ -498,7 +498,7 @@ export function DoctorPatientRecord({
               <h1 className="break-words text-2xl font-semibold">
                 {record.identity.full_name || "Patient name unavailable"}
               </h1>
-              <p className="mt-1 break-all text-xs text-doctor-muted">
+              <p className="mt-1 break-all text-xs text-clear-secondary">
                 <span title={patientId}>Record {patientId.slice(0, 8)}</span> ·{" "}
                 {record.status === "UNCLAIMED"
                   ? "Unclaimed record"
@@ -509,7 +509,7 @@ export function DoctorPatientRecord({
               </p>
             </div>
           </div>
-          <div className="mt-4 border-t border-copper/40 pt-3">
+          <div className="mt-4 border-t border-clear-divider pt-3">
             {compact && (
               <p className="mb-2 text-xs">
                 Next:{" "}
@@ -518,7 +518,7 @@ export function DoctorPatientRecord({
                   : "No confirmed appointment scheduled"}
               </p>
             )}
-            <p className="text-xs text-evidence">
+            <p className="text-xs text-clear-info">
               {record.consent_active === true
                 ? "Consent reported active"
                 : record.consent_active === false
@@ -534,9 +534,9 @@ export function DoctorPatientRecord({
             </p>
           </div>
           {!compact && (
-            <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-copper/40 pt-3 text-xs">
+            <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-clear-divider pt-3 text-xs">
               <div>
-                <dt className="text-copper">Documented allergy</dt>
+                <dt className="text-clear-action">Documented allergy</dt>
                 <dd className="mt-1">
                   {record.allergies.length
                     ? record.allergies.join(", ")
@@ -544,15 +544,15 @@ export function DoctorPatientRecord({
                 </dd>
               </div>
               <div>
-                <dt className="text-copper">Current conditions</dt>
+                <dt className="text-clear-action">Current conditions</dt>
                 <dd className="mt-1">Not available</dd>
               </div>
               <div>
-                <dt className="text-copper">Primary doctor</dt>
+                <dt className="text-clear-action">Primary doctor</dt>
                 <dd className="mt-1">Not available</dd>
               </div>
               <div>
-                <dt className="text-copper">Last activity</dt>
+                <dt className="text-clear-action">Last activity</dt>
                 <dd className="mt-1">{at(lastUpdated)}</dd>
               </div>
             </dl>
@@ -570,10 +570,10 @@ export function DoctorPatientRecord({
         )}
         {record.status === "UNCLAIMED" && (
           <section className={card}>
-            <h2 className="clinix-label text-copper">Unclaimed record</h2>
+            <h2 className="clinix-label text-clear-action">Unclaimed record</h2>
             {invite ? (
               <>
-                <p className="mt-3 break-all font-mono text-xl text-copper">
+                <p className="mt-3 break-all font-sans tabular-nums text-xl text-clear-action">
                   {invite.invite_token}
                 </p>
                 <p className="mt-2 text-xs">Expires {at(invite.expires_at)}</p>
@@ -583,7 +583,7 @@ export function DoctorPatientRecord({
                 type="button"
                 disabled={busy}
                 onClick={generateInvite}
-                className={`${action} mt-3 bg-copper text-ink`}
+                className={`${action} mt-3 bg-clear-action text-white`}
               >
                 Generate claim invite
               </button>
@@ -600,7 +600,7 @@ export function DoctorPatientRecord({
         {!compact && (
           <nav
             aria-label="Patient record sections"
-            className="flex rounded-[18px] border border-copper bg-graphite p-1"
+            className="flex rounded-[18px] border border-clear-divider bg-clear-surface p-1"
           >
             {sections.map((section) => (
               <Link
@@ -610,7 +610,7 @@ export function DoctorPatientRecord({
                 aria-current={
                   activeTab === section.toLowerCase() ? "location" : undefined
                 }
-                className={`flex min-h-11 flex-1 items-center justify-center rounded-[14px] text-xs ${activeTab === section.toLowerCase() ? "bg-copper font-semibold text-ink" : "text-surface"}`}
+                className={`flex min-h-11 flex-1 items-center justify-center rounded-[14px] text-xs ${activeTab === section.toLowerCase() ? "bg-clear-action font-semibold text-white" : "text-clear-secondary"}`}
               >
                 {section}
               </Link>
@@ -618,8 +618,8 @@ export function DoctorPatientRecord({
           </nav>
         )}
         {!compact && (
-          <div className="rounded-[16px] border border-evidence bg-graphite p-4 text-xs">
-            <p className="text-evidence">PATIENT RECORD</p>
+          <div className="rounded-[16px] border border-clear-info bg-clear-surface p-4 text-xs">
+            <p className="text-clear-info">PATIENT RECORD</p>
             <p className="mt-1">
               Factual records, sources and authored clinical notes
             </p>
@@ -635,13 +635,13 @@ export function DoctorPatientRecord({
           }
         >
           <div className={card}>
-            <p className="clinix-label text-copper">
+            <p className="clinix-label text-clear-action">
               {compact ? "Current consultation context" : "Current concern"}
             </p>
             <h3 className="mt-2 text-lg">
               {record.current_concern || "No concern recorded"}
             </h3>
-            <p className="mt-2 text-xs text-evidence">
+            <p className="mt-2 text-xs text-clear-info">
               {record.current_concern
                 ? `Source: your encounter · ${at(record.current_concern_at)}`
                 : "No check-in outcome is inferred."}
@@ -649,11 +649,11 @@ export function DoctorPatientRecord({
             {compact && (
               <dl className="mt-3 space-y-2 text-xs">
                 <div>
-                  <dt className="text-copper">Recent check-in</dt>
+                  <dt className="text-clear-action">Recent check-in</dt>
                   <dd>{lockedNames.includes("AI check-in packet") ? "Not shared with you" : "Shared by the patient"}</dd>
                 </div>
                 <div>
-                  <dt className="text-copper">Shared packet</dt>
+                  <dt className="text-clear-action">Shared packet</dt>
                   <dd>{lockedNames.length === 0 ? "All groups shared" : `${lockedNames.length} groups locked`}</dd>
                 </div>
               </dl>
@@ -662,7 +662,7 @@ export function DoctorPatientRecord({
               <button
                 type="button"
                 onClick={(event) => open("scope", event.currentTarget)}
-                className="mt-2 min-h-11 text-xs text-evidence"
+                className="mt-2 min-h-11 text-xs text-clear-info"
               >
                 Review consent scope →
               </button>
@@ -671,7 +671,7 @@ export function DoctorPatientRecord({
           {!compact && (
             <div className="grid grid-cols-2 gap-3">
               <div className={card}>
-                <p className="clinix-label text-copper">Current medicines</p>
+                <p className="clinix-label text-clear-action">Current medicines</p>
                 <p className="mt-2">
                   {current.length
                     ? `${current.length} confirmed current`
@@ -684,7 +684,7 @@ export function DoctorPatientRecord({
                 ))}
               </div>
               <div className={card}>
-                <p className="clinix-label text-copper">Next appointment</p>
+                <p className="clinix-label text-clear-action">Next appointment</p>
                 <p className="mt-2">
                   {next
                     ? at(next.scheduled_start)
@@ -700,14 +700,14 @@ export function DoctorPatientRecord({
           )}
           {!compact && (
             <div className={card}>
-              <h3 className="clinix-label text-copper">
+              <h3 className="clinix-label text-clear-action">
                 Recent clinical activity
               </h3>
               {record.timeline.length ? (
                 record.timeline.slice(0, 3).map((entry, index) => (
                   <p
                     key={index}
-                    className="mt-3 border-t border-copper/30 pt-2 text-xs"
+                    className="mt-3 border-t border-clear-divider pt-2 text-xs"
                   >
                     {at(entry.at)} · {entry.label}
                   </p>
@@ -728,7 +728,7 @@ export function DoctorPatientRecord({
             <button
               type="button"
               onClick={(event) => open("timeline", event.currentTarget)}
-              className="min-h-11 text-xs text-evidence"
+              className="min-h-11 text-xs text-clear-info"
             >
               Open full timeline →
             </button>
@@ -741,13 +741,13 @@ export function DoctorPatientRecord({
                 <h3 className="text-base font-semibold">
                   {report.laboratory_name || "Laboratory report"}
                 </h3>
-                <p className="mt-1 text-xs text-doctor-muted">
+                <p className="mt-1 text-xs text-clear-secondary">
                   {report.report_date ||
                     report.collection_date ||
                     at(report.created_at)}
                 </p>
                 <table className="mt-4 w-full table-fixed text-left text-xs">
-                  <thead className="text-copper">
+                  <thead className="text-clear-action">
                     <tr>
                       <th className="py-2">Test</th>
                       <th>Result</th>
@@ -758,7 +758,7 @@ export function DoctorPatientRecord({
                     {report.observations.map((observation) => (
                       <tr
                         key={observation.id}
-                        className="border-t border-copper/30 align-top"
+                        className="border-t border-clear-divider align-top"
                       >
                         <td className="break-words py-3 pr-2">
                           {observation.test_name}
@@ -792,7 +792,7 @@ export function DoctorPatientRecord({
                   onClick={(event) =>
                     viewSource(report.source_document_id, event.currentTarget)
                   }
-                  className="mt-2 min-h-11 text-xs text-evidence"
+                  className="mt-2 min-h-11 text-xs text-clear-info"
                 >
                   Open report & source →
                 </button>
@@ -806,7 +806,7 @@ export function DoctorPatientRecord({
             {documents.map((document) => (
               <div key={document.document_id} className={card}>
                 <p className="break-words">{document.original_filename}</p>
-                <p className="mt-1 text-xs text-evidence">
+                <p className="mt-1 text-xs text-clear-info">
                   {document.processing_status}
                 </p>
                 <button
@@ -814,7 +814,7 @@ export function DoctorPatientRecord({
                   onClick={(event) =>
                     viewSource(document.document_id, event.currentTarget)
                   }
-                  className="mt-2 min-h-11 text-xs text-evidence"
+                  className="mt-2 min-h-11 text-xs text-clear-info"
                 >
                   Open original source →
                 </button>
@@ -829,7 +829,7 @@ export function DoctorPatientRecord({
         >
           {compact ? (
             <div className={card}>
-              <p className="clinix-label mb-3 text-copper">
+              <p className="clinix-label mb-3 text-clear-action">
                 Active medications
               </p>
               {current.length ? (
@@ -845,7 +845,7 @@ export function DoctorPatientRecord({
               <button
                 type="button"
                 onClick={(event) => open("meds", event.currentTarget)}
-                className="mt-2 min-h-11 text-xs text-evidence"
+                className="mt-2 min-h-11 text-xs text-clear-info"
               >
                 Open medication history →
               </button>
@@ -854,7 +854,7 @@ export function DoctorPatientRecord({
             <>
               {history}
               <div className={card}>
-                <h3 className="clinix-label text-copper">
+                <h3 className="clinix-label text-clear-action">
                   Finalized prescriptions
                 </h3>
                 {record.prescriptions?.length ? (
@@ -862,7 +862,7 @@ export function DoctorPatientRecord({
                     <Link
                       key={prescription.id}
                       href={recordHref("/app/doctor/prescriptions", "prescriptionId", prescription.id)}
-                      className="mt-2 block min-h-11 py-3 text-xs text-evidence"
+                      className="mt-2 block min-h-11 py-3 text-xs text-clear-info"
                     >
                       Finalized prescription · {at(prescription.finalized_at)} →
                     </Link>
@@ -879,7 +879,7 @@ export function DoctorPatientRecord({
             <button
               type="button"
               onClick={(event) => open("meds", event.currentTarget)}
-              className="min-h-11 text-xs text-evidence"
+              className="min-h-11 text-xs text-clear-info"
             >
               {compact
                 ? "Open medication history →"
@@ -888,8 +888,8 @@ export function DoctorPatientRecord({
           )}
         </RecordSection>
         {compact ? (
-          <section className="rounded-[18px] bg-surface p-4 text-xs text-ink">
-            <h2 className="clinix-label text-copper">Role-based access</h2>
+          <section className="rounded-[18px] bg-surface p-4 text-xs text-clear-ink">
+            <h2 className="clinix-label text-clear-action">Role-based access</h2>
             <p className="mt-2">
               Your own clinical records are always shown. Other record groups
               open only while the patient’s consent covers them.
@@ -908,7 +908,7 @@ export function DoctorPatientRecord({
             <button
               type="button"
               onClick={(event) => open("scope", event.currentTarget)}
-              className="mt-2 min-h-11 text-xs text-evidence"
+              className="mt-2 min-h-11 text-xs text-clear-info"
             >
               Review access boundary
             </button>
@@ -916,10 +916,10 @@ export function DoctorPatientRecord({
         )}
         {!compact && (
           <section className="space-y-3">
-            <div className="rounded-[16px] border border-evidence p-4 text-xs text-evidence">
+            <div className="rounded-[16px] border border-clear-info p-4 text-xs text-clear-info">
               AI ASSISTANCE · SEPARATE FROM PATIENT RECORD
             </div>
-            <div className={`${card} border-evidence`}>
+            <div className={`${card} border-clear-info`}>
               <h2 className="text-lg font-semibold">
                 Clinical context summary
               </h2>
@@ -932,7 +932,7 @@ export function DoctorPatientRecord({
           </section>
         )}
         <section className="space-y-3">
-          <h2 className={compact ? "sr-only" : "clinix-label text-copper"}>
+          <h2 className={compact ? "sr-only" : "clinix-label text-clear-action"}>
             Contextual actions
           </h2>
           {visits.length > 1 && (
@@ -940,7 +940,7 @@ export function DoctorPatientRecord({
               Consultation appointment
               <select
                 aria-label="Consultation appointment"
-                className="mt-2 min-h-11 w-full rounded-xl border border-copper bg-graphite p-3 text-surface"
+                className="mt-2 min-h-11 w-full rounded-xl border border-clear-divider bg-clear-surface p-3 text-clear-ink"
                 value={selected?.id ?? ""}
                 onChange={(event) => setAppointmentId(event.target.value)}
               >
@@ -957,7 +957,7 @@ export function DoctorPatientRecord({
           {selected ? (
             <Link
               href={recordHref("/app/doctor/consultation", "appointmentId", selected.id)}
-              className={`${action} bg-copper text-ink`}
+              className={`${action} bg-clear-action text-white`}
             >
               {compact ? "Start consultation" : "Begin consultation"}
             </Link>
@@ -966,17 +966,17 @@ export function DoctorPatientRecord({
               <button
                 type="button"
                 disabled
-                className={`${action} bg-copper text-ink`}
+                className={`${action} bg-clear-action text-white`}
               >
                 {compact ? "Start consultation" : "Begin consultation"}
               </button>
-              <p className="text-xs text-doctor-muted">
+              <p className="text-xs text-clear-secondary">
                 Select a confirmed appointment in Schedule before starting a
                 consultation.
               </p>
               <Link
                 href="/app/doctor/schedule"
-                className="inline-flex min-h-11 items-center text-xs text-evidence"
+                className="inline-flex min-h-11 items-center text-xs text-clear-info"
               >
                 Open schedule →
               </Link>
@@ -1009,7 +1009,7 @@ export function DoctorPatientRecord({
               <button type="button" disabled className={action}>
                 Schedule follow-up
               </button>
-              <p className="text-xs text-doctor-muted">
+              <p className="text-xs text-clear-secondary">
                 Follow-up scheduling is not available yet.
               </p>
             </>
@@ -1075,7 +1075,7 @@ export function DoctorPatientRecord({
                   onChange={(event) =>
                     setDocumentType(event.target.value as DocumentType)
                   }
-                  className="min-h-11 w-full rounded-xl border border-copper bg-graphite p-3"
+                  className="min-h-11 w-full rounded-xl border border-clear-divider bg-clear-surface p-3"
                 >
                   {documentTypeSchema.options.map((type) => (
                     <option key={type} value={type}>
@@ -1103,7 +1103,7 @@ export function DoctorPatientRecord({
                 <button
                   type="submit"
                   disabled={busy || !file}
-                  className={`${action} bg-copper text-ink`}
+                  className={`${action} bg-clear-action text-white`}
                 >
                   {busy ? "Uploading…" : "Upload source document"}
                 </button>
@@ -1132,7 +1132,7 @@ export function DoctorPatientRecord({
                     href={source.view_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-4 inline-flex min-h-11 items-center text-sm text-evidence underline"
+                    className="mt-4 inline-flex min-h-11 items-center text-sm text-clear-info underline"
                   >
                     Open original in new tab
                   </a>

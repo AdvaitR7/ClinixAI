@@ -25,8 +25,8 @@ beforeAll(() => {
 });
 
 describe("WorkspaceShell appearance", () => {
-  it("stays legacy by default", () => {
-    const { container } = render(<WorkspaceShell workspace="Patient" title="Today" nav={nav}>body</WorkspaceShell>);
+  it("can still render the legacy layout when asked", () => {
+    const { container } = render(<WorkspaceShell appearance="legacy" workspace="Patient" title="Today" nav={nav}>body</WorkspaceShell>);
     expect(container.querySelector("[data-ui='clear']")).toBeNull();
   });
 
@@ -56,7 +56,7 @@ describe("WorkspaceShell appearance", () => {
 
 describe("AuthShell appearance", () => {
   it("renders the same content in both appearances", () => {
-    const { rerender, container } = render(<AuthShell eyebrow="Account" title="Sign in" orientation="Use your email">form</AuthShell>);
+    const { rerender, container } = render(<AuthShell appearance="legacy" eyebrow="Account" title="Sign in" orientation="Use your email">form</AuthShell>);
     expect(container.querySelector("[data-ui='clear']")).toBeNull();
     rerender(<AuthShell appearance="clear" eyebrow="Account" title="Sign in" orientation="Use your email">form</AuthShell>);
     expect(container.querySelector("[data-ui='clear']")).not.toBeNull();
@@ -95,7 +95,7 @@ describe("Clear dialogs keep their interaction model", () => {
 
   it("legacy dialogs carry no Clear marker", () => {
     const ref = createRef<HTMLButtonElement>();
-    render(<VaultDialog titleId="v" returnFocusRef={ref} onClose={vi.fn()}><h2 id="v">Source</h2></VaultDialog>);
+    render(<VaultDialog appearance="legacy" titleId="v" returnFocusRef={ref} onClose={vi.fn()}><h2 id="v">Source</h2></VaultDialog>);
     expect(document.querySelector("dialog")).not.toHaveAttribute("data-ui");
   });
 });

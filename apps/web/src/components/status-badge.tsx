@@ -47,7 +47,7 @@ export function StatusBadge({ status }: { status: string }) {
   return (
     <span
       data-tone={STATUS_TONES[status] ?? "neutral"}
-      className={`clinix-badge inline-flex min-h-6 items-center rounded-full border px-2.5 py-1 font-sans text-[10px] font-bold uppercase leading-none tracking-[0.04em] ${cls}`}
+      className={`clinix-badge inline-flex min-h-6 items-center rounded-full border px-2.5 py-1 font-sans text-xs font-bold uppercase leading-none tracking-[0.04em] ${cls}`}
     >
       {status.replace(/_/g, " ")}
     </span>

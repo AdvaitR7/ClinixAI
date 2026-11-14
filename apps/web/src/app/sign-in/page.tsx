@@ -60,9 +60,9 @@ export default function SignInPage() {
           <label htmlFor="password" className="font-sans text-sm font-medium text-ink">Password</label>
           <div className="relative mt-2">
             <input id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} className="clinix-field font-sans text-sm pr-16" />
-            <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 font-sans text-[10px] font-bold uppercase text-evidence">{showPassword ? "Hide" : "Show"}</button>
+            <button type="button" aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)} className="absolute right-1 top-1/2 grid min-h-11 min-w-11 -translate-y-1/2 place-items-center px-2 font-sans text-xs font-bold uppercase text-clear-info">{showPassword ? "Hide" : "Show"}</button>
           </div>
-          <Link href="/forgot-password" className="mt-3 block text-right font-sans text-xs font-semibold uppercase text-evidence">Forgot password?</Link>
+          <Link href="/forgot-password" className="mt-1 flex min-h-11 items-center justify-end font-sans text-xs font-semibold uppercase text-clear-info">Forgot password?</Link>
         </div>
         <FormError message={error} />
         <button type="submit" disabled={busy} className="min-h-[57px] w-full rounded-[18px] bg-botanical font-sans text-sm font-bold uppercase text-surface shadow-[0_5px_14px_rgba(18,53,44,0.14)] hover:bg-botanical disabled:opacity-60">{busy ? "Signing in…" : "Sign in"}</button>

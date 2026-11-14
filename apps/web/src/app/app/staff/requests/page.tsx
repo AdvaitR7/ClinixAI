@@ -38,7 +38,7 @@ export default function StaffRequestsPage() {
   return (
     <WorkspaceShell workspace="Clinic staff" title="Route retention request" nav={nav} focused>
       <section className="rounded-[22px] border border-review bg-surface p-5">
-        <p className="text-[9px] uppercase text-review">Role restricted</p>
+        <p className="text-xs uppercase text-review">Role restricted</p>
         <h2 className="mt-2 text-xl">Decision controls unavailable</h2>
         <p className="mt-3 text-sm leading-relaxed">Clinic staff can route a removal or retention request, but cannot approve, partially approve or retain a record. Those decisions stay with the responsible doctor.</p>
       </section>
@@ -48,7 +48,7 @@ export default function StaffRequestsPage() {
       {requests.status === "ready" && requests.data.map((r) => (
         <section key={r.id} className="rounded-[22px] border border-hairline bg-surface p-5">
           <p className="text-sm font-semibold">{r.resource_type.toLowerCase()} request · {r.status.toLowerCase()}</p>
-          <p className="mt-1 text-xs text-graphite">Currently with {r.target_doctor_name ?? "a practice doctor"}. No request reason or record content is shown to staff.</p>
+          <p className="mt-1 text-xs text-clear-secondary">Currently with {r.target_doctor_name ?? "a practice doctor"}. No request reason or record content is shown to staff.</p>
           <select aria-label="Route to doctor" value={target[r.id] ?? ""} onChange={(e) => setTarget({ ...target, [r.id]: e.target.value })} className="mt-3 min-h-11 w-full rounded-xl border border-hairline bg-canvas px-3 text-sm">
             <option value="">Route to…</option>
             {doctors.status === "ready" && doctors.data.filter((d) => d.doctor_id !== r.target_doctor_id).map((d) => <option key={d.doctor_id} value={d.doctor_id}>{d.name}</option>)}

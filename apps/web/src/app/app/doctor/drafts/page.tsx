@@ -69,17 +69,17 @@ export default function DraftsPage() {
     <WorkspaceShell workspace="Doctor" title="Prescription draft queue" nav={nav}>
       {/* Metrics summary banner (Figma 59:2) */}
       <section className="grid grid-cols-3 gap-2.5">
-        <div className="clinix-doctor-card p-3 text-center">
-          <p className="font-mono text-xl font-bold text-surface">{rawList.length}</p>
-          <p className="mt-1 font-sans text-[9px] font-bold uppercase tracking-wider text-copper">Total drafts</p>
+        <div className="clear-card p-3 text-center">
+          <p className="font-sans tabular-nums text-xl font-bold text-clear-ink">{rawList.length}</p>
+          <p className="mt-1 font-sans text-xs font-bold uppercase tracking-wider text-clear-action">Total drafts</p>
         </div>
-        <div className="clinix-doctor-card p-3 text-center">
-          <p className="font-mono text-xl font-bold text-surface">{needsReviewCount}</p>
-          <p className="mt-1 font-sans text-[9px] font-bold uppercase tracking-wider text-copper">Needs review</p>
+        <div className="clear-card p-3 text-center">
+          <p className="font-sans tabular-nums text-xl font-bold text-clear-ink">{needsReviewCount}</p>
+          <p className="mt-1 font-sans text-xs font-bold uppercase tracking-wider text-clear-action">Needs review</p>
         </div>
-        <div className="clinix-doctor-card p-3 text-center">
-          <p className="font-mono text-xl font-bold text-critical">{highRiskCount}</p>
-          <p className="mt-1 font-sans text-[9px] font-bold uppercase tracking-wider text-critical">High ambiguity</p>
+        <div className="clear-card p-3 text-center">
+          <p className="font-sans tabular-nums text-xl font-bold text-critical">{highRiskCount}</p>
+          <p className="mt-1 font-sans text-xs font-bold uppercase tracking-wider text-critical">High ambiguity</p>
         </div>
       </section>
 
@@ -91,7 +91,7 @@ export default function DraftsPage() {
             type="button"
             onClick={() => setFilter(f)}
             className={`min-h-11 rounded-full border px-4 font-sans text-xs font-semibold ${
-              filter === f ? "border-copper bg-copper text-ink" : "border-white/10 text-doctor-muted/75"
+              filter === f ? "border-clear-divider bg-clear-action text-white" : "border-clear-divider text-clear-secondary"
             }`}
           >
             {f ? f.replace(/_/g, " ") : "All drafts"}
@@ -112,9 +112,9 @@ export default function DraftsPage() {
 
       {state.status === "ready" &&
         (ranked.length === 0 ? (
-          <section className="clinix-doctor-card p-6 text-center">
-            <p className="font-sans text-sm font-semibold text-surface">No prescription drafts</p>
-            <p className="mt-1 font-sans text-xs text-doctor-muted/70">Drafts generated via OCR or direct entry will appear here for review.</p>
+          <section className="clear-card p-6 text-center">
+            <p className="font-sans text-sm font-semibold text-clear-ink">No prescription drafts</p>
+            <p className="mt-1 font-sans text-xs text-clear-secondary">Drafts generated via OCR or direct entry will appear here for review.</p>
           </section>
         ) : (
           <ul className="space-y-3.5">
@@ -122,11 +122,11 @@ export default function DraftsPage() {
               const reviewCount = d.items.filter((i) => i.needs_review).length;
               const flags = Array.isArray(d.risk_flags) ? (d.risk_flags as string[]) : [];
               return (
-                <li key={d.id} className="clinix-doctor-card p-5">
+                <li key={d.id} className="clear-card p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-sans text-base font-bold text-surface">{d.patient_name}</p>
-                      <p className="mt-1 font-sans text-xs text-doctor-muted/70">
+                      <p className="font-sans text-base font-bold text-clear-ink">{d.patient_name}</p>
+                      <p className="mt-1 font-sans text-xs text-clear-secondary">
                         {d.source} draft · {d.items.length} medicine{d.items.length === 1 ? "" : "s"}
                       </p>
                     </div>
@@ -138,7 +138,7 @@ export default function DraftsPage() {
                       <ConfidenceBadge value={d.overall_confidence} />
                     )}
                     {reviewCount > 0 && (
-                      <span className="rounded-full border border-review/60 bg-review/15 px-2.5 py-1 font-sans text-[10px] font-bold uppercase text-review">
+                      <span className="rounded-full border border-review/60 bg-review/15 px-2.5 py-1 font-sans text-xs font-bold uppercase text-review">
                         {reviewCount} field{reviewCount === 1 ? "" : "s"} need review
                       </span>
                     )}
@@ -154,11 +154,11 @@ export default function DraftsPage() {
                     </ul>
                   )}
 
-                  <div className="mt-5 flex gap-2.5 border-t border-white/5 pt-3.5">
+                  <div className="mt-5 flex gap-2.5 border-t border-clear-divider pt-3.5">
                     <button
                       type="button"
                       onClick={() => router.push(recordHref("/app/doctor/prescription-drafts", "draftId", d.id))}
-                      className="min-h-11 flex-1 rounded-xl bg-copper px-4 font-sans text-xs font-semibold uppercase text-ink transition-transform active:translate-y-px"
+                      className="min-h-11 flex-1 rounded-xl bg-clear-action px-4 font-sans text-xs font-semibold uppercase text-white transition-transform active:translate-y-px"
                     >
                       Review draft →
                     </button>

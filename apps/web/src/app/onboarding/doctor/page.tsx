@@ -9,7 +9,7 @@ import { doctorOnboardingSchema, type DoctorOnboarding } from "@clinix/schemas";
 import { AuthShell, FormError } from "@/components/auth-shell";
 import { fetchApi } from "@/lib/api";
 
-const inputClass = "clinix-field mt-2 border-copper/80 bg-graphite text-surface placeholder:text-doctor-muted/60";
+const inputClass = "clinix-field mt-2 border-clear-divider bg-clear-surface text-clear-ink placeholder:text-clear-secondary";
 
 /**
  * Page 2b — Doctor Onboarding (SCREEN_CATALOG §7). Verification evidence
@@ -47,19 +47,19 @@ export default function DoctorOnboardingPage() {
       orientation="Add a few professional details. Your Doctor workspace opens when setup is complete."
       tone="doctor"
     >
-      <section className="mb-8 rounded-[1.75rem] border-[6px] border-copper bg-graphite p-4">
-        <p className="clinix-label text-copper">Clinical profile</p>
+      <section className="mb-8 rounded-[1.75rem] border-[6px] border-clear-divider bg-clear-surface p-4">
+        <p className="clinix-label text-clear-action">Clinical profile</p>
         <div className="mt-2 flex items-center gap-3">
-          <span aria-hidden="true" className="grid size-9 place-items-center rounded-xl bg-copper text-ink">✓</span>
+          <span aria-hidden="true" className="grid size-9 place-items-center rounded-xl bg-clear-action text-white">✓</span>
           <div>
-            <p className="font-sans text-sm font-semibold text-surface">Professional identity</p>
-            <p className="font-sans text-xs text-doctor-muted/75">Your role and credentials stay linked to records you author.</p>
+            <p className="font-sans text-sm font-semibold text-clear-ink">Professional identity</p>
+            <p className="font-sans text-xs text-clear-secondary">Your role and credentials stay linked to records you author.</p>
           </div>
         </div>
       </section>
       <form onSubmit={onSubmit} className="space-y-5" noValidate>
         <div>
-          <label htmlFor="registration_number" className="font-sans text-sm font-medium text-surface">
+          <label htmlFor="registration_number" className="font-sans text-sm font-medium text-clear-ink">
             Medical registration number
           </label>
           <input id="registration_number" type="text" className={inputClass} {...register("registration_number")} />
@@ -68,7 +68,7 @@ export default function DoctorOnboardingPage() {
           )}
         </div>
         <div>
-          <label htmlFor="registration_authority" className="font-sans text-sm font-medium text-surface">
+          <label htmlFor="registration_authority" className="font-sans text-sm font-medium text-clear-ink">
             Registration authority / medical council
           </label>
           <input id="registration_authority" type="text" className={inputClass} {...register("registration_authority")} />
@@ -78,22 +78,22 @@ export default function DoctorOnboardingPage() {
         </div>
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
-            <label htmlFor="qualification" className="font-sans text-sm font-medium text-surface">
-              Qualification <span className="text-graphite">(optional)</span>
+            <label htmlFor="qualification" className="font-sans text-sm font-medium text-clear-ink">
+              Qualification <span className="text-clear-secondary">(optional)</span>
             </label>
             <input id="qualification" type="text" className={inputClass} {...register("qualification")} />
           </div>
           <div>
-            <label htmlFor="speciality" className="font-sans text-sm font-medium text-surface">
-              Speciality <span className="text-graphite">(optional)</span>
+            <label htmlFor="speciality" className="font-sans text-sm font-medium text-clear-ink">
+              Speciality <span className="text-clear-secondary">(optional)</span>
             </label>
             <input id="speciality" type="text" className={inputClass} {...register("speciality")} />
           </div>
         </div>
 
-        <div className="rounded-2xl border border-copper/70 bg-graphite p-4">
-          <p className="clinix-label text-copper">Verification: pending</p>
-          <p className="mt-1 font-sans text-sm text-doctor-muted/75">
+        <div className="rounded-2xl border border-clear-divider bg-clear-surface p-4">
+          <p className="clinix-label text-clear-action">Verification: pending</p>
+          <p className="mt-1 font-sans text-sm text-clear-secondary">
             Your details are recorded as Pending; workspace access opens after setup.
           </p>
         </div>
@@ -101,7 +101,7 @@ export default function DoctorOnboardingPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="min-h-[58px] w-full rounded-[1.25rem] bg-copper px-4 font-sans text-base font-semibold text-ink transition-transform active:translate-y-px disabled:opacity-60"
+          className="min-h-[58px] w-full rounded-[1.25rem] bg-clear-action px-4 font-sans text-base font-semibold text-white transition-transform active:translate-y-px disabled:opacity-60"
         >
           {isSubmitting ? "Setting up…" : "Finish setup"}
         </button>

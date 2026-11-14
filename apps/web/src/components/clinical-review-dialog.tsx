@@ -13,7 +13,7 @@ export function ClinicalReviewDialog({
   onClose,
   returnFocusRef,
   children,
-  appearance = "legacy",
+  appearance = "clear",
 }: {
   titleId: string;
   busy: boolean;

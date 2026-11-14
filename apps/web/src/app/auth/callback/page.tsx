@@ -49,8 +49,8 @@ export default function AuthCallbackPage() {
   return (
     <AuthShell eyebrow="Secure access" title="Verifying your email" orientation="We’re checking your one-time confirmation link.">
       <p role="status" className="font-sans text-sm leading-6 text-graphite">{message}</p>
-      {failed && <a href="/sign-in" className="mt-5 block text-center font-sans text-xs font-semibold uppercase text-evidence">Return to sign in</a>}
-      {failed && <div className="mt-3 flex justify-center gap-4 font-sans text-xs font-semibold uppercase text-evidence"><a href="/sign-up">Resend confirmation</a><a href="/forgot-password">Forgot password</a></div>}
+      {failed && <a href="/sign-in" className="mt-3 flex min-h-11 items-center justify-center font-sans text-xs font-semibold uppercase text-clear-info">Return to sign in</a>}
+      {failed && <div className="mt-3 flex justify-center gap-4 font-sans text-xs font-semibold uppercase text-clear-info"><a href="/sign-up">Resend confirmation</a><a href="/forgot-password">Forgot password</a></div>}
     </AuthShell>
   );
 }

@@ -44,7 +44,7 @@ export default function RoleSelectPage() {
     return <AuthShell eyebrow="Account recovery" title="Reset your password" orientation="Complete password recovery to continue."><div className="h-12 animate-pulse rounded-xl bg-hairline" aria-hidden="true" /></AuthShell>;
   }
   if (state.status === "error") {
-    return <AuthShell eyebrow="Onboarding" title="Account unavailable" orientation="We could not confirm your application profile. Try again shortly."><button type="button" onClick={() => void state.refresh()} className="font-sans text-xs font-semibold uppercase text-evidence">Try again</button></AuthShell>;
+    return <AuthShell eyebrow="Onboarding" title="Account unavailable" orientation="We could not confirm your application profile. Try again shortly."><button type="button" onClick={() => void state.refresh()} className="font-sans text-xs font-semibold uppercase text-clear-info">Try again</button></AuthShell>;
   }
   if (state.status === "ready" && !workspacePathForRole(state.me.role)) {
     return <AuthShell eyebrow="CliniX" title="Access unavailable" orientation="This account does not have an authorized CliniX workspace."><span /></AuthShell>;
@@ -79,17 +79,17 @@ export default function RoleSelectPage() {
               Set up your professional profile and clinical workspace.
             </span>
           </span>
-          <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-copper text-xl text-ink">→</span>
+          <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-clear-action text-xl text-white">→</span>
         </Link>
         <Link
           href="/onboarding/staff"
-          className="clinix-card flex min-h-24 items-center justify-between gap-4 border-copper p-5 transition-transform active:translate-y-px"
+          className="clinix-card flex min-h-24 items-center justify-between gap-4 border-clear-divider p-5 transition-transform active:translate-y-px"
         >
           <span>
             <span className="block font-sans text-base font-semibold text-ink">I was invited by a clinic</span>
             <span className="mt-1 block font-sans text-sm text-graphite">Review an invitation as clinic staff.</span>
           </span>
-          <span className="rounded-full border border-copper px-2 py-1 font-sans text-[10px] font-bold uppercase text-review">Invite only</span>
+          <span className="rounded-full border border-clear-divider px-2 py-1 font-sans text-xs font-bold uppercase text-review">Invite only</span>
         </Link>
         <Link
           href="/onboarding/claim"
@@ -100,7 +100,7 @@ export default function RoleSelectPage() {
         </Link>
       </div>
       <FormError message={signOutError} />
-      <button type="button" disabled={signingOut} onClick={() => void handleSignOut()} className="mt-5 block w-full text-center font-sans text-xs font-semibold uppercase text-evidence disabled:opacity-60">{signingOut ? "Signing out…" : "Sign out"}</button>
+      <button type="button" disabled={signingOut} onClick={() => void handleSignOut()} className="mt-5 block w-full text-center font-sans text-xs font-semibold uppercase text-clear-info disabled:opacity-60">{signingOut ? "Signing out…" : "Sign out"}</button>
     </AuthShell>
   );
 }

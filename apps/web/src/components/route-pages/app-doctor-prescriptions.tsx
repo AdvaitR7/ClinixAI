@@ -126,7 +126,7 @@ export default function PrescriptionPage() {
   if (state.status === "error") {
     return (
       <WorkspaceShell workspace="Doctor" title="Prescription" nav={nav}>
-        <section className="clinix-doctor-card p-5">
+        <section className="clear-card p-5">
           <p className="font-sans text-sm text-critical">{state.error}</p>
         </section>
       </WorkspaceShell>
@@ -138,12 +138,12 @@ export default function PrescriptionPage() {
 
   return (
     <WorkspaceShell workspace="Doctor" title="Prescription record" nav={nav}>
-      <header className="clinix-doctor-card border-copper p-5">
+      <header className="clear-card border-clear-divider p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="clinix-label text-copper">Immutable record</p>
-            <h2 className="mt-1 font-sans text-xl font-bold text-surface">Version {current.version_number}</h2>
-            <p className="mt-1 font-mono text-xs text-doctor-muted/70">
+            <p className="clinix-label text-clear-action">Immutable record</p>
+            <h2 className="mt-1 font-sans text-xl font-bold text-clear-ink">Version {current.version_number}</h2>
+            <p className="mt-1 font-sans tabular-nums text-xs text-clear-secondary">
               Finalized by {current.finalized_by} · {fmt(current.finalized_at)}
             </p>
           </div>
@@ -152,22 +152,22 @@ export default function PrescriptionPage() {
       </header>
 
       {!amending && (
-        <section className="clinix-doctor-card p-5">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3">
-            <p className="clinix-label text-copper">Prescribed medicines</p>
-            <span className="font-mono text-xs text-doctor-muted/60">{current.items.length} items</span>
+        <section className="clear-card p-5">
+          <div className="flex items-center justify-between border-b border-clear-divider pb-3">
+            <p className="clinix-label text-clear-action">Prescribed medicines</p>
+            <span className="font-sans tabular-nums text-xs text-clear-secondary">{current.items.length} items</span>
           </div>
           <ul className="mt-3 space-y-3">
             {current.items.map((it, i) => (
-              <li key={i} className="rounded-xl border border-white/5 bg-black/20 p-3.5">
-                <p className="font-sans text-sm font-semibold text-surface">{it.medicine_name}</p>
-                <p className="mt-1 font-sans text-xs text-doctor-muted/80">
+              <li key={i} className="rounded-xl border border-clear-divider bg-clear-canvas p-3.5">
+                <p className="font-sans text-sm font-semibold text-clear-ink">{it.medicine_name}</p>
+                <p className="mt-1 font-sans text-xs text-clear-secondary">
                   {[it.strength, it.dose, it.route, it.frequency, it.timing, it.duration]
                     .filter(Boolean)
                     .join(" · ") || "No details"}
                 </p>
                 {it.instructions && (
-                  <p className="mt-1.5 font-sans text-[11px] text-doctor-muted/60">{it.instructions}</p>
+                  <p className="mt-1.5 font-sans text-xs text-clear-secondary">{it.instructions}</p>
                 )}
               </li>
             ))}
@@ -176,13 +176,13 @@ export default function PrescriptionPage() {
       )}
 
       {amending && (
-        <section className="clinix-doctor-card border-copper p-5">
-          <div className="border-b border-white/5 pb-3">
-            <p className="clinix-label text-copper">Amend prescription</p>
-            <h3 className="mt-1 font-sans text-base font-bold text-surface">Authoring Version {current.version_number + 1}</h3>
+        <section className="clear-card border-clear-divider p-5">
+          <div className="border-b border-clear-divider pb-3">
+            <p className="clinix-label text-clear-action">Amend prescription</p>
+            <h3 className="mt-1 font-sans text-base font-bold text-clear-ink">Authoring Version {current.version_number + 1}</h3>
           </div>
           <div className="mt-4">
-            <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-doctor-muted/75">
+            <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-clear-secondary">
               Reason for amendment *
             </label>
             <input
@@ -190,7 +190,7 @@ export default function PrescriptionPage() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Clinical reason for this revision"
-              className="mt-1.5 min-h-[46px] w-full rounded-xl border border-white/10 bg-doctor-panel px-3 font-sans text-sm text-surface outline-none focus:border-copper"
+              className="mt-1.5 min-h-[46px] w-full rounded-xl border border-clear-divider bg-clear-surface px-3 font-sans text-sm text-clear-ink outline-none focus:border-clear-action"
             />
           </div>
           <div className="mt-5">
@@ -200,16 +200,16 @@ export default function PrescriptionPage() {
       )}
 
       {rx.versions.length > 1 && !amending && (
-        <section className="clinix-doctor-card p-5">
-          <p className="clinix-label text-copper">Version history</p>
+        <section className="clear-card p-5">
+          <p className="clinix-label text-clear-action">Version history</p>
           <ul className="mt-3 space-y-2">
             {rx.versions.map((v) => (
-              <li key={v.version_number} className="flex items-center justify-between border-t border-white/5 py-2 font-sans text-xs">
-                <span className="text-surface">
-                  <span className="font-bold text-copper">v{v.version_number}</span>
+              <li key={v.version_number} className="flex items-center justify-between border-t border-clear-divider py-2 font-sans text-xs">
+                <span className="text-clear-ink">
+                  <span className="font-bold text-clear-action">v{v.version_number}</span>
                   {v.amendment_reason ? ` — ${v.amendment_reason}` : " — Initial finalization"}
                 </span>
-                <span className="font-mono text-[11px] text-doctor-muted/60">{fmt(v.finalized_at)}</span>
+                <span className="font-sans tabular-nums text-xs text-clear-secondary">{fmt(v.finalized_at)}</span>
               </li>
             ))}
           </ul>
@@ -223,7 +223,7 @@ export default function PrescriptionPage() {
           <button
             type="button"
             onClick={() => setAmending(false)}
-            className="min-h-12 flex-1 rounded-[1.25rem] border border-white/10 bg-doctor-panel font-sans text-xs font-semibold uppercase text-surface"
+            className="min-h-12 flex-1 rounded-[1.25rem] border border-clear-divider bg-clear-surface font-sans text-xs font-semibold uppercase text-clear-ink"
           >
             Cancel amendment
           </button>
@@ -231,7 +231,7 @@ export default function PrescriptionPage() {
             type="button"
             onClick={amend}
             disabled={busy}
-            className="min-h-12 flex-1 rounded-[1.25rem] bg-copper font-sans text-xs font-semibold uppercase text-ink transition-transform active:translate-y-px disabled:opacity-60"
+            className="min-h-12 flex-1 rounded-[1.25rem] bg-clear-action font-sans text-xs font-semibold uppercase text-white transition-transform active:translate-y-px disabled:opacity-60"
           >
             {busy ? "Saving…" : "Save new version"}
           </button>
@@ -241,14 +241,14 @@ export default function PrescriptionPage() {
           <button
             type="button"
             onClick={print}
-            className="min-h-12 flex-1 rounded-[1.25rem] border border-white/10 bg-doctor-panel font-sans text-xs font-semibold uppercase tracking-wider text-surface transition-transform active:translate-y-px"
+            className="min-h-12 flex-1 rounded-[1.25rem] border border-clear-divider bg-clear-surface font-sans text-xs font-semibold uppercase tracking-wider text-clear-ink transition-transform active:translate-y-px"
           >
             Print / PDF
           </button>
           <button
             type="button"
             onClick={beginAmend}
-            className="min-h-12 flex-1 rounded-[1.25rem] bg-copper font-sans text-xs font-semibold uppercase tracking-wider text-ink transition-transform active:translate-y-px"
+            className="min-h-12 flex-1 rounded-[1.25rem] bg-clear-action font-sans text-xs font-semibold uppercase tracking-wider text-white transition-transform active:translate-y-px"
           >
             Amend prescription
           </button>

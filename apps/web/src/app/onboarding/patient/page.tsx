@@ -108,7 +108,7 @@ export default function PatientOnboardingPage() {
                 name="privacy-mode"
                 checked={mode === "vault"}
                 onChange={() => setMode("vault")}
-                className="mt-1 h-4 w-4 accent-[#12352c]"
+                className="mt-1 h-4 w-4 accent-clear-action"
               />
               <span>
                 <span className="block font-sans text-sm font-semibold">Personal Health Vault</span>
@@ -123,7 +123,7 @@ export default function PatientOnboardingPage() {
                 name="privacy-mode"
                 checked={mode === "private"}
                 onChange={() => setMode("private")}
-                className="mt-1 h-4 w-4 accent-[#12352c]"
+                className="mt-1 h-4 w-4 accent-clear-action"
               />
               <span>
                 <span className="block font-sans text-sm font-semibold">Private Consultation Mode</span>

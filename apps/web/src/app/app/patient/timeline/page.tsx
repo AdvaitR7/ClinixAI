@@ -39,7 +39,7 @@ export default function PatientTimelinePage() {
     <WorkspaceShell workspace="patient" title="Health Timeline" nav={nav}>
       <div className="mx-auto max-w-[393px] pb-24">
         {/* Eyebrow & Headline */}
-        <p className="font-sans text-[9px] font-semibold tracking-widest text-graphite uppercase">
+        <p className="font-sans text-xs font-semibold tracking-widest text-graphite uppercase">
           PATIENT RECORD · LONGITUDINAL VIEW
         </p>
         <h1 className="mt-1 font-sans text-[30px] font-bold leading-tight text-ink">
@@ -51,14 +51,14 @@ export default function PatientTimelinePage() {
 
         {/* Count summary */}
         {state.status === "ready" && (
-          <p className="mt-2 font-mono text-[10px] font-semibold text-botanical">
+          <p className="mt-2 font-sans tabular-nums text-xs font-semibold text-botanical">
             {state.data.entries.length} entries · All recorded history
           </p>
         )}
 
         {/* Filter Pills */}
         <div className="mt-5">
-          <p className="font-sans text-[10px] font-semibold tracking-wider text-graphite uppercase">
+          <p className="font-sans text-xs font-semibold tracking-wider text-graphite uppercase">
             FILTER RECORDS
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -143,7 +143,7 @@ export default function PatientTimelinePage() {
                   <div key={item.id} className="relative">
                     {/* Chapter Header */}
                     {showChapter && (
-                      <p className="mb-4 font-sans text-[11px] font-bold tracking-wider text-botanical uppercase">
+                      <p className="mb-4 font-sans text-xs font-bold tracking-wider text-botanical uppercase">
                         {item.chapter}
                       </p>
                     )}
@@ -151,9 +151,9 @@ export default function PatientTimelinePage() {
                     <div className="flex items-start gap-3">
                       {/* Left: Date & Spine Dot */}
                       <div className="flex w-[48px] shrink-0 items-center justify-between pt-3">
-                        <div className="text-center font-sans text-[11px] font-semibold leading-tight text-graphite">
+                        <div className="text-center font-sans text-xs font-semibold leading-tight text-graphite">
                           <p>{item.date_formatted.split(" ")[0]}</p>
-                          <p className="text-[10px] text-graphite/70">
+                          <p className="text-xs text-graphite/70">
                             {item.date_formatted.split(" ")[1]}
                           </p>
                         </div>
@@ -161,11 +161,11 @@ export default function PatientTimelinePage() {
                         <div
                           className={`z-10 size-3 rounded-full border-2 border-surface ${
                             item.is_ai_derived
-                              ? "bg-evidence shadow-[0_0_6px_rgba(165,195,255,0.6)]"
+                              ? "bg-clear-info shadow-[0_0_6px_rgba(165,195,255,0.6)]"
                               : item.provenance === "DOCTOR_AUTHORED"
                               ? "bg-botanical"
                               : item.provenance === "SOURCE_DOCUMENT_DERIVED"
-                              ? "bg-copper"
+                              ? "bg-clear-action text-white"
                               : "bg-sage"
                           }`}
                         />
@@ -175,24 +175,24 @@ export default function PatientTimelinePage() {
                       <div
                         className={`flex-1 rounded-[20px] p-4 shadow-sm transition-all ${
                           item.is_ai_derived
-                            ? "border-2 border-dashed border-evidence/60 bg-evidence/5"
+                            ? "border-2 border-dashed border-clear-info bg-[#dde9f4]"
                             : "border border-sage/60 bg-surface"
                         }`}
                       >
                         {/* Header Row: Label & Provenance Chip */}
                         <div className="flex items-center justify-between">
-                          <span className="font-sans text-[9px] font-semibold tracking-wider text-graphite uppercase">
+                          <span className="font-sans text-xs font-semibold tracking-wider text-graphite uppercase">
                             {item.type.replace("_", " ")}
                           </span>
 
                           <span
-                            className={`rounded-full px-2 py-0.5 font-sans text-[8px] font-bold tracking-wider uppercase ${
+                            className={`rounded-full px-2 py-0.5 font-sans text-xs font-bold tracking-wider uppercase ${
                               item.provenance === "AI_DERIVED"
-                                ? "border border-evidence bg-evidence/20 text-botanical"
+                                ? "border border-clear-info bg-[#dde9f4] text-botanical"
                                 : item.provenance === "DOCTOR_AUTHORED"
-                                ? "border border-evidence-blue text-evidence"
+                                ? "border border-clear-info text-clear-info"
                                 : item.provenance === "SOURCE_DOCUMENT_DERIVED"
-                                ? "border border-copper text-copper"
+                                ? "border border-clear-divider text-clear-action"
                                 : "border border-sage text-graphite"
                             }`}
                           >
@@ -211,9 +211,9 @@ export default function PatientTimelinePage() {
                         {/* Card Deep Link */}
                         <div className="mt-3 flex items-center justify-between border-t border-hairline/60 pt-2">
                           {item.type === "AI_CHECKIN" && typeof item.metadata?.ai_session_id === "string" ? (
-                            <Link href={recordHref("/app/patient/timeline/checkins", "sessionId", item.metadata.ai_session_id)} className="inline-flex min-h-11 items-center font-sans text-[10px] font-semibold text-evidence">View details &amp; sources →</Link>
+                            <Link href={recordHref("/app/patient/timeline/checkins", "sessionId", item.metadata.ai_session_id)} className="inline-flex min-h-11 items-center font-sans text-xs font-semibold text-clear-info">View details &amp; sources →</Link>
                           ) : (
-                            <span className="font-sans text-[10px] font-semibold text-evidence">View details &amp; sources →</span>
+                            <span className="font-sans text-xs font-semibold text-clear-info">View details &amp; sources →</span>
                           )}
                           <span className="font-sans text-lg text-botanical/60">›</span>
                         </div>
@@ -228,7 +228,7 @@ export default function PatientTimelinePage() {
 
         {/* Legend Banner */}
         <div className="mt-10 rounded-[16px] bg-surface p-3.5 text-center shadow-sm">
-          <p className="font-sans text-[10px] font-medium text-graphite">
+          <p className="font-sans text-xs font-medium text-graphite">
             Provenance is always labeled: Patient-asserted · Doctor-authored · AI-derived
           </p>
         </div>

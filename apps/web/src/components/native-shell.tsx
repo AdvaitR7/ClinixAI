@@ -67,8 +67,8 @@ export function NativeShell() {
   }, []);
 
   if (!offline && !release) return null;
-  return <div role="status" className="fixed inset-x-3 top-3 z-[100] flex items-center justify-between gap-3 rounded-xl border border-copper bg-graphite px-4 py-3 text-sm text-surface shadow-xl">
+  return <div role="status" className="fixed inset-x-3 top-3 z-[100] flex items-center justify-between gap-3 rounded-xl border border-clear-divider bg-clear-surface px-4 py-3 text-sm text-clear-ink shadow-xl">
     <span>{offline ? "You are offline. Reconnect to load or save health records." : "A new CliniX update is available."}</span>
-    {release && <a href={release.download_url} target="_blank" rel="noreferrer" className="shrink-0 font-semibold text-copper">Open release</a>}
+    {release && <a href={release.download_url} target="_blank" rel="noreferrer" className="shrink-0 font-semibold text-clear-action">Open release</a>}
   </div>;
 }
