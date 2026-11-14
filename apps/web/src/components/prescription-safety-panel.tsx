@@ -17,33 +17,39 @@ export function PrescriptionSafetyPanel({
   patientId,
   riskFlags,
   overallConfidence,
+  appearance = "legacy",
 }: {
   patientId: string;
   riskFlags?: unknown;
   overallConfidence?: number | null;
+  /** Temporary migration switch; "clear" restyles to the light Clear v2 surface. */
+  appearance?: "legacy" | "clear";
 }) {
+  const clear = appearance === "clear";
+  const muted = clear ? "text-clear-secondary" : "text-doctor-muted/70";
+  const action = clear ? "text-clear-action" : "text-copper";
   const workspace = useApiData<DoctorWorkspace>(`/doctor/patients/${encodeURIComponent(patientId)}/workspace`);
   const current = workspace.status === "ready" ? (workspace.data.medications ?? []).filter((item) => item.status === "CURRENT") : [];
   const flags = flagList(riskFlags);
   return (
-    <section aria-labelledby="rx-safety-title" className="clinix-doctor-card border-copper p-4 font-sans text-xs text-surface">
-      <h3 id="rx-safety-title" className="clinix-label text-copper">Safety context</h3>
+    <section aria-labelledby="rx-safety-title" className={clear ? "clear-card p-4 font-sans text-xs text-clear-ink" : "clinix-doctor-card border-copper p-4 font-sans text-xs text-surface"}>
+      <h3 id="rx-safety-title" className={`clinix-label ${action}`}>Safety context</h3>
       <dl className="mt-3 space-y-3">
-        <div><dt className="text-doctor-muted/70">Known allergies</dt><dd className="mt-1">Allergy data unavailable — confirm with the patient.</dd></div>
+        <div><dt className={muted}>Known allergies</dt><dd className="mt-1">Allergy data unavailable — confirm with the patient.</dd></div>
         <div>
-          <dt className="text-doctor-muted/70">Current medicines you recorded</dt>
+          <dt className={muted}>Current medicines you recorded</dt>
           <dd className="mt-1">
             {workspace.status === "loading" && <span role="status">Checking recorded medicines…</span>}
             {workspace.status === "error" && (
-              <span role="alert">{workspace.error} <button type="button" onClick={() => void workspace.refresh()} className="min-h-11 text-copper underline">Retry medicine context</button></span>
+              <span role="alert">{workspace.error} <button type="button" onClick={() => void workspace.refresh()} className={`min-h-11 underline ${action}`}>Retry medicine context</button></span>
             )}
             {workspace.status === "ready" && (current.length ? <ul className="list-disc pl-4">{current.map((item) => <li key={item.entry_id ?? `${item.medicine_name}-${item.prescription_id}`}>{[item.medicine_name, item.dose, item.frequency].filter(Boolean).join(" · ")}</li>)}</ul> : "None recorded by you")}
           </dd>
         </div>
-        {typeof overallConfidence === "number" && <div><dt className="text-doctor-muted/70">OCR confidence</dt><dd className="mt-1">{Math.round(overallConfidence * 100)}%</dd></div>}
-        {flags.length > 0 && <div><dt className="text-doctor-muted/70">Extraction flags</dt><dd className="mt-1">{flags.join(" · ")}</dd></div>}
+        {typeof overallConfidence === "number" && <div><dt className={muted}>OCR confidence</dt><dd className="mt-1">{Math.round(overallConfidence * 100)}%</dd></div>}
+        {flags.length > 0 && <div><dt className={muted}>Extraction flags</dt><dd className="mt-1">{flags.join(" · ")}</dd></div>}
       </dl>
-      <p className="mt-3 text-[11px] leading-4 text-doctor-muted/75">No interaction or dose-range check is performed. Medicines recorded by other clinicians are not shown.</p>
+      <p className={`mt-3 text-[11px] leading-4 ${clear ? "text-clear-secondary" : "text-doctor-muted/75"}`}>No interaction or dose-range check is performed. Medicines recorded by other clinicians are not shown.</p>
     </section>
   );
 }

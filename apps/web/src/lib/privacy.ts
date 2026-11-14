@@ -12,6 +12,9 @@ export const careNav = (active: "Care" | "None" = "Care") => [
 /** Shared card/label classes matching the patient workspace look. */
 export const privacyCard = "rounded-[28px] border border-hairline bg-surface p-5 shadow-sm";
 export const privacyLabel = "text-[9px] uppercase text-graphite";
+/** Clear v2 equivalents: opaque white reading surface and a 12px label. Screens switch to these as they migrate. */
+export const clearPrivacyCard = "clear-card p-5";
+export const clearPrivacyLabel = "text-xs font-semibold uppercase tracking-wide text-clear-secondary";
 
 const SCOPE_LABELS: Record<string, string> = {
   ENCOUNTER: "Consultation packet",

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { InstallPromptCapture } from "@/components/install-app";
 import { NativeShell } from "@/components/native-shell";
 import { AuthProvider } from "@/lib/auth";
@@ -10,6 +10,12 @@ import "./globals.css";
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-jakarta",
+});
+
+// Single global Inter source for Clear screens; legacy screens keep Jakarta until the Phase 8 default switch.
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 const jbmono = JetBrains_Mono({
@@ -36,7 +42,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${jbmono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jakarta.variable} ${jbmono.variable}`}>
       <body className="min-h-dvh bg-canvas font-sans text-ink antialiased">
         <SerwistProvider swUrl="/sw.js" disable={process.env.NODE_ENV === "development" || process.env.NEXT_PUBLIC_MOBILE_BUNDLE === "1"}>
           <InstallPromptCapture />

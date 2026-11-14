@@ -7,6 +7,7 @@ import { ClinixBrand } from "@/components/clinix-brand";
 import { ConnectionStatus } from "@/components/connection-status";
 import { useInstallState } from "@/components/install-app";
 import { NotificationBell } from "@/components/notification-bell";
+import { UiIcon, type UiIconName } from "@/components/ui-icon";
 import { useAuth } from "@/lib/auth";
 
 type NavItem = {
@@ -16,8 +17,8 @@ type NavItem = {
   disabled?: boolean;
 };
 
-/** Provides account access and sign-out in the original workspace header. */
-export function AccountMenu() {
+/** Provides account access and sign-out in the original workspace header. `appearance="clear"` only recolours the trigger. */
+export function AccountMenu({ appearance = "legacy" }: { appearance?: "legacy" | "clear" }) {
   const { user, signOut } = useAuth();
   const install = useInstallState();
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +35,7 @@ export function AccountMenu() {
 
   return (
     <details className="relative">
-      <summary aria-label="Account options" className="grid size-11 cursor-pointer list-none place-items-center rounded-full font-sans text-sm font-bold text-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evidence">
+      <summary aria-label="Account options" className={`grid size-11 cursor-pointer list-none place-items-center rounded-full font-sans text-sm font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evidence ${appearance === "clear" ? "text-clear-action" : "text-surface"}`}>
         {initial}
       </summary>
       <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-sage bg-surface p-4 text-ink shadow-xl">
@@ -102,7 +103,122 @@ function NavIcon({ label }: { label: string }) {
   );
 }
 
-/** Role-aware application shell, preserving the original caller contract. */
+/** Maps a nav label to the Clear icon vocabulary, mirroring the label matching used by the legacy icons. */
+function clearIconFor(label: string): UiIconName {
+  if (/home|desk/i.test(label)) return "home";
+  if (/patient|care|you/i.test(label)) return "user";
+  if (/vault|report|draft/i.test(label)) return "file";
+  if (/visit|schedule|timeline/i.test(label)) return "calendar";
+  return "plus";
+}
+
+/**
+ * Clear v2 workspace layout: light canvas with a soft backdrop wash, glass header controls and a
+ * glass dock. Same props, destinations, account menu, bell and offline banner as the legacy shell;
+ * only presentation differs. Permissions never depend on this theme.
+ */
+function ClearWorkspaceShell({
+  workspace,
+  title,
+  nav,
+  children,
+  focused,
+  hideHeading,
+  hideNavigation,
+  headerAction,
+  headerContent,
+  flowNavigation,
+}: ShellProps) {
+  const width = focused ? "max-w-[430px]" : "max-w-[87.5rem]";
+
+  return (
+    <div data-ui="clear" className="relative min-h-dvh">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[450px] overflow-hidden bg-gradient-to-b from-[#e6f0f2] to-clear-canvas"
+      >
+        <div className="absolute left-[180px] top-[80px] h-[290px] w-[350px] rounded-full bg-[radial-gradient(closest-side,#8fb4d0db,transparent)]" />
+        <div className="absolute -left-[95px] top-[130px] h-[250px] w-[360px] rounded-full bg-[radial-gradient(closest-side,#91cac1db,transparent)]" />
+      </div>
+
+      <header className={`relative z-[1] mx-auto flex w-full ${width} items-center justify-between px-6 pb-3 pt-[max(1.25rem,env(safe-area-inset-top))]`}>
+        {headerContent ?? <>
+        <ClinixBrand appearance="clear" />
+        {headerAction ?? <div className="flex items-center gap-2">
+          <NotificationBell doctor={false} appearance="clear" />
+          <span className="clear-glass grid size-11 place-items-center rounded-full">
+            <AccountMenu appearance="clear" />
+          </span>
+        </div>}
+        </>}
+      </header>
+
+      <ConnectionStatus className={`relative z-[1] mx-auto w-full ${width}`} />
+
+      {!hideHeading && <div className={`relative z-[1] mx-auto w-full ${width} px-6 pt-2`}>
+        <p className="clinix-label text-clear-secondary">{workspace} workspace</p>
+        <h1 className="mt-1 text-[2rem] font-bold leading-[1.19] tracking-[-0.02em] text-clear-ink">{title}</h1>
+      </div>}
+
+      <main className={`relative z-[1] mx-auto w-full ${width} space-y-6 px-6 pt-6 ${flowNavigation ? "pb-6" : "pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:pb-10"}`}>
+        {children}
+      </main>
+
+      {!hideNavigation && <nav
+        aria-label={`${workspace} workspace`}
+        className={`clear-glass z-40 !rounded-[28px] p-1.5 ${flowNavigation ? "relative mx-auto mb-6 w-[calc(100%_-_3rem)] max-w-[398px]" : "fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] mx-auto max-w-[398px] md:sticky md:inset-x-auto md:bottom-4"}`}
+      >
+        <ul className="grid auto-cols-fr grid-flow-col">
+          {nav.map((item) => {
+            const base = "flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-[22px] px-1 text-center text-[11px] leading-[15px] [overflow-wrap:anywhere]";
+            return (
+              <li key={item.label} className="min-w-0">
+                {item.disabled ? (
+                  <span aria-disabled="true" className={`${base} text-clear-secondary/50`}>
+                    <UiIcon name={clearIconFor(item.label)} />
+                    <span>{item.label}</span>
+                  </span>
+                ) : (
+                  <Link
+                    href={item.href}
+                    aria-current={item.active ? "page" : undefined}
+                    className={`${base} font-medium transition-colors ${
+                      item.active
+                        ? "bg-clear-selection text-clear-action"
+                        : "text-clear-secondary hover:text-clear-ink"
+                    }`}
+                  >
+                    <UiIcon name={clearIconFor(item.label)} />
+                    <span>{item.label}</span>
+                  </Link>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </nav>}
+    </div>
+  );
+}
+
+type ShellProps = {
+  workspace: string;
+  title: string;
+  nav: NavItem[];
+  children: ReactNode;
+  focused?: boolean;
+  hideHeading?: boolean;
+  hideNavigation?: boolean;
+  headerAction?: ReactNode;
+  headerContent?: ReactNode;
+  flowNavigation?: boolean;
+};
+
+/**
+ * Role-aware application shell, preserving the original caller contract.
+ * `appearance` is a temporary migration switch: "legacy" (default) is unchanged, "clear" opts a
+ * screen into the Clear v2 layout. It is removed once every route has migrated (Phase 8).
+ */
 export function WorkspaceShell({
   workspace,
   title,
@@ -114,18 +230,25 @@ export function WorkspaceShell({
   headerAction,
   headerContent,
   flowNavigation = false,
-}: {
-  workspace: string;
-  title: string;
-  nav: NavItem[];
-  children: ReactNode;
-  focused?: boolean;
-  hideHeading?: boolean;
-  hideNavigation?: boolean;
-  headerAction?: ReactNode;
-  headerContent?: ReactNode;
-  flowNavigation?: boolean;
-}) {
+  appearance = "legacy",
+}: ShellProps & { appearance?: "legacy" | "clear" }) {
+  if (appearance === "clear") {
+    return (
+      <ClearWorkspaceShell
+        workspace={workspace}
+        title={title}
+        nav={nav}
+        focused={focused}
+        hideHeading={hideHeading}
+        hideNavigation={hideNavigation}
+        headerAction={headerAction}
+        headerContent={headerContent}
+        flowNavigation={flowNavigation}
+      >
+        {children}
+      </ClearWorkspaceShell>
+    );
+  }
   const doctor = workspace.toLowerCase().includes("doctor");
   const width = focused ? "max-w-[393px]" : "max-w-[87.5rem]";
 

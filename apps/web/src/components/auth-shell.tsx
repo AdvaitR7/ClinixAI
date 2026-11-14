@@ -8,13 +8,33 @@ export function AuthShell({
   orientation,
   children,
   tone = "patient",
+  appearance = "legacy",
 }: {
   eyebrow: string;
   title: string;
   orientation: string;
   children: ReactNode;
   tone?: "patient" | "doctor";
+  /** Temporary migration switch: "clear" opts a screen into the light Clear v2 layout (the doctor tone is ignored there). */
+  appearance?: "legacy" | "clear";
 }) {
+  if (appearance === "clear") {
+    return (
+      <main data-ui="clear" className="min-h-dvh px-6 pb-12 pt-[max(2rem,env(safe-area-inset-top))] sm:py-12">
+        <div className="mx-auto w-full max-w-[430px]">
+          <header className="flex justify-start">
+            <ClinixBrand appearance="clear" />
+          </header>
+          <div className="mt-10">
+            <p className="clinix-label text-clear-action">{eyebrow}</p>
+            <h1 className="mt-2 text-[2.125rem] font-bold leading-[1.15] tracking-[-0.02em] text-clear-ink">{title}</h1>
+            <p className="mt-3 max-w-[65ch] text-[0.9375rem] leading-[1.4] text-clear-secondary">{orientation}</p>
+          </div>
+          <div className="mt-8">{children}</div>
+        </div>
+      </main>
+    );
+  }
   const doctor = tone === "doctor";
   return (
     <main className={`min-h-dvh px-6 pb-12 pt-[max(2rem,env(safe-area-inset-top))] sm:py-12 ${doctor ? "bg-ink text-surface" : "bg-canvas text-ink"}`}>

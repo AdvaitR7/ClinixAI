@@ -1,5 +1,35 @@
-/** Renders the shared brand, including the text mark used by focused clinical frames. */
-export function ClinixBrand({ inverted = false, monogram = false }: { inverted?: boolean; monogram?: boolean }) {
+import { UiIcon } from "@/components/ui-icon";
+
+/**
+ * Renders the shared brand, including the text mark used by focused clinical frames.
+ * `appearance="clear"` swaps in the approved Clear v2 mark (30px jade tile with a plus);
+ * the default keeps the legacy mark until the Phase 8 default switch.
+ */
+export function ClinixBrand({
+  inverted = false,
+  monogram = false,
+  appearance = "legacy",
+}: {
+  inverted?: boolean;
+  monogram?: boolean;
+  appearance?: "legacy" | "clear";
+}) {
+  if (appearance === "clear") {
+    return (
+      <span data-brand="clear" className="inline-flex items-center gap-2.5" aria-label="ClinixAI">
+        <span
+          aria-hidden="true"
+          className="grid size-[30px] place-items-center rounded-[10px] bg-clear-action text-white"
+        >
+          <UiIcon name="plus" size={14} />
+        </span>
+        <span className="text-[19px] font-semibold leading-[27px] tracking-[-0.02em] text-clear-ink">
+          ClinixAI
+        </span>
+      </span>
+    );
+  }
+
   return (
     <span className="inline-flex items-center gap-2.5" aria-label="ClinixAI">
       <span

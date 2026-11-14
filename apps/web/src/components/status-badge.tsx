@@ -28,12 +28,26 @@ const STATUS_STYLES: Record<string, string> = {
   FAILED: "border-critical/40 bg-critical/10 text-critical",
 };
 
-/** Text + color status chip (DESIGN.md §7: never color-only). */
+type StatusTone = "positive" | "review" | "urgent" | "neutral";
+
+const STATUS_TONES: Record<string, StatusTone> = {
+  CONFIRMED: "positive", OPEN: "positive", ACTIVE: "positive", APPROVED: "positive", CURRENT: "positive", PAID: "positive",
+  REQUESTED: "review", WAITING_FOR_PATIENT: "review", WAITING_FOR_DOCTOR: "review", UNCLAIMED: "review",
+  NEEDS_REVIEW: "review", UNKNOWN_STATUS: "review", UNPAID: "review", PROCESSING: "review",
+  CANCELLED: "urgent", NO_SHOW: "urgent", REJECTED: "urgent", FAILED: "urgent",
+};
+
+/**
+ * Text + color status chip (DESIGN.md §7: never color-only).
+ * `data-tone` only feeds the opt-in Clear styling; the status text and legacy classes are unchanged,
+ * and any status without an explicit tone stays neutral rather than guessing a meaning.
+ */
 export function StatusBadge({ status }: { status: string }) {
   const cls = STATUS_STYLES[status] ?? "border-hairline bg-surface text-graphite";
   return (
     <span
-      className={`inline-flex min-h-6 items-center rounded-full border px-2.5 py-1 font-sans text-[10px] font-bold uppercase leading-none tracking-[0.04em] ${cls}`}
+      data-tone={STATUS_TONES[status] ?? "neutral"}
+      className={`clinix-badge inline-flex min-h-6 items-center rounded-full border px-2.5 py-1 font-sans text-[10px] font-bold uppercase leading-none tracking-[0.04em] ${cls}`}
     >
       {status.replace(/_/g, " ")}
     </span>

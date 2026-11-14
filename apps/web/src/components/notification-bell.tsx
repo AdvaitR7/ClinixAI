@@ -9,7 +9,7 @@ import { unreadCount } from "@/lib/notifications";
  * Header bell that links to the notifications screen and shows the unread count as text.
  * A failed or pending fetch shows no count rather than blocking the header.
  */
-export function NotificationBell({ doctor }: { doctor: boolean }) {
+export function NotificationBell({ doctor, appearance = "legacy" }: { doctor: boolean; appearance?: "legacy" | "clear" }) {
   const state = useApiData<NotificationView[]>("/notifications");
   // Tolerate any non-list payload so a bad response can never break the header.
   const unread = state.status === "ready" && Array.isArray(state.data) ? unreadCount(state.data) : 0;
@@ -17,8 +17,10 @@ export function NotificationBell({ doctor }: { doctor: boolean }) {
     <Link
       href="/notifications"
       aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
-      className={`relative grid size-11 place-items-center rounded-full border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evidence ${
-        doctor ? "border-copper text-copper" : "border-sage bg-surface text-botanical"
+      className={`relative grid size-11 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-evidence ${
+        appearance === "clear"
+          ? "clear-glass text-clear-action"
+          : `border ${doctor ? "border-copper text-copper" : "border-sage bg-surface text-botanical"}`
       }`}
     >
       <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">

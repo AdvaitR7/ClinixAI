@@ -40,7 +40,7 @@ export function MedicationEncounter({ encounterId }: { encounterId: string }) {
     {timeline.status === "error" && <div role="alert" className="text-sm text-critical"><p>{timeline.error}</p><button type="button" onClick={() => void timeline.refresh()} className="mt-3 min-h-11 underline">Retry encounter</button></div>}
     {timeline.status === "ready" && !entry && <div role="alert" className="text-sm"><p>This encounter is unavailable in your Timeline.</p><button type="button" onClick={() => void timeline.refresh()} className="mt-3 min-h-11 underline">Retry encounter</button></div>}
     {entry && <article className="clinix-card space-y-4 p-5"><p className="text-[10px] tracking-wider text-botanical">{entry.chapter}</p><h3 className="break-words text-xl">{entry.title}</h3><p className="text-xs text-graphite">{new Date(entry.timestamp).toLocaleString("en-GB")}</p><p className="text-[10px]">{entry.provenance.replaceAll("_", " ")}</p><p className="text-sm leading-6">{entry.summary}</p>{typeof entry.metadata?.status === "string" && <p className="text-xs">Recorded status: {entry.metadata.status}</p>}</article>}
-    <Link href="/app/patient/timeline" className="flex min-h-12 items-center justify-center rounded-2xl bg-botanical px-4 text-xs text-surface">Open full Timeline</Link>
+    <Link href="/app/patient/timeline" className="clinix-action flex min-h-12 items-center justify-center rounded-2xl bg-botanical px-4 text-xs text-surface">Open full Timeline</Link>
   </section>;
 }
 

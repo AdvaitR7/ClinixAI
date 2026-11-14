@@ -20,7 +20,8 @@ export function ConfidenceBadge({ value }: { value: number | null | undefined })
   const label = confidenceLabel(value);
   return (
     <span
-      className={`inline-flex min-h-6 items-center rounded-full border px-2.5 py-1 font-sans text-[10px] font-bold uppercase leading-none tracking-[0.04em] ${CONF_STYLES[label]}`}
+      data-tone={label === "HIGH" ? "positive" : "review"}
+      className={`clinix-badge inline-flex min-h-6 items-center rounded-full border px-2.5 py-1 font-sans text-[10px] font-bold uppercase leading-none tracking-[0.04em] ${CONF_STYLES[label]}`}
     >
       {CONF_TEXT[label]}
     </span>

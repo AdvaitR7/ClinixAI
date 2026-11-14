@@ -15,11 +15,14 @@ export function StaffShell({
   active,
   title,
   children,
+  appearance = "legacy",
 }: {
   role: StaffRole | null;
   active: Active;
   title: string;
   children: ReactNode;
+  /** Temporary migration switch forwarded to WorkspaceShell. */
+  appearance?: "legacy" | "clear";
 }) {
   const third = role === "ASSISTANT"
     ? { key: "intake" as const, label: "Intake", href: "/app/staff/schedule?tab=intake" }
@@ -31,7 +34,7 @@ export function StaffShell({
     { label: "Follow-ups", href: "/app/staff/followups", key: "followups" },
   ].map(({ key, ...item }) => ({ ...item, active: key === active }));
   return (
-    <WorkspaceShell workspace="Doctor staff" title={title} nav={nav} focused hideHeading>
+    <WorkspaceShell workspace="Doctor staff" title={title} nav={nav} focused hideHeading appearance={appearance}>
       {children}
     </WorkspaceShell>
   );

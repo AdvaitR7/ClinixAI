@@ -19,6 +19,31 @@
   /* Typography — DESIGN.md §3 */
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jbmono), ui-monospace, monospace;
+
+  /* Clear v2 semantic tokens (FigCraft collection 3, aliases 32-41). Additive: legacy tokens above stay for unmigrated screens. */
+  --color-clear-canvas: #f2f6f6;
+  --color-clear-surface: #ffffff;
+  --color-clear-ink: #172b30;
+  --color-clear-secondary: #566c73;
+  --color-clear-action: #075f56;
+  --color-clear-selection: #d6eee8;
+  --color-clear-divider: #dce5e6;
+  --color-clear-urgent: #b13839;
+  --color-clear-review: #865411;
+  --color-clear-info: #315b85;
+}
+
+/* Clear v2 component aliases (FigCraft 42-44) and shared geometry. Plain variables: they need no utility classes. */
+:root {
+  --clear-button-bg: var(--color-clear-action);
+  --clear-field-bg: var(--color-clear-surface);
+  --clear-nav-selected: var(--color-clear-selection);
+  --clear-control-radius: 22px;
+  --clear-field-radius: 16px;
+  --clear-card-radius: 20px;
+  --clear-glass-fill: rgb(255 255 255 / 24%);
+  --clear-glass-edge: rgb(255 255 255 / 85%);
+  --clear-glass-shadow: 0 7px 19px -8px rgb(36 79 96 / 19%);
 }
 
 @layer base {
@@ -89,6 +114,282 @@
   .clinix-field::placeholder {
     color: var(--color-graphite);
     opacity: 0.65;
+  }
+}
+
+/*
+ * Clear v2 vocabulary. Every rule is scoped to [data-ui="clear"] (or an explicit clear- class) so
+ * unmigrated screens keep the legacy look until Phase 8 flips the default.
+ * Glass is for optical controls only; reading, form and confirmation surfaces stay opaque.
+ */
+@layer components {
+  [data-ui="clear"] {
+    background: var(--color-clear-canvas);
+    color: var(--color-clear-ink);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    isolation: isolate;
+  }
+
+  [data-ui="clear"] :focus-visible {
+    outline: 3px solid var(--color-clear-info);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 3px var(--color-clear-surface);
+  }
+
+  /* Native CSS approximation of the FigCraft material (blur 12, white edge, inner highlight, soft shadow). */
+  .clear-glass {
+    border: 1px solid var(--clear-glass-edge);
+    border-radius: var(--clear-control-radius);
+    background: var(--clear-glass-fill);
+    box-shadow: inset 0 1px 1.5px rgb(255 255 255 / 85%), var(--clear-glass-shadow);
+  }
+
+  @supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+    .clear-glass {
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+  }
+
+  /* Without backdrop-filter a 24% fill is unreadable, so fall back to an opaque surface. */
+  @supports not ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+    .clear-glass {
+      background: var(--color-clear-surface);
+      border-color: var(--color-clear-divider);
+    }
+  }
+
+  /* Opaque reading surface for notes, facts, consent, audit and confirmations. */
+  .clear-card {
+    border: 1px solid var(--color-clear-divider);
+    border-radius: var(--clear-card-radius);
+    background: var(--color-clear-surface);
+    color: var(--color-clear-ink);
+  }
+
+  /* 16px text keeps iOS from zooming on focus (exception AX-02). */
+  .clear-field {
+    min-height: 3.375rem;
+    width: 100%;
+    border: 1px solid var(--color-clear-divider);
+    border-radius: var(--clear-field-radius);
+    background: var(--clear-field-bg);
+    padding: 0.875rem 1rem;
+    color: var(--color-clear-ink);
+    font-size: 1rem;
+    line-height: 1.375rem;
+  }
+
+  .clear-field::placeholder {
+    color: var(--color-clear-secondary);
+  }
+
+  .clear-field:focus-visible {
+    border-color: var(--color-clear-action);
+  }
+
+  .clear-field[aria-invalid="true"] {
+    border-color: var(--color-clear-urgent);
+  }
+
+  .clear-field:disabled {
+    background: var(--color-clear-canvas);
+    color: var(--color-clear-secondary);
+  }
+
+  .clear-button {
+    display: inline-flex;
+    min-height: 3.375rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 1.125rem;
+    background: var(--clear-button-bg);
+    padding: 0 1.25rem;
+    color: #ffffff;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    transition: background-color 120ms ease-out, transform 80ms ease-out;
+  }
+
+  .clear-button:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--clear-button-bg) 88%, #000000);
+  }
+
+  .clear-button:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  .clear-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .clear-button[data-variant="secondary"] {
+    border-color: var(--color-clear-divider);
+    background: var(--color-clear-surface);
+    color: var(--color-clear-action);
+  }
+
+  .clear-button[data-variant="danger"] {
+    border-color: var(--color-clear-urgent);
+    background: var(--color-clear-surface);
+    color: var(--color-clear-urgent);
+  }
+
+  /* Semantic status chips. Colour never carries meaning alone: the label text is always rendered. */
+  .clear-status {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 0.75rem;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.0625rem;
+    overflow-wrap: anywhere;
+  }
+
+  .clear-status[data-tone="positive"] {
+    background: var(--color-clear-selection);
+    color: var(--color-clear-action);
+  }
+
+  .clear-status[data-tone="review"] {
+    background: #f8ecd4;
+    color: var(--color-clear-review);
+  }
+
+  .clear-status[data-tone="urgent"] {
+    background: #f8e1e1;
+    color: var(--color-clear-urgent);
+  }
+
+  .clear-status[data-tone="info"] {
+    background: #dde9f4;
+    color: var(--color-clear-info);
+  }
+
+  .clear-status[data-tone="neutral"] {
+    background: var(--color-clear-canvas);
+    color: var(--color-clear-secondary);
+  }
+
+  .clear-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/*
+ * Clear restyle of existing badges and skeletons. Deliberately unlayered: the badges carry legacy
+ * Tailwind utilities, which would win over anything inside @layer. Scoped, so legacy screens are unchanged.
+ */
+[data-ui="clear"] .clinix-badge {
+  min-height: 1.5rem;
+  max-width: 100%;
+  border-color: transparent;
+  border-radius: 0.75rem;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.0625rem;
+  overflow-wrap: anywhere;
+}
+
+[data-ui="clear"] .clinix-badge[data-tone="positive"] {
+  background: var(--color-clear-selection);
+  color: var(--color-clear-action);
+}
+
+[data-ui="clear"] .clinix-badge[data-tone="review"] {
+  background: #f8ecd4;
+  color: var(--color-clear-review);
+}
+
+[data-ui="clear"] .clinix-badge[data-tone="urgent"] {
+  background: #f8e1e1;
+  color: var(--color-clear-urgent);
+}
+
+[data-ui="clear"] .clinix-badge[data-tone="neutral"] {
+  border-color: var(--color-clear-divider);
+  background: var(--color-clear-canvas);
+  color: var(--color-clear-secondary);
+}
+
+/* Already-light legacy components adopt the Clear surface language when a screen opts in. */
+[data-ui="clear"] .clinix-card {
+  border-color: var(--color-clear-divider);
+  border-radius: var(--clear-card-radius);
+  background: var(--color-clear-surface);
+  box-shadow: none;
+}
+
+[data-ui="clear"] .clinix-field {
+  border-color: var(--color-clear-divider);
+  border-radius: var(--clear-field-radius);
+  background: var(--clear-field-bg);
+  font-size: 1rem;
+}
+
+[data-ui="clear"] .clinix-field::placeholder {
+  color: var(--color-clear-secondary);
+  opacity: 1;
+}
+
+[data-ui="clear"] .clinix-action {
+  background: var(--clear-button-bg);
+  color: #ffffff;
+}
+
+[data-ui="clear"] .clinix-skeleton {
+  background: var(--color-clear-divider);
+}
+
+@media (forced-colors: active) {
+  [data-ui="clear"] .clinix-badge {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+
+/* Users who ask for less transparency get the opaque surface even where blur is supported. */
+@media (prefers-reduced-transparency: reduce) {
+  .clear-glass {
+    background: var(--color-clear-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Forced colors: drop decorative fills and shadows and rely on system colours and visible borders. */
+@media (forced-colors: active) {
+  .clear-glass,
+  .clear-card,
+  .clear-field,
+  .clear-status {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    color: CanvasText;
+  }
+
+  .clear-button {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+
+  [data-ui="clear"] :focus-visible {
+    outline: 3px solid Highlight;
+    box-shadow: none;
   }
 }
 
