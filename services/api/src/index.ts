@@ -67,7 +67,7 @@ app.get("/health", async () => {
     ok: true,
     db: up ? "up" : "down",
     version: process.env.APP_VERSION ?? "unknown",
-    revision: process.env.GIT_SHA ?? "unknown",
+    revision: process.env.GIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown",
   };
 });
 
