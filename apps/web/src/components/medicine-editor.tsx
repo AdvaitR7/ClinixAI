@@ -24,37 +24,19 @@ const FIELDS: { key: keyof PrescriptionItemInput; label: string; wide?: boolean 
   { key: "instructions", label: "Instructions", wide: true },
 ];
 
-const inputClass =
-  "mt-1 min-h-[44px] w-full rounded-xl border border-white/10 bg-doctor-panel px-3 font-sans text-sm text-surface outline-none focus:border-copper";
-
-/** Class sets for the two appearances. Only presentation differs; every handler and field is shared. */
-const LOOK = {
-  legacy: {
-    card: "clinix-doctor-card border-copper/40 p-4",
-    head: "flex items-center justify-between border-b border-white/5 pb-2.5",
-    title: "clinix-label text-copper",
-    iconButton: "grid size-11 place-items-center rounded-lg border border-white/10 bg-doctor-panel text-surface disabled:opacity-30",
-    removeButton: "grid size-11 place-items-center rounded-lg border border-critical/30 bg-critical/10 text-critical",
-    review: "mt-3 rounded-xl border border-review/60 bg-review/10 p-3 font-sans text-xs text-surface",
-    reviewTitle: "font-bold uppercase text-review",
-    checkbox: "size-5 accent-copper",
-    label: "font-sans text-xs text-doctor-muted/70",
-    input: inputClass,
-    add: "min-h-12 w-full rounded-2xl border border-dashed border-copper/50 bg-doctor-panel px-4 font-sans text-xs font-semibold uppercase tracking-wider text-copper transition-colors hover:border-copper",
-  },
-  clear: {
-    card: "clear-card p-4",
-    head: "flex items-center justify-between border-b border-clear-divider pb-2.5",
-    title: "clinix-label text-clear-action",
-    iconButton: "grid size-11 place-items-center rounded-lg border border-clear-divider bg-clear-surface text-clear-ink disabled:opacity-30",
-    removeButton: "grid size-11 place-items-center rounded-lg border border-clear-urgent/30 bg-[#f8e1e1] text-clear-urgent",
-    review: "mt-3 rounded-xl border border-clear-review/60 bg-[#f8ecd4] p-3 font-sans text-xs text-clear-ink",
-    reviewTitle: "font-bold uppercase text-clear-review",
-    checkbox: "size-5 accent-clear-action",
-    label: "text-xs text-clear-secondary",
-    input: "clear-field mt-1",
-    add: "min-h-12 w-full rounded-2xl border border-dashed border-clear-action/50 bg-clear-surface px-4 text-xs font-semibold uppercase tracking-wider text-clear-action transition-colors hover:border-clear-action",
-  },
+/** Class set for the Clear surface. Only presentation lives here; every handler and field is in the component. */
+const look = {
+  card: "clear-card p-4",
+  head: "flex items-center justify-between border-b border-clear-divider pb-2.5",
+  title: "clinix-label text-clear-action",
+  iconButton: "grid size-11 place-items-center rounded-lg border border-clear-divider bg-clear-surface text-clear-ink disabled:opacity-30",
+  removeButton: "grid size-11 place-items-center rounded-lg border border-clear-urgent/30 bg-[#f8e1e1] text-clear-urgent",
+  review: "mt-3 rounded-xl border border-clear-review/60 bg-[#f8ecd4] p-3 font-sans text-xs text-clear-ink",
+  reviewTitle: "font-bold uppercase text-clear-review",
+  checkbox: "size-5 accent-clear-action",
+  label: "text-xs text-clear-secondary",
+  input: "clear-field mt-1",
+  add: "min-h-12 w-full rounded-2xl border border-dashed border-clear-action/50 bg-clear-surface px-4 text-xs font-semibold uppercase tracking-wider text-clear-action transition-colors hover:border-clear-action",
 } as const;
 
 /** Structured medicine rows with accessible reordering and removal. */
@@ -62,15 +44,11 @@ export function MedicineEditor({
   items,
   onChange,
   blankItem = { medicine_name: "" },
-  appearance = "clear",
 }: {
   items: EditorItem[];
   onChange: (items: EditorItem[]) => void;
   blankItem?: EditorItem;
-  /** Temporary migration switch; "clear" restyles to the light Clear v2 surface. */
-  appearance?: "legacy" | "clear";
 }) {
-  const look = LOOK[appearance];
   const fieldId = useId();
   function update(i: number, key: keyof PrescriptionItemInput, value: string) {
     // Changing a value invalidates an earlier confirmation of that line.

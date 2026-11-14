@@ -36,7 +36,7 @@ function MedicationStatus({ status }: { status: MedicationView["status"] }) {
 function MedicationHeader({ onBack, onClose }: { onBack?: () => void; onClose?: () => void }) {
   return <div className={`flex w-full items-center gap-3 [&>span>span:last-child]:text-2xl [&>span>span:last-child]:font-normal ${onClose ? "justify-between" : ""}`}>
     {onBack ? <button type="button" onClick={onBack} aria-label="Back to medication record" className="grid size-11 shrink-0 place-items-center text-[29px] text-botanical">←</button> : <Link href="/app/patient/vault" aria-label="Back to reports" className="grid size-11 shrink-0 place-items-center text-[29px] text-botanical">←</Link>}
-    <ClinixBrand monogram />
+    <ClinixBrand />
     {onClose && <button type="button" onClick={onClose} className="min-h-11 text-xs text-clear-info">Close</button>}
   </div>;
 }

@@ -45,7 +45,6 @@ export default function DoctorOnboardingPage() {
       eyebrow="Doctor onboarding · 1 of 3"
       title="Your clinical profile"
       orientation="Add a few professional details. Your Doctor workspace opens when setup is complete."
-      tone="doctor"
     >
       <section className="mb-8 rounded-[1.75rem] border-[6px] border-clear-divider bg-clear-surface p-4">
         <p className="clinix-label text-clear-action">Clinical profile</p>

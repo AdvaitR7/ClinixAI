@@ -17,22 +17,18 @@ export function PrescriptionSafetyPanel({
   patientId,
   riskFlags,
   overallConfidence,
-  appearance = "clear",
 }: {
   patientId: string;
   riskFlags?: unknown;
   overallConfidence?: number | null;
-  /** Temporary migration switch; "clear" restyles to the light Clear v2 surface. */
-  appearance?: "legacy" | "clear";
 }) {
-  const clear = appearance === "clear";
-  const muted = clear ? "text-clear-secondary" : "text-doctor-muted/70";
-  const action = clear ? "text-clear-action" : "text-copper";
+  const muted = "text-clear-secondary";
+  const action = "text-clear-action";
   const workspace = useApiData<DoctorWorkspace>(`/doctor/patients/${encodeURIComponent(patientId)}/workspace`);
   const current = workspace.status === "ready" ? (workspace.data.medications ?? []).filter((item) => item.status === "CURRENT") : [];
   const flags = flagList(riskFlags);
   return (
-    <section aria-labelledby="rx-safety-title" className={clear ? "clear-card p-4 font-sans text-xs text-clear-ink" : "clinix-doctor-card border-copper p-4 font-sans text-xs text-surface"}>
+    <section aria-labelledby="rx-safety-title" className="clear-card p-4 font-sans text-xs text-clear-ink">
       <h3 id="rx-safety-title" className={`clinix-label ${action}`}>Safety context</h3>
       <dl className="mt-3 space-y-3">
         <div><dt className={muted}>Known allergies</dt><dd className="mt-1">Allergy data unavailable — confirm with the patient.</dd></div>
@@ -49,7 +45,7 @@ export function PrescriptionSafetyPanel({
         {typeof overallConfidence === "number" && <div><dt className={muted}>OCR confidence</dt><dd className="mt-1">{Math.round(overallConfidence * 100)}%</dd></div>}
         {flags.length > 0 && <div><dt className={muted}>Extraction flags</dt><dd className="mt-1">{flags.join(" · ")}</dd></div>}
       </dl>
-      <p className={`mt-3 text-xs leading-4 ${clear ? "text-clear-secondary" : "text-doctor-muted/75"}`}>No interaction or dose-range check is performed. Medicines recorded by other clinicians are not shown.</p>
+      <p className="mt-3 text-xs leading-4 text-clear-secondary">No interaction or dose-range check is performed. Medicines recorded by other clinicians are not shown.</p>
     </section>
   );
 }

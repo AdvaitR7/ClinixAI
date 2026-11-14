@@ -59,7 +59,6 @@ function StaffInvitation() {
       eyebrow="Clinic staff onboarding · invite only"
       title="Review your invitation"
       orientation="Verify your account, review the practice and role, then accept the membership."
-      tone="doctor"
     >
       <section className="clear-card border-clear-divider p-4">
         <p className="clinix-label text-clear-action">Role assignment</p>

@@ -23,13 +23,7 @@ describe("UiIcon", () => {
 });
 
 describe("ClinixBrand", () => {
-  it("keeps the legacy mark when asked", () => {
-    const { container } = render(<ClinixBrand appearance="legacy" />);
-    expect(container.querySelector("[data-brand='clear']")).toBeNull();
-    expect(screen.getByLabelText("ClinixAI")).toBeInTheDocument();
-  });
-
-  it("renders the Clear plus mark by default", () => {
+  it("renders the Clear plus mark with its accessible name", () => {
     const { container } = render(<ClinixBrand />);
     expect(container.querySelector("[data-brand='clear']")).not.toBeNull();
     expect(screen.getByLabelText("ClinixAI")).toBeInTheDocument();

@@ -37,7 +37,7 @@ export function PatientVisitHeader({
           ←
         </Link>
       )}
-      <ClinixBrand monogram />
+      <ClinixBrand />
       <div className="min-w-10 text-right text-xs text-clear-info">{action}</div>
     </div>
   );

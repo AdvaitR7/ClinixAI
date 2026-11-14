@@ -25,7 +25,7 @@ function SelectedContext() {
   const appointments = useApiData<AppointmentView[]>("/doctor/appointments");
   const appointment = appointments.status === "ready" ? appointments.data.find((row) => row.id === appointmentId) : null;
   return <main className="min-h-dvh bg-clear-surface px-6 py-6 text-clear-ink"><div className="mx-auto max-w-[345px]">
-    <header className="flex items-center justify-between gap-3 [&>span>span:last-child]:text-2xl [&>span>span:last-child]:font-normal"><Link href={back} aria-label="Back to schedule" className="grid size-11 place-items-center text-[29px] text-clear-action">←</Link><ClinixBrand inverted monogram /><Link href={back} className="min-h-11 py-3 text-xs text-clear-info">Close</Link></header>
+    <header className="flex items-center justify-between gap-3 [&>span>span:last-child]:text-2xl [&>span>span:last-child]:font-normal"><Link href={back} aria-label="Back to schedule" className="grid size-11 place-items-center text-[29px] text-clear-action">←</Link><ClinixBrand /><Link href={back} className="min-h-11 py-3 text-xs text-clear-info">Close</Link></header>
     {appointments.status === "loading" && <p role="status" className="mt-8 text-sm">Loading appointment context…</p>}
     {appointments.status === "error" && <div role="alert" className={`${scheduleCard} mt-8`}><p className="text-sm">{appointments.error}</p><button type="button" onClick={() => void appointments.refresh()} className="min-h-11 text-xs text-clear-info">Retry context</button></div>}
     {appointments.status === "ready" && !appointment && <p role="alert" className={`${scheduleCard} mt-8 text-sm`}>This appointment is unavailable in your schedule.</p>}
