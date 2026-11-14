@@ -144,13 +144,23 @@ const host = process.env.HOST ?? "0.0.0.0";
 // lazily on the first send instead, keeping the pg-boss connection out of every cold start.
 if (!process.env.VERCEL) await startQueue();
 
-try {
-  bootTrace(`listening on ${host}:${port}`);
-  await app.listen({ port, host });
-  bootTrace("listen resolved");
-} catch (err) {
-  app.log.error(err);
-  process.exit(1);
+if (process.env.VERCEL) {
+  // Vercel's launcher intercepts listen() and only hands over requests once this module finishes
+  // evaluating, so awaiting listen here would block forever (cold starts hit the 60 s limit).
+  bootTrace(`listen (vercel, not awaited) ${host}:${port}`);
+  app.listen({ port, host }).catch((err) => {
+    app.log.error(err);
+    process.exit(1);
+  });
+} else {
+  try {
+    bootTrace(`listening on ${host}:${port}`);
+    await app.listen({ port, host });
+    bootTrace("listen resolved");
+  } catch (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
 }
 
 /** Stops accepting requests, drains the job queue and closes the database pool before exiting. */
