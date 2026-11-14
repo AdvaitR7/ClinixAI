@@ -85,9 +85,15 @@ async function main() {
   // Resolve pdfkit the way @react-pdf/renderer does, so the patched copy is the one actually loaded.
   const renderer = createRequire(import.meta.url).resolve("@react-pdf/renderer");
   const pdfkitMain = createRequire(renderer).resolve("pdfkit");
-  const count = await patchPdfkitFonts(path.dirname(pdfkitMain));
-  if (count !== 28) throw new Error(`Expected 28 pdfkit standard-font references, rewrote ${count}; pdfkit layout changed.`);
-  console.log(`pdfkit: rewrote ${count} standard-font references for file tracing`);
+  const pdfkitJs = path.dirname(pdfkitMain);
+  const count = await patchPdfkitFonts(pdfkitJs);
+  // Vercel can restore node_modules from the build cache with the patch already applied (0 rewrites).
+  const esmNow = await readFile(path.join(pdfkitJs, "pdfkit.node.mjs"), "utf8");
+  const alreadyPatched = count === 0 && esmNow.includes("__clinixStdFont_Helvetica") && !/require\$1\('#standard-fonts\//.test(esmNow);
+  if (count !== 28 && !alreadyPatched) {
+    throw new Error(`Expected 28 pdfkit standard-font references, rewrote ${count}; pdfkit layout changed.`);
+  }
+  console.log(alreadyPatched ? "pdfkit: already patched (cached node_modules)" : `pdfkit: rewrote ${count} standard-font references`);
 }
 
 await main();
