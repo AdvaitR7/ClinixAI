@@ -1,3 +1,4 @@
+import { bootTrace } from "./boot-trace.js";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { CORS_METHODS, corsOrigin } from "./cors.js";
@@ -33,6 +34,7 @@ import { assertIdentityKey } from "./crypto.js";
 // Fail at boot, not with a 500 on every patient route, when the identity key is missing or malformed.
 assertIdentityKey();
 
+bootTrace("all modules loaded");
 const app = Fastify({ logger: true, genReqId: () => crypto.randomUUID() });
 let mobileReleaseCache: { expiresAt: number; value: { version: string; download_url: string; published_at: string | null } } | null = null;
 
@@ -101,6 +103,7 @@ app.get("/mobile/release", async (_request, reply) => {
   }
 });
 
+bootTrace("cors registered");
 // Domain routes live under /api/v1 (architectural invariant).
 await app.register(
   async function v1(instance) {
@@ -133,6 +136,7 @@ await app.register(
   { prefix: "/api/v1" },
 );
 
+bootTrace("routes registered");
 const port = Number(process.env.PORT ?? 4000);
 const host = process.env.HOST ?? "0.0.0.0";
 
@@ -141,7 +145,9 @@ const host = process.env.HOST ?? "0.0.0.0";
 if (!process.env.VERCEL) await startQueue();
 
 try {
+  bootTrace(`listening on ${host}:${port}`);
   await app.listen({ port, host });
+  bootTrace("listen resolved");
 } catch (err) {
   app.log.error(err);
   process.exit(1);
