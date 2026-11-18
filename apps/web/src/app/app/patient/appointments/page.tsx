@@ -146,7 +146,6 @@ function Appointments() {
         active: item.label === "Visits",
       }))}
       focused
-      flowNavigation
       hideHeading
       headerContent={
         <PatientVisitHeader

@@ -7,14 +7,9 @@ import Link from "next/link";
 
 import { FollowupDetail } from "@/components/followups";
 import { WorkspaceShell } from "@/components/workspace-shell";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor/followups", active: true },
-];
+const nav = doctorNav("followups");
 
 /** Page 21a for doctors, including the clinical outcome field. */
 export default function DoctorFollowupDetailPage() {

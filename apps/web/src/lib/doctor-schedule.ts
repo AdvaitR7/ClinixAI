@@ -1,12 +1,8 @@
 import { scheduleDateSchema } from "@clinix/schemas";
 import { recordHref } from "@/lib/route-params";
+import { doctorNav } from "@/lib/workspace-nav";
 
-export const scheduleNav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule", active: true },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-];
+export const scheduleNav = doctorNav("schedule");
 /** Opaque white schedule card (Clear v2). */
 export const scheduleCard = "clear-card p-4";
 export const clearScheduleCard = scheduleCard;

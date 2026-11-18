@@ -36,7 +36,7 @@ export default function PatientTimelinePage() {
   const state = useApiData<{ entries: DetailedTimelineItem[] }>(queryPath);
 
   return (
-    <WorkspaceShell workspace="patient" title="Health Timeline" nav={nav}>
+    <WorkspaceShell workspace="patient" title="Health Timeline" nav={nav} hideHeading>
       <div className="mx-auto max-w-[393px] pb-24">
         {/* Eyebrow & Headline */}
         <p className="font-sans text-xs font-semibold tracking-widest text-graphite uppercase">
@@ -69,7 +69,7 @@ export default function PatientTimelinePage() {
                   key={f.value}
                   type="button"
                   onClick={() => setSelectedFilter(f.value)}
-                  className={`rounded-full px-3.5 py-1.5 font-sans text-xs font-semibold transition-colors ${
+                  className={`inline-flex min-h-11 items-center rounded-full px-3.5 font-sans text-xs font-semibold transition-colors ${
                     active
                       ? "bg-botanical text-surface shadow-sm"
                       : "border border-sage bg-surface text-graphite hover:bg-canvas"

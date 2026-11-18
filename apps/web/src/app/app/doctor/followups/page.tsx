@@ -2,14 +2,9 @@
 
 import { FollowupWorklist } from "@/components/followups";
 import { WorkspaceShell } from "@/components/workspace-shell";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor/followups", active: true },
-];
+const nav = doctorNav("followups");
 
 /** Page 21 for doctors: their own follow-up obligations. */
 export default function DoctorFollowupsPage() {

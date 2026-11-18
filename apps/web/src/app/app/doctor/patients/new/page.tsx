@@ -11,14 +11,9 @@ import { doctorCreatePatientSchema, type DoctorCreatePatient } from "@clinix/sch
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { fetchApi } from "@/lib/api";
 import { recordHref } from "@/lib/route-params";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients", active: true },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor/patients", disabled: true },
-];
+const nav = doctorNav("patients");
 
 const inputClass =
   "mt-1.5 min-h-[50px] w-full rounded-2xl border border-clear-divider bg-clear-surface px-3.5 font-sans text-sm text-clear-ink outline-none focus:border-clear-action";

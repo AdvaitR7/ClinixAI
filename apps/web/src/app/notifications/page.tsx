@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { NotificationView } from "@clinix/schemas";
 import { AuthShell } from "@/components/auth-shell";
+import { RoleDock } from "@/components/role-dock";
 import { RequireSession } from "@/components/route-guards";
 import { Skeleton } from "@/components/skeleton";
 import { useApiData } from "@/lib/api";
@@ -54,7 +55,7 @@ function NotificationList() {
   }
 
   return (
-    <AuthShell eyebrow="Notifications" title="Updates" orientation={unread ? `${unread} unread` : "You are up to date."}>
+    <AuthShell eyebrow="Notifications" title="Updates" orientation={unread ? `${unread} unread` : "You are up to date."} dock={<RoleDock />}>
       <Link href="/after-sign-in" className="mb-4 inline-flex min-h-11 items-center font-sans text-xs font-semibold text-botanical">← Back to workspace</Link>
       {state.status === "loading" && (
         <div className="space-y-3" aria-hidden="true">

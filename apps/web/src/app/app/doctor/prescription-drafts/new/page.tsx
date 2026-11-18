@@ -9,14 +9,9 @@ import { Skeleton } from "@/components/skeleton";
 import { MedicineEditor } from "@/components/medicine-editor";
 import { fetchApi } from "@/lib/api";
 import { recordHref } from "@/lib/route-params";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts", active: true },
-  { label: "Follow-ups", href: "/app/doctor", disabled: true },
-];
+const nav = doctorNav("drafts");
 
 /** Page 20 — direct prescription composition (SCREEN_CATALOG §7, Figma 61:149). */
 export default function NewPrescriptionPage() {

@@ -8,14 +8,9 @@ import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { useApiData } from "@/lib/api";
 import { recordHref } from "@/lib/route-params";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients", active: true },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor/patients", disabled: true },
-];
+const nav = doctorNav("patients");
 
 /** Page 16 — Patient Directory (SCREEN_CATALOG §7). */
 export default function DirectoryPage() {

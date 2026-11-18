@@ -27,7 +27,6 @@ export default function CarePage() {
       title="Care Circle"
       nav={careNav()}
       focused
-      flowNavigation
       hideHeading
       headerContent={<PatientVisitHeader backHref="/app/patient" action={<Link href="/app/patient/privacy" className="inline-flex min-h-11 items-center rounded-full border border-botanical px-3 text-xs text-botanical">Privacy</Link>} />}
     >

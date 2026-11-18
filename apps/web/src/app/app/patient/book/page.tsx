@@ -91,7 +91,6 @@ function BookingEntry() {
         title="Book appointment"
         nav={patientVisitNav}
         focused
-        flowNavigation
         hideHeading
       >
         <h1 className="text-2xl">Consultation booking</h1>
@@ -134,7 +133,6 @@ function BookingEntry() {
         title="Book appointment"
         nav={patientVisitNav}
         focused
-        flowNavigation
       >
         <p role="alert">
           The cancelled appointment is unavailable in your record.
@@ -388,7 +386,6 @@ function BookingForm({
       title="Book appointment"
       nav={patientVisitNav}
       focused
-      flowNavigation
       hideHeading
       headerContent={
         <PatientVisitHeader
@@ -407,7 +404,7 @@ function BookingForm({
             ) : (
               <Link
                 href="/app/patient/appointments"
-                className="inline-flex min-h-11 items-center"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center"
               >
                 Cancel
               </Link>

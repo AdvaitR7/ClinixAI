@@ -8,13 +8,9 @@ import { formatDateTime } from "@/lib/privacy";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
 import { StatusBadge } from "@/components/status-badge";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-];
+const nav = doctorNav();
 const card = "rounded-[22px] border border-clear-divider bg-clear-surface p-4";
 const label = "text-xs uppercase text-clear-action";
 

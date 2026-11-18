@@ -217,7 +217,7 @@ function VaultWorkspace() {
     else open({ documentId: doc.document_id }, button);
   }
 
-  return <WorkspaceShell workspace="Patient" title="Health Vault" nav={nav} focused flowNavigation hideHeading
+  return <WorkspaceShell workspace="Patient" title="Health Vault" nav={nav} focused hideHeading
     headerContent={<PatientVisitHeader backHref="/app/patient" action={<button type="button" onClick={(event) => open("upload", event.currentTarget)} className="min-h-11 rounded-full border border-sage bg-surface px-3 text-xs text-clear-info">＋ Upload</button>} />}>
     <div>
       <p className="text-xs tracking-[0.12em] text-graphite">PATIENT RECORD · SOURCE DOCUMENTS</p>

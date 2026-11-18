@@ -21,14 +21,9 @@ import { PrescriptionSafetyPanel } from "@/components/prescription-safety-panel"
 import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
 import { fetchApi, useApiData } from "@/lib/api";
 import { recordHref } from "@/lib/route-params";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts", active: true },
-  { label: "Follow-ups", href: "/app/doctor", disabled: true },
-];
+const nav = doctorNav("drafts");
 
 /** Keeps only the persisted medicine fields; review state travels separately. */
 function plain(item: EditorItem) {

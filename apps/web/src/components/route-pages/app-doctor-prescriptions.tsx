@@ -13,14 +13,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { MedicineEditor } from "@/components/medicine-editor";
 import { fetchApi, fetchApiBlob, useApiData } from "@/lib/api";
 import { openOrSharePdf } from "@/lib/native";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor", disabled: true },
-];
+const nav = doctorNav();
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString("en-IN", {
