@@ -301,7 +301,7 @@ test("SCR-008 restores real questions and answers, resumes after reload, retries
     "true",
   );
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-008-393.png",
+    path: "test-results/screens/implementation-scr-008-393.png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "CONTINUE", exact: true }).click();
@@ -370,7 +370,7 @@ test("SCR-009 answer review and reload preserve safety actions and never resume 
     page.getByRole("heading", { name: "Get urgent medical help now" }),
   ).toBeVisible();
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-009-393.png",
+    path: "test-results/screens/implementation-scr-009-393.png",
     fullPage: true,
   });
   await expect(
@@ -449,7 +449,7 @@ test("SCR-010 evidence retry, scoped export, timeline detail and cross-module ex
     .getByRole("heading", { name: "Check-in complete", exact: true })
     .click();
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-010-393.png",
+    path: "test-results/screens/implementation-scr-010-393.png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "What sharing includes" }).click();
@@ -473,7 +473,7 @@ test("SCR-010 evidence retry, scoped export, timeline detail and cross-module ex
     page.getByRole("heading", { name: "Check-in record" }),
   ).toBeVisible();
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-012-393.png",
+    path: "test-results/screens/implementation-scr-012-393.png",
     fullPage: true,
   });
   await page.getByRole("button", { name: /Check-in answers/ }).click();

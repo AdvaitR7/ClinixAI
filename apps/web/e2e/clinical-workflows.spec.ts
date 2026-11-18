@@ -101,7 +101,7 @@ test("SCR-033/035/058 saves current edits, supports Escape, and navigates to the
   const review = page.getByRole("dialog", { name: "Finalize prescription?" });
   await expect(review).toBeVisible();
   await expect(review).toContainText("2 tablets");
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-035-393.png" });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-035-393.png" });
   await page.keyboard.press("Escape");
   await expect(review).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Finalize prescription", exact: true })).toBeFocused();
@@ -135,7 +135,7 @@ test("SCR-030/031 completion retains failed saves, retries, then exposes a dated
   await page.getByRole("button", { name: "Complete consultation", exact: true }).click();
   const review = page.getByRole("dialog", { name: "Complete consultation?" });
   await expect(review).toContainText("Synthetic reviewed assessment");
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-031-393.png" });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-031-393.png" });
   state.failSave = true;
   await review.getByRole("button", { name: "Complete consultation", exact: true }).click();
   await expect(review.getByRole("alert")).toContainText("Synthetic note save failed");

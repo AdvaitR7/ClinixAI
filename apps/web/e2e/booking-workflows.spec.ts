@@ -275,7 +275,7 @@ test("SCR-022/023 reviews real doctor/mode/date/reason, preserves edits, and mak
   await page.getByLabel("Reason (optional)").fill("Synthetic follow-up reason");
   await page.getByRole("button", { name: "Use this reason" }).click();
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-022-393.png",
+    path: "test-results/screens/implementation-scr-022-393.png",
     fullPage: true,
   });
   await expect(
@@ -291,7 +291,7 @@ test("SCR-022/023 reviews real doctor/mode/date/reason, preserves edits, and mak
     page.getByText("Synthetic follow-up reason", { exact: true }),
   ).toBeVisible();
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-023-393.png",
+    path: "test-results/screens/implementation-scr-023-393.png",
     fullPage: true,
   });
   expect(state.posts).toHaveLength(0);
@@ -452,7 +452,7 @@ test("SCR-017 counts tabs, distinguishes manual payment and recovers a confirmed
     page.getByRole("button", { name: "Open directions unavailable" }),
   ).toBeDisabled();
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-017-393.png",
+    path: "test-results/screens/implementation-scr-017-393.png",
     fullPage: true,
   });
   await page.getByRole("tab", { name: "Past · 1" }).click();

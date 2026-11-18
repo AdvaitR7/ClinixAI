@@ -58,7 +58,7 @@ test("SCR-024 day/week/date/status and SCR-026 back/close preserve calendar cont
   const state = await services(page); await page.setViewportSize({ width: 393, height: 1100 }); await page.goto(root);
   await expect(page.getByText(`${date} · 7 APPOINTMENTS`, { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Later on this date" })).toBeVisible();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-024-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-024-393.png", fullPage: true });
   await page.getByRole("link", { name: "Week", exact: true }).click(); await expect(page.getByText(/8 APPOINTMENTS/)).toBeVisible();
   await page.getByRole("link", { name: "CONFIRMED", exact: true }).click(); await expect(page).toHaveURL(/status=CONFIRMED/);
   await page.getByRole("link", { name: "Open context →", exact: true }).first().click();
@@ -68,7 +68,7 @@ test("SCR-024 day/week/date/status and SCR-026 back/close preserve calendar cont
   await expect(page.getByText("Allergy data unavailable", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "OPEN PATIENT RECORD", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "START CONSULTATION", exact: false })).toHaveAttribute("href", "/app/doctor/consultation/by-id?appointmentId=appointment-0");
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-026-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-026-393.png", fullPage: true });
   await page.getByRole("link", { name: "Back to schedule", exact: true }).click(); await expect(page).toHaveURL(/view=week&status=CONFIRMED/);
   await page.getByRole("link", { name: "Open context →", exact: true }).first().click(); await page.getByRole("link", { name: "Close", exact: true }).click(); await expect(page).toHaveURL(/view=week&status=CONFIRMED/);
   await page.getByLabel("Schedule date (India time)").fill("2099-11-10"); await expect(page.getByText("No appointments match this date and filter.")).toBeVisible();
@@ -98,7 +98,7 @@ test("confirm/payment/cancel failures preserve state, cancellation Escape/Keep r
 
 test("SCR-025 loads saved multi-window configuration, toggles without loss, retains failed saves and confirms persisted rules", async ({ page }) => {
   const state = await services(page); const original = structuredClone(state.config); await page.setViewportSize({ width: 393, height: 1100 }); await availability(page);
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-025-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-025-393.png", fullPage: true });
   await page.getByRole("button", { name: "Mon enabled", exact: true }).click(); await page.getByRole("button", { name: "Mon enabled", exact: true }).click();
   await expect(page.getByRole("button", { name: "Edit Mon working hours" })).toHaveText("08:30–12:00, 14:00–18:00");
   await page.getByLabel("Default visit duration (minutes)").fill("20"); await page.getByRole("link", { name: "Schedule", exact: true }).first().click(); await page.getByRole("link", { name: "Availability", exact: true }).click(); await expect(page.getByLabel("Default visit duration (minutes)")).toHaveValue("20");

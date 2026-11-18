@@ -317,7 +317,7 @@ test("directory → compact context → dossier → selected consultation, with 
     page.getByText("Consent status unavailable", { exact: true }),
   ).toBeVisible();
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-028-393.png",
+    path: "test-results/screens/implementation-scr-028-393.png",
     fullPage: true,
   });
   await page.getByRole("button", { name: "Review consent scope →" }).click();
@@ -335,7 +335,7 @@ test("directory → compact context → dossier → selected consultation, with 
     page.getByText("No current use confirmed", { exact: true }),
   ).toBeVisible();
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-029-393.png",
+    path: "test-results/screens/implementation-scr-029-393.png",
     fullPage: true,
   });
   await page
@@ -377,7 +377,7 @@ test("directory filters, search, creation link and direct prescription entry rem
     page.getByRole("link", { name: "Add", exact: true }),
   ).toHaveAttribute("href", "/app/doctor/patients/new");
   await page.screenshot({
-    path: "../../docs/architecture/evidence/implementation-scr-027-393.png",
+    path: "test-results/screens/implementation-scr-027-393.png",
     fullPage: true,
   });
   state.failDirectory = true;

@@ -102,7 +102,7 @@ test("SCR-033 shows source recovery, safety context and blocks finalization unti
   await expect(safety).toContainText("handwriting unclear");
   await expect(safety).toContainText("No interaction or dose-range check is performed");
   await expect(page.getByText(/Ambiguous · Confidence 41%/)).toBeVisible();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-033-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-033-393.png", fullPage: true });
 
   await finalize(page).click();
   await expect(alertLocator(page)).toHaveText("Confirm 2 flagged medicines against the source before finalizing.");
@@ -123,7 +123,7 @@ test("SCR-033 shows source recovery, safety context and blocks finalization unti
   await expect(confirm).toBeDisabled();
   await review.getByLabel("Printable preview checked").check();
   await expect(review.getByRole("link", { name: "Open full printable preview →" })).toHaveAttribute("target", "_blank");
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-035-393.png" });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-035-393.png" });
   state.rejectReview = true;
   await confirm.click();
   await expect(alertLocator(page).filter({ hasText: "Synthetic server review gate" })).toBeVisible();

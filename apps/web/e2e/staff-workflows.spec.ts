@@ -100,11 +100,11 @@ test("SCR-042 receptionist marks arrival and sees clinical intake locked (SCR-04
   await page.getByRole("button", { name: "Mark arrival" }).click();
   await expect(page.getByRole("link", { name: "Arrival details" })).toBeVisible();
   expect(state.calls.some((c) => c.path === `/staff/appointments/${apptId}/arrive`)).toBe(true);
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-042-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-042-393.png", fullPage: true });
   await page.getByRole("link", { name: "Arrival details" }).click();
   await expect(page.getByText("Clinical intake locked")).toBeVisible();
   await expect(page.getByRole("button", { name: "Save vitals" })).toHaveCount(0);
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-045-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-045-393.png", fullPage: true });
 });
 
 test("SCR-044 assistant records vitals with staff provenance and marks ready for doctor", async ({ page }) => {
@@ -121,7 +121,7 @@ test("SCR-044 assistant records vitals with staff provenance and marks ready for
   await page.getByRole("button", { name: "Mark ready for doctor" }).click();
   await expect(page.getByRole("button", { name: "Ready for doctor" })).toBeDisabled();
   expect(state.vitals).toHaveLength(1);
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-044-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-044-393.png", fullPage: true });
 });
 
 test("SCR-037 staff follow-up detail locks the clinical outcome", async ({ page }) => {
@@ -130,7 +130,7 @@ test("SCR-037 staff follow-up detail locks the clinical outcome", async ({ page 
   await page.getByRole("link", { name: /Synthetic Patient/ }).click();
   await expect(page.getByText("Locked. Only the doctor records the clinical outcome.")).toBeVisible();
   await page.getByRole("button", { name: "Mark task completed" }).click();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-037-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-037-393.png", fullPage: true });
 });
 
 test("SCR-042 dock opens the restricted schedule, patient list and assistant-only intake queue", async ({ page }) => {
@@ -142,7 +142,7 @@ test("SCR-042 dock opens the restricted schedule, patient list and assistant-onl
   await expect(page).toHaveURL(/tab=patients/);
   await expect(page.getByText("Synthetic Patient · UNCLAIMED · ••• 4321")).toBeVisible();
   await expect(page.getByText(/diagnos|prescription/i).first()).toBeVisible(); // only the boundary note, never clinical data
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-023g-patients-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-023g-patients-393.png", fullPage: true });
   await page.goto("/app/staff/schedule?tab=intake");
   await expect(page.getByRole("link", { name: "Open intake" })).toBeVisible();
   expect(state.calls.some((c) => c.path === "/staff/patients")).toBe(true);
@@ -161,16 +161,16 @@ test("SCR 23d staff books from published times; 23e receipt updates payment; 23f
   await expect(page.getByRole("group", { name: "Available times" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Request appointment" })).toBeDisabled();
   await page.getByRole("group", { name: "Available times" }).getByRole("button").first().click();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-023d-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-023d-393.png", fullPage: true });
   await page.goto(`/app/staff/receipt/by-id?appointmentId=${apptId}&practice_id=${practiceId}`);
   await expect(page.getByText("Fee ₹600")).toBeVisible();
   await page.getByRole("button", { name: "Paid", exact: true }).click();
   expect(state.calls.some((c) => c.path.endsWith("/payment-status") && c.body.payment_status === "PAID")).toBe(true);
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-023e-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-023e-393.png", fullPage: true });
   await page.goto(`/app/staff/claims?practice_id=${practiceId}`);
   await page.getByRole("button", { name: "Send invitation →" }).click();
   await expect(page.getByText("Claim code (shown once): abc123claim")).toBeVisible();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-023f-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-023f-393.png", fullPage: true });
 });
 
 test("SCR-051 staff can route a request but have no decision controls", async ({ page }) => {

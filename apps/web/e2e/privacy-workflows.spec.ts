@@ -123,7 +123,7 @@ test("SCR-018 care circle shows sharing state, never shares by itself, and remov
   await expect(page.getByRole("button", { name: "Message unavailable" })).toBeDisabled();
   await expect(page.getByRole("link", { name: "Share records" })).toHaveAttribute("href", `/app/patient/care/share/by-id?doctorId=${alpha}`);
   await expect(page.getByRole("navigation").getByRole("link", { name: "Care" })).toHaveAttribute("href", "/app/patient/care");
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-018-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-018-393.png", fullPage: true });
   const remove = page.getByRole("button", { name: "Remove", exact: true });
   await remove.click();
   await expect(page.getByRole("dialog")).toContainText("Active sharing permissions are not changed");
@@ -143,7 +143,7 @@ test("SCR-019 discover searches verified doctors and adding one grants no consen
   await page.getByRole("tab", { name: "Discover verified doctors" }).click();
   await expect(page.getByRole("heading", { name: "Dr. Synthetic Beta" })).toBeVisible();
   await expect(page.getByText("Record access still requires your explicit consent.")).toBeVisible();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-019-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-019-393.png", fullPage: true });
   await page.getByPlaceholder("Search name or speciality").fill("medicine");
   await expect(page.getByRole("heading", { name: "Dr. Synthetic Alpha" })).toHaveCount(0);
   expect(state.calls.some((c) => c.path === "/doctors" && c.search.includes("verified_only=true") && c.search.includes("q=medicine"))).toBe(true);
@@ -163,7 +163,7 @@ test("SCR-020 scope picker needs a purpose, disables unavailable groups, and cre
   await expect(review).toBeDisabled();
   await page.getByLabel("Purpose").fill("Migraine follow-up consultation");
   await page.getByRole("button", { name: "30 DAYS" }).click();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-020-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-020-393.png", fullPage: true });
   expect(posts(state, "/patients/self/consents")).toHaveLength(0);
   await review.click();
   const dialog = page.getByRole("dialog", { name: "Confirm sharing" });
@@ -196,7 +196,7 @@ test("SCR-021 revoke confirms, failure keeps access, ledger filters and pages, r
   await page.goto("/app/patient/privacy");
   await expect(page.getByText("1 active sharing permission", { exact: true })).toBeVisible();
   await expect(page.getByText("IMMUTABLE · READ ONLY · APPEND-ONLY")).toBeVisible();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-021-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-021-393.png", fullPage: true });
 
   await page.getByRole("button", { name: "AI audit · 1" }).click();
   await expect(page.getByText("AI inference audit")).toBeVisible();
@@ -233,10 +233,10 @@ test("SCR-049/050 doctor decides with a required reason and an explicit confirma
   await page.getByRole("radio", { name: /RETAIN REQUIRED RECORD/ }).click();
   await expect(review).toBeDisabled();
   await page.getByLabel(/Written reason/).fill("Retained as part of the clinical record.");
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-049-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-049-393.png", fullPage: true });
   await review.click();
   const dialog = page.getByRole("dialog", { name: "Confirm retention?" });
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-050-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-050-393.png", fullPage: true });
   expect(posts(state, "/doctor/record-removal-requests/req-1/resolve")).toHaveLength(0);
   await page.keyboard.press("Escape");
   await expect(review).toBeFocused();
@@ -266,7 +266,7 @@ test("SCR-051 staff see that decisions and routing are unavailable without pract
   await page.goto("/app/staff/requests");
   await expect(page.getByRole("heading", { name: "Decision controls unavailable" })).toBeVisible();
   await expect(page.getByRole("button", { name: /APPROVE|RETAIN|ROUTE/i })).toHaveCount(0);
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-051-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-051-393.png", fullPage: true });
 });
 
 for (const width of [320, 768, 1440])

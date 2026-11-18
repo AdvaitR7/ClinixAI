@@ -69,13 +69,13 @@ test("SCR-015/016 render source groups, fields, truthful status/reaction provena
   await page.goto("/app/patient/medications");
   await expect(page.getByText("4 medication records", { exact: true })).toBeVisible();
   await expect(page.getByText("1 ACTIVE", { exact: true })).toBeVisible();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-015-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-015-393.png", fullPage: true });
   await openRecord(page);
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Synthetic recorded indication", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Reaction history not recorded", { exact: true })).toBeVisible();
   await expect(dialog.getByText("PATIENT-ASSERTED", { exact: true })).toHaveCount(0);
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-016-393.png" });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-016-393.png" });
   await dialog.getByRole("button", { name: "Original prescription", exact: false }).first().click();
   await expect(dialog.getByRole("heading", { name: "Prescription record", exact: true })).toBeFocused();
   await expect(dialog.getByText("Original 1 tablet", { exact: true })).toBeVisible();

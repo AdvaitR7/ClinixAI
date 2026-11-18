@@ -139,11 +139,11 @@ test("SCR-013/014 match source structure and render, paginate, open and download
   await page.setViewportSize({ width: 393, height: 980 });
   await page.goto("/app/patient/vault");
   await expect(page.getByText("4 source documents", { exact: true })).toBeVisible();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-013-393.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-013-393.png", fullPage: true });
   await openSource(page);
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("button", { name: "Previous source page" })).toBeDisabled();
-  await page.screenshot({ path: "../../docs/architecture/evidence/implementation-scr-014-393.png" });
+  await page.screenshot({ path: "test-results/screens/implementation-scr-014-393.png" });
   await dialog.getByRole("button", { name: "Next source page" }).click();
   await expect(dialog.getByText("Page 2 of 2")).toBeVisible();
   await expect(dialog.getByText(/SYNTHETIC LAB SOURCE - PAGE 2/)).toBeAttached();
