@@ -5,14 +5,9 @@ import Link from "next/link";
 import { useApiData } from "@/lib/api";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { useApiWrite } from "@/lib/staff";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor/followups" },
-];
+const nav = doctorNav();
 const card = "rounded-[18px] border border-clear-divider bg-clear-surface p-4";
 const label = "text-xs uppercase text-clear-action";
 const field = "min-h-11 w-full rounded-xl border border-clear-divider bg-clear-surface px-3 text-sm";

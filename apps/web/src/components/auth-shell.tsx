@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ClinixBrand } from "@/components/clinix-brand";
+import { DOCK_CLEARANCE } from "@/lib/workspace-nav";
 
 /** Shared 430px composition for authentication, onboarding, and settings. */
 export function AuthShell({
@@ -7,14 +8,17 @@ export function AuthShell({
   title,
   orientation,
   children,
+  dock,
 }: {
   eyebrow: string;
   title: string;
   orientation: string;
   children: ReactNode;
+  /** Optional workspace dock; when present the page reserves room so content clears it. */
+  dock?: ReactNode;
 }) {
   return (
-    <main data-ui="clear" className="min-h-dvh px-6 pb-12 pt-[max(2rem,env(safe-area-inset-top))] sm:py-12">
+    <main data-ui="clear" className={`min-h-dvh px-6 pt-[max(2rem,env(safe-area-inset-top))] ${dock ? `${DOCK_CLEARANCE} sm:pt-12` : "pb-12 sm:py-12"}`}>
       <div className="mx-auto w-full max-w-[430px]">
         <header className="flex justify-start">
           <ClinixBrand />
@@ -26,6 +30,7 @@ export function AuthShell({
         </div>
         <div className="mt-8">{children}</div>
       </div>
+      {dock}
     </main>
   );
 }

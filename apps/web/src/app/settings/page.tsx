@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { AuthShell } from "@/components/auth-shell";
 import { InstallApp } from "@/components/install-app";
+import { RoleDock } from "@/components/role-dock";
 import { useAuth } from "@/lib/auth";
 import { Skeleton } from "@/components/skeleton";
 import { useMe } from "@/lib/api";
@@ -32,6 +33,7 @@ export default function SettingsPage() {
       eyebrow="Settings"
       title="Account & workspace"
       orientation="Review your current CliniX access and account options."
+      dock={<RoleDock active="You" />}
     >
       {state.status === "loading" && (
         <div className="space-y-3" aria-hidden="true">

@@ -12,14 +12,9 @@ import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { ClinicalReviewDialog } from "@/components/clinical-review-dialog";
 import { fetchApi, useApiData } from "@/lib/api";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor", disabled: true },
-];
+const nav = doctorNav();
 
 const SECTIONS: { key: keyof NoteSections; label: string }[] = [
   { key: "complaint", label: "Complaint" },

@@ -38,7 +38,7 @@ function Privacy() {
   const [counts, setCounts] = useState<AccessLedger["counts"] | null>(null);
 
   return (
-    <WorkspaceShell workspace="Patient" title="Privacy & access" nav={careNav()} focused flowNavigation hideHeading
+    <WorkspaceShell workspace="Patient" title="Privacy & access" nav={careNav()} focused hideHeading
       headerContent={<PatientVisitHeader backHref="/app/patient/care" action={<span />} />}>
       <div>
         <p className={privacyLabel}>Patient record · privacy control</p>

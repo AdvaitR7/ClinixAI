@@ -10,14 +10,9 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
 import { useApiData } from "@/lib/api";
 import { recordHref } from "@/lib/route-params";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts", active: true },
-  { label: "Follow-ups", href: "/app/doctor", disabled: true },
-];
+const nav = doctorNav("drafts");
 
 /** Printable preview of the saved draft; clearly not a finalized record and never changes the draft. */
 export default function PrescriptionPreviewPage() {

@@ -62,7 +62,7 @@ function MedicationRegistry() {
   function back() { if (source) setSource(null); else setSelected(null); }
   /** Closes all local record states without altering the source records or registry filter. */
   function close() { setSelected(null); setSource(null); }
-  return <div className="[&>div]:bg-clear-canvas [&>div>header]:bg-clear-canvas"><WorkspaceShell workspace="Patient" title="Medication history" nav={nav} focused flowNavigation hideHeading headerContent={<MedicationHeader />}>
+  return <WorkspaceShell workspace="Patient" title="Medication history" nav={nav} focused hideHeading solidHeader headerContent={<MedicationHeader />}>
     <div><p className="text-xs tracking-wider text-graphite">PATIENT RECORD · MEDICATION REGISTRY</p><h1 className="mt-3 text-[34px] leading-tight">Medication history</h1><p className="mt-3 text-sm leading-[22px] text-graphite">Encounter-linked prescriptions with source, prescriber, reason, and reaction history preserved.</p></div>
     <div aria-hidden="true" className="h-28 rounded-[28px] bg-clear-divider" />
     {state.status === "loading" && <Skeleton className="h-36 rounded-3xl" />}
@@ -100,5 +100,5 @@ function MedicationRegistry() {
         <button type="button" disabled={!selected.prescription_id} onClick={() => setSource("prescription")} className="mb-8 mt-6 flex min-h-14 w-full items-center justify-between gap-3 rounded-[20px] bg-botanical px-5 text-xs text-surface disabled:opacity-50">OPEN ORIGINAL PRESCRIPTION <span aria-hidden="true" className="text-2xl">→</span></button>
       </>}
     </VaultDialog>}
-  </WorkspaceShell></div>;
+  </WorkspaceShell>;
 }

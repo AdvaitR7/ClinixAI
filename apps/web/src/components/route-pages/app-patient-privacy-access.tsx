@@ -17,7 +17,7 @@ export default function AccessReceiptPage() {
   const receipt = useApiData<AccessReceipt>(`/patients/self/access-events/${encodeURIComponent(eventId)}`);
 
   return (
-    <WorkspaceShell workspace="Patient" title="Access receipt" nav={careNav("None")} focused flowNavigation hideHeading
+    <WorkspaceShell workspace="Patient" title="Access receipt" nav={careNav("None")} focused hideHeading
       headerContent={<PatientVisitHeader backHref="/app/patient/privacy" action={<span />} />}>
       <div>
         <p className={privacyLabel}>Patient record · access receipt</p>

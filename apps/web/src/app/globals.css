@@ -34,6 +34,10 @@
   --color-clear-urgent: #b13839;
   --color-clear-review: #865411;
   --color-clear-info: #315b85;
+  /* Workspace backdrop wash: top tint plus two soft colour pools behind the screen intro. */
+  --color-clear-wash: #e6f0f2;
+  --color-clear-wash-sky: #8fb4d0db;
+  --color-clear-wash-mint: #91cac1db;
 }
 
 /* Clear v2 component aliases (FigCraft 42-44) and shared geometry. Plain variables: they need no utility classes. */
@@ -95,7 +99,7 @@
   }
 
   .clinix-label {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     line-height: 1rem;

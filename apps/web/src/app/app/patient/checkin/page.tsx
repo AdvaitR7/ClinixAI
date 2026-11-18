@@ -346,7 +346,7 @@ export default function PatientCheckinPage() {
           <div className="flex items-center justify-between">
             <Link
               href="/app/patient"
-              className="font-sans text-2xl text-ink hover:opacity-80"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center font-sans text-2xl text-ink hover:opacity-80"
             >
               ←
             </Link>
@@ -360,7 +360,7 @@ export default function PatientCheckinPage() {
             </div>
             <Link
               href="/app/patient"
-              className="font-sans text-xs font-semibold text-clear-action hover:underline"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center font-sans text-xs font-semibold text-clear-action hover:underline"
             >
               Exit
             </Link>
@@ -453,7 +453,7 @@ export default function PatientCheckinPage() {
             onClick={goBack}
             aria-label="Previous question or concern"
             disabled={loading}
-            className="font-sans text-2xl text-ink hover:opacity-80"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center font-sans text-2xl text-ink hover:opacity-80"
           >
             ←
           </button>
@@ -467,7 +467,7 @@ export default function PatientCheckinPage() {
           </div>
           <Link
             href="/app/patient"
-            className="font-sans text-xs font-semibold text-clear-action hover:underline"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center font-sans text-xs font-semibold text-clear-action hover:underline"
           >
             Exit
           </Link>

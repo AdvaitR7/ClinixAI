@@ -101,7 +101,7 @@ function ScopePicker() {
   const closeHref = fromBooking ? `/app/patient/book?doctorId=${doctorId}` : "/app/patient/care";
 
   return (
-    <WorkspaceShell workspace="Patient" title="Choose what to share" nav={careNav()} focused flowNavigation hideHeading
+    <WorkspaceShell workspace="Patient" title="Choose what to share" nav={careNav()} focused hideHeading
       headerContent={<PatientVisitHeader backHref={closeHref} action={<a href={closeHref} className="inline-flex min-h-11 items-center text-xs">Close</a>} />}>
       <div>
         <p className={privacyLabel}>Consent · record sharing</p>

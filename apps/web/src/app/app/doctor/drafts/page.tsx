@@ -10,14 +10,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { ConfidenceBadge } from "@/components/confidence-badge";
 import { fetchApi, useApiData } from "@/lib/api";
 import { recordHref } from "@/lib/route-params";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts", active: true },
-  { label: "Follow-ups", href: "/app/doctor", disabled: true },
-];
+const nav = doctorNav("drafts");
 
 const STATUS_FILTERS = [null, "DRAFT", "NEEDS_REVIEW", "APPROVED"] as const;
 

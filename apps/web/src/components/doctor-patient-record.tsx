@@ -17,14 +17,9 @@ import { Skeleton } from "@/components/skeleton";
 import { createIdentityRequest, useAuth } from "@/lib/auth";
 import { fetchApi, useApiData } from "@/lib/api";
 import { recordHref } from "@/lib/route-params";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor" },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients", active: true },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor", disabled: true },
-];
+const nav = doctorNav("patients");
 const card = "rounded-[22px] border border-clear-divider bg-clear-surface p-4";
 const action =
   "flex min-h-[52px] w-full items-center justify-center rounded-[18px] border border-clear-divider px-4 text-center font-sans text-xs font-semibold uppercase disabled:opacity-50";

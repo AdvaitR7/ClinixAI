@@ -8,14 +8,9 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { Skeleton } from "@/components/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { fetchApi, useApiData } from "@/lib/api";
+import { doctorNav } from "@/lib/workspace-nav";
 
-const nav = [
-  { label: "Desk", href: "/app/doctor", active: true },
-  { label: "Schedule", href: "/app/doctor/schedule" },
-  { label: "Patients", href: "/app/doctor/patients" },
-  { label: "Drafts", href: "/app/doctor/drafts" },
-  { label: "Follow-ups", href: "/app/doctor/followups" },
-];
+const nav = doctorNav("desk");
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("en-IN", {
