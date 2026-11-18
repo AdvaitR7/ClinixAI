@@ -42,6 +42,6 @@ docs/
 
 - Every doc opens with its purpose and a `Last verified:` date. Update the date when you check a doc against the code.
 - **Change the code, then the doc, in the same commit.** That covers a new route (screen-map), a new domain module (codebase-map), a new migration (database) and a new decision (history).
-- No screenshots, generated dumps or per-session logs go in `docs/`. Test screenshots go to `apps/web/test-results/`. Design references live in the `.figcraft` file.
+- No screenshots, generated dumps or per-session logs go in `docs/`. Test screenshots go to `apps/web/test-results/screens/`. Design references live in the `.figcraft` file.
 - Plans for in-flight work go in `code-agent/c-plans/`. When one is finished, distill it into [history.md](history.md) and [status.md](status.md), then delete it.
 - Synthetic data only. Never put secrets, credential values or real patient data in any doc.

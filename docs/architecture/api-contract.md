@@ -500,6 +500,8 @@ Doctor corrects the draft.
 
 Requires authenticated doctor action and idempotency key.
 
+> **Review gate (implemented 2026-10-26):** if any draft item still has `needs_review` set (OCR or other flagged lines), finalize returns `409 REVIEW_REQUIRED` until the doctor confirms each flagged line against its source. Code: `services/api/src/prescriptions/routes.ts`, test `review-gate.test.ts`.
+
 Backend:
 
 ```text
