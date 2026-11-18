@@ -2,10 +2,16 @@
 
 These rules are authoritative for any AI coding agent working in this repo. They mirror and extend `.sensitive_docs/README.md`.
 
+## Start here
+
+- `docs/README.md` — reading map: which doc to read for which task.
+- `docs/codebase-map.md` — where code lives; `docs/history.md` — past decisions; `docs/status.md` — what is done and open.
+- Keep docs true: a change to routes, modules, migrations or a lasting decision updates the matching doc in the same commit.
+
 ## Architectural invariant (do not violate)
 
 - The backend API is **Fastify** at `/api/v1` (`services/api`). **Never** implement API endpoints as Next.js route handlers in `apps/web`. If you find yourself about to write a `route.ts`/`route.js` under `apps/web/app` that does backend work, stop — it belongs in `services/api`.
-- Two services only: `apps/web` (Next.js, frontend) + `services/api` (Fastify, backend). A `services/worker` (pg-boss) is added in later phases, not Phase 0.
+- Two services only: `apps/web` (Next.js, frontend) + `services/api` (Fastify, backend), plus `services/worker` (pg-boss jobs for OCR and AI).
 - Specs in `docs/` are the source of truth. Conflict between spec and code → spec wins; conflict between specs → ask the user.
 
 ## Credential rules
