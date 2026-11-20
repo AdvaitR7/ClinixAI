@@ -1,12 +1,10 @@
 # Demo rehearsal (Milestones A, B, C)
 
-A scripted walkthrough of the three acceptance milestones, using the synthetic seed personas. Use it for jury demos and as a manual end-to-end check.
+A manual end-to-end walkthrough for your own instance using the synthetic seed personas.
 
-Last verified: 2026-11-18. The script dates from Phase 8 (2026-11-03). Screen copy changed in Clear v2, but the flows did not.
+Last verified: 2026-11-18.
 
-**Setup:** run the API, worker and web app ([local-dev.md](local-dev.md)) and `npm run seed`. Every demo account uses `SEED_DEMO_PASSWORD`. For a run without a model, set `DEMO_REPLAY=replay` on the worker. Use the installed PWA on a phone for the patient and a laptop browser for the doctor.
-
-Milestone letters match [../history.md](../history.md): **A** clinical loop, **B** AI check-in, **C** documents and OCR. Run B first.
+**Setup:** run the API, worker and web app ([local-dev.md](local-dev.md)) and `npm run seed`. Every demo account uses `SEED_DEMO_PASSWORD`. Set `DEMO_REPLAY=replay` on the worker to use matching fixtures; replay misses still require a live gateway. Use the installed PWA on a phone for the patient and a laptop browser for the doctor. Run B before A.
 
 ## B: AI check-in
 

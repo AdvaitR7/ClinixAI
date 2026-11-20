@@ -185,7 +185,7 @@ clinix/
 │
 └── infra/
     ├── supabase/
-    └── dokploy/              # compose files for the VPS
+    └── supabase/             # Storage bucket setup
 ```
 
 Patient and doctor UIs live in one Next.js app with role-based routing:

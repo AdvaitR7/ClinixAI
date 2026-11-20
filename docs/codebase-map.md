@@ -40,11 +40,11 @@ flowchart TB
 | `apps/web` | Next.js frontend: patient, doctor and staff workspaces, plus the PWA | **No backend route handlers here** ([CLAUDE.md](../CLAUDE.md)) |
 | `apps/mobile` | Capacitor Android project wrapping the static export | [architecture/mobile.md](architecture/mobile.md) |
 | `services/api` | Fastify API, Drizzle schema and migrations, seed, live gates | Deployed to Vercel `bom1` |
-| `services/worker` | pg-boss consumer for OCR and the AI analysis pipeline | Deployed on Dokploy |
+| `services/worker` | pg-boss consumer for OCR and the AI analysis pipeline | Runs as a persistent process |
 | `packages/schemas` | Shared Zod schemas and types (`src/index.ts`), used by all three services | Single file, organised by phase |
 | `packages/config` | Shared `tsconfig.base.json` | — |
-| `infra/` | Deploy config: Dokploy compose, backup image, Storage bucket SQL | [infra/README.md](../infra/README.md) |
-| `scripts/` | `run.mjs` (local launcher behind `run.sh`), `deploy/` (SHA promotion, registry login), `backup/` (Supabase snapshot) | Called by CI and Dokploy |
+| `infra/` | Supabase Storage bucket setup | [infra/README.md](../infra/README.md) |
+| `scripts/` | `run.mjs` (local launcher behind `run.sh`) | Local developer tooling |
 | `tools/` | `generate_copyright_pdf.py`, a one-off source deposit generator | Output is gitignored |
 | `.github/workflows/` | CI images, production promotion, Android release | [operations/testing.md](operations/testing.md#ci) |
 | `docs/` | This documentation | [README.md](README.md) |
@@ -127,5 +127,5 @@ Other paths:
 | Visual change | Tokens in `app/globals.css`, shells in `components/` | [design/DESIGN.md](design/DESIGN.md) |
 | AI or OCR behaviour | `services/worker/src/pipeline/`, `handlers/` | Keep output draft-first; re-record replays |
 | Safety rule | `services/api/src/safety/rule_sets/` | — |
-| Deploy config | `apps/web/vercel.json`, `services/api/vercel.json`, `infra/dokploy/` | [operations/deployment.md](operations/deployment.md) |
+| Deploy config | `apps/web/vercel.json`, `services/api/vercel.json` | [operations/deployment.md](operations/deployment.md) |
 | A decision with lasting effect | — | [history.md](history.md) |

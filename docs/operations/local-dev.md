@@ -2,29 +2,39 @@
 
 From a fresh clone to a running app with synthetic data.
 
-Last verified: 2026-11-18 against `package.json`, `scripts/run.mjs` and the `.env.example` files.
+Last verified: 2026-11-20 against the workspace scripts, migrations and environment templates.
 
 ## Requirements
 
 - Node 24 and npm 11 (npm workspaces; no pnpm or corepack)
-- A Supabase Cloud project with Postgres + `pgvector`, Auth and Storage. **Supabase is never run locally.**
-- A 9Router endpoint, which the worker needs for OCR and AI. Use synthetic data only.
-- Chromium for browser tests: `npx playwright install chromium`
-- JDK 21 + Android SDK only for APK builds. Docker only for the local Compose run.
+- Your own Supabase Cloud project with Postgres, Auth and Storage. Use a dedicated project with synthetic data only.
+- A 9Router endpoint and API key only if you want to run OCR or AI analysis.
+- Chromium for browser tests (`npx playwright install chromium`); JDK 21 and Android SDK for APK builds.
 
 ## Setup
 
-```bash
-npm ci
-cp services/api/.env.example services/api/.env
-cp services/worker/.env.example services/worker/.env
-cp apps/web/.env.example apps/web/.env.local
-# Fill in values from .sensitive_docs/credentials.md. That file is gitignored. Never print or commit it.
+1. In your Supabase project, enable the `vector` extension under Database → Extensions. Run [bucket.sql](../../infra/supabase/bucket.sql) in the SQL Editor to create the private documents bucket. In Auth URL Configuration set the site URL to `http://localhost:3000` and allow `http://localhost:3000/auth/callback` and `http://localhost:3000/auth/callback?next=%2Freset-password`.
+2. Install dependencies and copy the templates. Skip the worker template if you are not testing OCR or AI.
 
-npm run db:migrate                 # Drizzle migrations → Supabase
-npm run dev                        # web :3000, api :4000, worker
-curl localhost:4000/health         # {"ok":true,"db":"up"}
-```
+   ```bash
+   npm ci
+   cp services/api/.env.example services/api/.env
+   cp apps/web/.env.example apps/web/.env.local
+   cp services/worker/.env.example services/worker/.env
+   ```
+
+3. Fill the files using [the configuration guide](environment.md). For the default local ports, use `http://localhost:4000/api/v1` as `NEXT_PUBLIC_API_BASE_URL`, and `http://localhost:3000` as both `NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL` and `CORS_ORIGINS`. Use `NODE_ENV=development` for the API and worker, and set `SEED_DEMO_PASSWORD` in the API env if you plan to seed.
+4. Apply migrations before starting the API. Run the API, web and (optionally) worker in separate terminals.
+
+   ```bash
+   npm run db:migrate
+   npm run dev:api
+   npm run dev:web
+   # Optional, after configuring the worker:
+   npm run dev:worker
+   ```
+
+5. Check `curl -fsS http://localhost:4000/health` for `ok: true` and `db: "up"`, then open `http://localhost:3000`. Without the worker, queued OCR and AI jobs will not complete.
 
 ### Or one launcher on fixed ports
 
@@ -39,15 +49,15 @@ curl localhost:4000/health         # {"ok":true,"db":"up"}
 | File | Variables |
 |---|---|
 | `services/api/.env` | `NODE_ENV`, `PORT`, `DATABASE_URL`, `IDENTITY_ENCRYPTION_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_VERIFICATION_MODE`, `SUPABASE_JWT_ISSUER`, `SUPABASE_JWT_ALLOWED_ALGORITHMS`, `SUPABASE_GATE_DOCTOR_EMAIL`, `SUPABASE_GATE_PATIENT_EMAIL`, `SUPABASE_GATE_PASSWORD`, `NINEROUTER_BASE_URL`, `NINEROUTER_API_KEY`, `MODEL_ROUTE_*`, `CORS_ORIGINS`, `DB_POOL_MAX`, `QUEUE_POOL_MAX`, `SEED_DEMO_PASSWORD`, `SEED_API_BASE_URL` |
-| `services/worker/.env` | `NODE_ENV`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NINEROUTER_BASE_URL`, `NINEROUTER_API_KEY`, `MODEL_ROUTE_ANALYST_1`, `MODEL_ROUTE_ANALYST_2`, `MODEL_ROUTE_JUDGE`, `MODEL_ROUTE_OCR`, `DEMO_REPLAY`, `DB_POOL_MAX`, `QUEUE_POOL_MAX`; optional `MODEL_REASONING_EFFORT` |
+| `services/worker/.env` | `NODE_ENV`, `DATABASE_URL`, `IDENTITY_ENCRYPTION_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NINEROUTER_BASE_URL`, `NINEROUTER_API_KEY`, `MODEL_ROUTE_ANALYST_1`, `MODEL_ROUTE_ANALYST_2`, `MODEL_ROUTE_JUDGE`, `MODEL_ROUTE_OCR`, `DEMO_REPLAY`, `DB_POOL_MAX`, `QUEUE_POOL_MAX`; optional `MODEL_REASONING_EFFORT` |
 | `apps/web/.env.local` | `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_AUTH_REDIRECT_BASE_URL` |
 
 Notes:
 
-- `DATABASE_URL` is the Supabase **session** pooler (port 5432). The pool allows about 15 connections in total.
+- Use the Supabase direct connection or IPv4 session pooler, not the transaction pooler. Check your project's connection limit before running multiple stacks.
 - `CORS_ORIGINS` is a comma-separated allowlist. If it's unset, development allows any origin. With `NODE_ENV=production` the API refuses to start without it.
 - `IDENTITY_ENCRYPTION_KEY` encrypts patient identity fields (AES-256-GCM). Losing it makes existing records unreadable.
-- `.env.example` files carry names only. Where each value comes from is listed in `.sensitive_docs/README.md`.
+- `.env.example` files carry names only. Never commit populated environment files.
 
 ## Synthetic demo data
 

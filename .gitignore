@@ -35,3 +35,7 @@ apps/web/public/sw*
 # Permanent Android signing material must stay outside source control
 *.jks
 *.keystore
+
+# Local design tooling and deployment links
+/.impeccable/
+.vercel/

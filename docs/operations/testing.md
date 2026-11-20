@@ -23,14 +23,6 @@ Last verified: 2026-11-18 against `package.json` and the Playwright configs.
 - **Screenshots** taken by e2e specs go to `apps/web/test-results/screens/`, which is gitignored. Design references live in [`../design/ClinixAI-v2.figcraft`](../design/ClinixAI-v2.figcraft), not in screenshots.
 - **The first Playwright run** after a cold start can time out while the dev server compiles. Retry once. Running `next dev` may rewrite `apps/web/next-env.d.ts`; revert it before you commit.
 - **Mocks need real shapes.** A mock that returns `[]` where the page expects an object shows the error state. Copy the fixtures in `apps/web/e2e/dock.spec.ts`.
-- **Gates write to the shared Supabase project.** They leave synthetic practices, users and appointments behind, and there's no cleanup script. Never point a gate at real data.
+- **Gates write to the configured Supabase project.** Use a disposable test project: they leave synthetic practices, users and appointments behind, and there is no cleanup script.
 - **The `gate-phase4.mjs` finalize leg** fails by design: it predates the prescription review gate (`409 REVIEW_REQUIRED`). Its other legs pass.
-- **Don't run several stacks at once.** Two of them exceed the session pool (`EMAXCONNSESSION`).
-
-## CI
-
-`.github/workflows/`:
-
-- `docker-publish.yml`: on PR/push it runs typecheck, unit, browser and both UI builds, and validates the images. On `master` it publishes private GHCR images tagged with the full SHA.
-- `deploy-production.yml`: manual promotion of a built SHA to Dokploy. See [deployment.md](deployment.md).
-- `android-release.yml`: builds a signed APK as a private prerelease.
+- **Check your pool limit** before running multiple stacks to avoid `EMAXCONNSESSION`.

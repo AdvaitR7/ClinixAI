@@ -8,6 +8,16 @@ A privacy-first personal health record and clinical workflow prototype with thre
 
 It runs as a web app, an installable PWA and an Android app. Every AI, OCR and voice output is a draft until a doctor finalizes it.
 
+## UI design previews
+
+| Consultation | Prescription review | Staff dashboard |
+| :---: | :---: | :---: |
+| [![Consultation workspace](docs/previews/consultation.webp)](docs/previews/consultation.webp) | [![Prescription review workspace](docs/previews/prescription-review.webp)](docs/previews/prescription-review.webp) | [![Clinic staff dashboard](docs/previews/staff-dashboard.webp)](docs/previews/staff-dashboard.webp) |
+
+| Health check-in | Health Vault | Privacy ledger |
+| :---: | :---: | :---: |
+| [![Patient health check-in](docs/previews/health-check-in.webp)](docs/previews/health-check-in.webp) | [![Patient Health Vault](docs/previews/health-vault.webp)](docs/previews/health-vault.webp) | [![Patient privacy and access ledger](docs/previews/privacy-ledger.webp)](docs/previews/privacy-ledger.webp) |
+
 ```mermaid
 flowchart LR
   Web["Web / PWA<br/>apps/web · Next.js"] --> API["API<br/>services/api · Fastify /api/v1"]
@@ -17,7 +27,7 @@ flowchart LR
   Worker --> AI["9Router<br/>OCR · analysts · judge"]
 ```
 
-The web app and API run on Vercel (`bom1`, Mumbai), next to Supabase. The worker runs on Dokploy.
+Run the app with your own Supabase project. The web app and API do not require a model gateway for basic workflows; OCR and AI jobs need a running worker and a configured gateway.
 
 ## Repository
 
@@ -28,24 +38,22 @@ The web app and API run on Vercel (`bom1`, Mumbai), next to Supabase. The worker
 | `services/api` | Fastify API, Drizzle schema and migrations, seed, live gates |
 | `services/worker` | OCR and AI analysis jobs |
 | `packages/` | Shared Zod schemas and TypeScript config |
-| `infra/` | Dokploy compose, backup image, Storage bucket SQL |
+| `infra/` | Supabase Storage bucket setup |
 | `docs/` | **Documentation: start at [docs/README.md](docs/README.md)** |
 
 ## Quick start
 
-Needs Node 24, npm 11, a Supabase Cloud project and a 9Router endpoint.
+Use Node 24, npm 11 and a dedicated Supabase Cloud project with synthetic data only. Follow [local development](docs/operations/local-dev.md) to enable `vector`, create the private Storage bucket and fill in the environment files.
 
 ```bash
 npm ci
-cp services/api/.env.example services/api/.env          # fill in the values
-cp services/worker/.env.example services/worker/.env
-cp apps/web/.env.example apps/web/.env.local
 npm run db:migrate
-npm run dev            # web :3000 · api :4000 · worker   (or ./run.sh → :12455)
-npm run seed           # synthetic demo accounts (API must be running)
+npm run dev:api     # terminal 1, port 4000
+npm run dev:web     # terminal 2, port 3000
+npm run seed        # terminal 3, after the API is healthy
 ```
 
-The full setup, variables and demo personas are in [docs/operations/local-dev.md](docs/operations/local-dev.md).
+Open `http://localhost:3000`. To try OCR or AI, configure the worker and run `npm run dev:worker` in a separate terminal.
 
 ## Checks
 
@@ -67,8 +75,9 @@ PWA, live and gate checks are in [docs/operations/testing.md](docs/operations/te
 | [docs/codebase-map.md](docs/codebase-map.md) | Where code lives and where to make changes |
 | [docs/history.md](docs/history.md) | Decisions: what, why, when, where |
 | [docs/status.md](docs/status.md) | What works, and what blocks release |
-| [docs/operations/deployment.md](docs/operations/deployment.md) | Vercel, Dokploy, Android releases, rollback |
-| [CLAUDE.md](CLAUDE.md) | Rules for coding agents |
+| [docs/operations/deployment.md](docs/operations/deployment.md) | Self-hosted deployment, Android builds and rollback |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
+| [SECURITY.md](SECURITY.md) | How to report vulnerabilities privately |
 
 ## Safety rails
 

@@ -18,13 +18,9 @@ The APK is written to `apps/mobile/android/app/build/outputs/apk/debug/app-debug
 
 ## Signed release
 
-The GitHub Actions workflow `.github/workflows/android-release.yml` builds and publishes signed APKs. Configure the Android keystore values as repository secrets and keep a separate encrypted backup of the original keystore. Set `CLINIX_AUTH_HOST` to the app web domain hostname and the same public web configuration used for Dokploy. The certificate fingerprint in `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT` must match the release signing key for Android App Links.
+Build and sign your own APK using the [deployment guide](../../docs/operations/deployment.md). Keep the keystore and its encrypted backup outside the repository. Set `CLINIX_AUTH_HOST` to your web hostname and configure `ANDROID_APP_LINK_SHA256_CERT_FINGERPRINT` to match your signing certificate.
 
-Releases stay in the PRIVATE `AdvaitR7/ClinixAI` repository. Download through a browser signed into GitHub with repository access. No GitHub credential is embedded in the app. Published candidates are prereleases until physical-phone acceptance.
-
-The encrypted signing-keystore backup created during setup is `your-local-signing-keystore`; copy it to a second safe location outside the VPS and preserve its password.
-
-Each release has an increasing version code and publishes a SHA-256 checksum. Install the newer APK over an existing install to verify the signing key and retained session behavior.
+Increment the version code for updates. Verify an upgrade on a physical device before distributing the APK.
 
 ## Authentication and offline behavior
 
